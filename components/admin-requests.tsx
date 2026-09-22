@@ -32,7 +32,7 @@ export default function AdminRequests({ schoolId }: { schoolId: string }) {
 
   async function review(item: RequestItem, action: "APPROVE" | "REJECT") {
     setMessage("");
-    const classId = item.type === "ADMISSION"
+    const classId = item.type === "ADMISSION" && item.requestedRole === "STUDENT"
       ? (document.getElementById(`class-${item.id}`) as HTMLSelectElement)?.value
       : undefined;
 
@@ -60,9 +60,13 @@ export default function AdminRequests({ schoolId }: { schoolId: string }) {
           <div key={item.id} className="card">
             <strong>{item.user.name}</strong>
             <p className="muted">{item.user.email}</p>
-            <p>{item.type === "JOB" ? "Teacher job request" : "Student admission request"}</p>
+            <p>
+  {item.type === "JOB"
+    ? item.requestedRole === "CASHIER" ? "Cashier job request" : "Teacher job request"
+    : item.requestedRole === "PARENT" ? "Parent connection request" : "Student admission request"}
+</p>
 
-            {item.type === "ADMISSION" && (
+            {item.type === "ADMISSION" && item.requestedRole === "STUDENT" && (
               <select id={`class-${item.id}`} defaultValue={item.classId || ""}>
                 <option value="">Choose class</option>
                 {classes.map(c => (
