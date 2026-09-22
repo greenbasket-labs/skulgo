@@ -41,6 +41,7 @@ model School {
   assignments TeacherAssignment[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
+  selectedMembershipId String?
 }
 
 model User {
