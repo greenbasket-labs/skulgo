@@ -40,6 +40,7 @@ model School {
   payments Payment[]
   assignments TeacherAssignment[]
   requests SchoolRequest[]
+  memberships SchoolMembership[]
 }
 
 model User {
@@ -55,7 +56,21 @@ model User {
   parent Parent?
   createdAt DateTime @default(now())
   requests SchoolRequest[]
+  memberships SchoolMembership[]
   @@index([schoolId])
+}
+
+model SchoolMembership {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  role Role
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  @@unique([schoolId,userId])
+  @@index([userId,active])
 }
 
 model SchoolRequest {
