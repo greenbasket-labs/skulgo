@@ -43,6 +43,10 @@ Classes are selected from a Nigerian school class list. The school only activate
 
 Selecting and saving a class means that class is part of the school's operating structure. The same class record is then used by admissions, students, class masters, subjects, attendance and results.
 
+### Subjects
+
+Subjects use a Nigerian school subject catalog. Admin selects only the subjects the school actually offers and saves them to the school's subject list. The selected list is editable later: Admin can **add, remove or edit** subjects. These saved subjects are then available in **Assign** when connecting subjects to staff.
+
 ### Teacher
 
 Only sees the work assigned to them.
