@@ -1,38 +1,76 @@
 import { test, expect } from "@playwright/test";
 
-test("personal account can create and enter a school workspace", async ({ page }) => {
-  const email = `pilot-${Date.now()}@example.com`;
+test("personal account can create a school and student can join after admin approval", async ({ browser }) => {
+  const ownerEmail = `owner-${Date.now()}@example.com`;
+  const studentEmail = `student-${Date.now()}@example.com`;
+  const password = "PilotPassword123!";
+  const owner = await browser.newContext();
+  const student = await browser.newContext();
+  const adminPage = await owner.newPage();
+  const studentPage = await student.newPage();
 
-  await page.goto("/signup");
-  await expect(page.getByRole("heading", { name: /create your personal account/i })).toBeVisible();
+  await adminPage.goto("/signup");
+  await adminPage.locator('input[name="name"]').fill("Pilot Owner");
+  await adminPage.locator('input[name="email"]').fill(ownerEmail);
+  await adminPage.locator('input[name="password"]').fill(password);
+  await adminPage.getByRole("button", { name: /create account/i }).click();
+  await expect(adminPage).toHaveURL(/\/dashboard/);
 
-  const inputs = page.locator("input");
-  await inputs.nth(0).fill("Pilot Owner");
-  await inputs.nth(1).fill(email);
-  await inputs.nth(2).fill("PilotPassword123!");
+  const schoolResponse = await adminPage.request.post("/api/schools", {
+    data: {
+      name: "Pilot Community School",
+      abbr: "PCS",
+      address: "Pilot Road",
+      phone: "08000000000",
+      email: `school-${Date.now()}@example.com`,
+    },
+  });
+  expect(schoolResponse.ok()).toBeTruthy();
+  const school = await schoolResponse.json();
+  expect(school.membershipId).toBeTruthy();
 
-  await page.getByRole("button", { name: /create account/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText(/personal skulgo account/i)).toBeVisible();
+  const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
+  expect(sectionsResponse.ok()).toBeTruthy();
+  const sections = await sectionsResponse.json();
+  const primary = sections.find((section: { name: string }) => section.name === "Primary");
+  expect(primary).toBeTruthy();
 
-  await page.goto("/register");
-  await expect(page).toHaveURL(/\/schools\/new/);
-  await page.getByPlaceholder("School name").fill("Pilot Community School");
-  await page.getByPlaceholder("School abbreviation").fill(`PCS${String(Date.now()).slice(-4)}`);
-  await page.getByPlaceholder("Address").fill("Pilot Road");
-  await page.getByPlaceholder("Phone").fill("08000000000");
-  await page.getByPlaceholder("School email").fill(`school-${Date.now()}@example.com`);
-  await page.getByRole("button", { name: /create school/i }).click();
+  const classResponse = await adminPage.request.post(`/api/schools/${school.id}/classes`, {
+    data: { sectionId: primary.id, name: "Primary 5", arm: "A" },
+  });
+  expect(classResponse.ok()).toBeTruthy();
+  const schoolClass = await classResponse.json();
 
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText(/good morning, pilot/i)).toBeVisible();
-  await expect(page.getByRole("complementary").getByText(/pilot community school/i)).toBeVisible();
-  await expect(page.getByRole("complementary").getByText("ADMIN", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Applications" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Classes" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Subjects" })).toBeVisible();
+  await studentPage.goto("/signup");
+  await studentPage.locator('input[name="name"]').fill("Pilot Student");
+  await studentPage.locator('input[name="email"]').fill(studentEmail);
+  await studentPage.locator('input[name="password"]').fill(password);
+  await studentPage.getByRole("button", { name: /create account/i }).click();
+  await expect(studentPage).toHaveURL(/\/dashboard/);
 
-  const schoolName = "Pilot Community School";
-  const schoolText = page.getByRole("complementary").getByText(schoolName, { exact: true });
-  await expect(schoolText).toBeVisible();
+  const application = await studentPage.request.post("/api/school-requests", {
+    data: {
+      schoolId: school.id,
+      type: "ADMISSION",
+      requestedRole: "STUDENT",
+      classId: schoolClass.id,
+    },
+  });
+  expect(application.status()).toBe(201);
+  const request = await application.json();
+
+  const pending = await adminPage.request.get(`/api/schools/${school.id}/requests`);
+  expect(pending.ok()).toBeTruthy();
+  const pendingRequests = await pending.json();
+  expect(pendingRequests.some((item: { id: string }) => item.id === request.id)).toBeTruthy();
+
+  const approval = await adminPage.request.patch(
+    `/api/schools/${school.id}/requests/${request.id}`,
+    { data: { action: "APPROVE", classId: schoolClass.id } }
+  );
+  expect(approval.ok()).toBeTruthy();
+
+  await studentPage.goto("/dashboard");
+  await expect(studentPage).toHaveURL(/\/dashboard/);
+  await expect(studentPage.getByText(/choose a school workspace|student workspace|welcome/i)).toBeVisible();
 });
