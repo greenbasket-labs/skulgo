@@ -22,38 +22,9 @@ export async function GET(
   return NextResponse.json(teachers);
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ schoolId: string }> }
-) {
-  const { schoolId } = await params;
-  const body = await request.json();
-  const name = String(body.name ?? "").trim();
-  const email = String(body.email ?? "").trim().toLowerCase();
-  const password = String(body.password ?? "").trim();
-
-  if (!name || !email || !password) {
-    return NextResponse.json({ error: "name, email and password are required" }, { status: 400 });
-  }
-
-  const school = await db.school.findUnique({ where: { id: schoolId } });
-  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
-
-  const existing = await db.user.findUnique({
-    where: { schoolId_email: { schoolId, email } },
-  });
-  if (existing) return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
-
-  const teacherCode = makeTeacherId(school.abbr, new Date().getFullYear());
-  const teacher = await db.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: { schoolId, name, email, passwordHash: hashPassword(password), role: "TEACHER" },
-    });
-    return tx.teacher.create({
-      data: { userId: user.id, teacherCode },
-      include: { user: { select: { id: true, name: true, email: true } } },
-    });
-  });
-
-  return NextResponse.json(teacher, { status: 201 });
+export async function POST() {
+  return NextResponse.json(
+    { error: "Teacher accounts are created from personal SkulGo accounts. Search for this school and send a job request." },
+    { status: 410 }
+  );
 }
