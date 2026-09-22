@@ -92,7 +92,7 @@ test("teacher can save a score offline and it syncs when online returns", async 
     });
     expect(assignment.status(), JSON.stringify(await assignment.text())).toBe(201);
 
-    const studentPage = await owner.context().newPage();
+    const studentPage = await owner.newPage();
     await studentPage.goto("/signup");
     await studentPage.locator('input[name="name"]').fill("Score Test Student");
     await studentPage.locator('input[name="email"]').fill(studentEmail);
