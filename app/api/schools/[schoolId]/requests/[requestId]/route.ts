@@ -62,7 +62,9 @@ export async function PATCH(
 
   await db.$transaction(async tx => {
     await tx.schoolMembership.upsert({
-      data: {
+      where: { schoolId_userId: { schoolId, userId: schoolRequest.userId } },
+      update: { active: true, role: schoolRequest.requestedRole },
+      create: {
         schoolId,
         userId: schoolRequest.userId,
         role: schoolRequest.requestedRole,
