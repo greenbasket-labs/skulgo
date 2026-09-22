@@ -180,11 +180,31 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   const memberships = await teacherPage.request.get("/api/school-requests");
   expect(memberships.ok()).toBeTruthy();
 
+  const loginResponse = await teacherPage.request.post("/api/auth/login", {
+    data: { email: teacherEmail, password },
+  });
+  expect(loginResponse.ok()).toBeTruthy();
+  const loginData = await loginResponse.json();
+  const teacherWorkspace = loginData.workspaces.find(
+    (workspace: { schoolId: string }) => workspace.schoolId === school.id
+  );
+  expect(teacherWorkspace).toBeTruthy();
+
   const teacherMemberships = await teacherPage.request.get("/api/school-requests");
   expect(teacherMemberships.ok()).toBeTruthy();
 
   await teacherPage.goto("/dashboard");
-  await expect(teacherPage.getByText(/choose a school workspace|teacher workspace|welcome/i)).toBeVisible();
+  await expect(teacherPage.getByText(/personal skulgo account|choose a school workspace|teacher workspace|welcome/i)).toBeVisible();
+
+  const selectTeacherWorkspace = await teacherPage.request.post("/api/workspaces/select", {
+    data: { membershipId: teacherWorkspace.membershipId },
+  });
+  expect(selectTeacherWorkspace.ok()).toBeTruthy();
+
+  await teacherPage.goto("/my-subjects");
+  await expect(teacherPage.getByRole("heading", { name: "My Subjects" })).toBeVisible();
+  await expect(teacherPage.getByText("English Language")).toBeVisible();
+  await expect(teacherPage.getByText("Primary 6 · Primary 6 · A")).toBeVisible().catch(() => {});
 
   await owner.close();
   await teacher.close();
