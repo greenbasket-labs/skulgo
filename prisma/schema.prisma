@@ -91,6 +91,7 @@ model Teacher {
   userId String @unique
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
   teacherCode String @unique
+  approved Boolean @default(false)
   assignments TeacherAssignment[]
 }
 
