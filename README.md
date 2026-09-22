@@ -1,92 +1,95 @@
 # SkulGo
 
-**Motto: Transparent and Secure Records**
+**Motto: Transparent & Secure Records**
 
-SkulGo is a lightweight school record system for Nigerian primary and secondary schools.
+SkulGo is a very lightweight school records application. It keeps the school structure and records connected, while every person works through their own personal SkulGo account.
 
-## MVP scope
+## Simple model
 
-The first stage focuses only on the connected core:
+**Personal account → School connection → Duty → School work**
+
+A person keeps one personal account. A school is a separate entity. A person can be connected to one or more schools, with a duty for each connection.
+
+The same person who owns a school can register that school, configure it, then return to their personal account and enter the school workspace to operate in their approved duty.
+
+## Keep it light
+
+SkulGo is built in small modules. Each module should solve one real school task and fit into the connected record flow.
+
+### Principal / School owner
+
+Sees the whole school operation needed for the role:
+
+- school structure
+- teachers and assignments
+- students/classes
+- attendance overview
+- results
+- fees, payments and outstanding balances
+
+The principal mainly **approves, assigns and manages**.
+
+### Teacher
+
+Only sees the work assigned to them.
+
+**Class master:**
+- my class
+- whole-class attendance
+- my class students
+
+**Subject teacher:**
+- my subject
+- classes/students under that subject
+- assignments, scores and related assessment work
+
+A teacher does not see unrelated classes or subjects.
+
+### Student
+
+Sees their own connected school records, such as:
+
+- class
+- attendance
+- subjects
+- scores/results
+- fees and balance
+
+### Parent
+
+After an approved child link:
+
+- my child / my children
+- attendance
+- school results when published
+- assigned fees
+- payments and balance
+- simple result/record viewing
+
+### Cashier
+
+Works with the school's fee records:
+
+- assigned fees
+- payments received
+- outstanding balances
+
+## Core record flow
 
 **People → Classes → Subjects → Attendance → Scores → Results → Fees**
 
-Core roles:
+Keep the relationships connected. Do not duplicate the same school record in separate systems.
 
-- School Admin / Principal
-- Teacher
-- Student
-- Parent
-- Cashier
+## Modular development rule
 
-The MVP is intentionally small. It is not a complete school-management system.
+Build small, independent pieces that can be extended later.
 
-## Core flow
+Before adding anything, ask:
 
-1. Register a school.
-2. Create the basic school structure.
-3. Approve teachers and students.
-4. Assign teachers to classes and subjects.
-5. Record attendance.
-6. Enter scores.
-7. Calculate results and positions.
-8. Publish results.
-9. Let students and approved parents view published results.
-10. Record fee payments and show balances.
+> Does this directly help a real school duty or the core record flow?
 
-## Design principles
+If no, leave it out.
 
-- Clean, small codebase.
-- Mobile-friendly workflows.
-- Role-based access.
-- Strict school/tenant isolation.
-- Connected records instead of duplicated information.
-- Principal does **approve → assign → manage**, not extensive configuration.
-- Teacher daily work should be fast.
-- Student and parent experiences are mostly view-only.
-- Cashier uses a simple fee ledger.
-- Offline support starts with a lightweight local-data/sync-queue abstraction.
+Do not build payroll, inventory, hostel, transport, library, biometric systems, complex accounting, AI features, CRM, school websites, marketplaces, advanced analytics, or large notification systems in this stage.
 
-## Explicitly out of scope
-
-Payroll, inventory, hostel, transport, library, timetable engines, biometric integration, SMS/WhatsApp automation, AI features, complex accounting, CRM, marketing, school website builder, payment-provider infrastructure, subscriptions, advanced analytics, complex notifications, marketplace, and parent community features.
-
-## Repository status
-
-This repository intentionally starts clean. No App-School or Bridge Hosting code is part of the foundation.
-
-## Current implementation
-
-The repository now has:
-
-- Next.js + Prisma foundation with SQLite development database.
-- School registration with automatic base sections.
-- Simple school-scoped sections, classes, subjects, and student APIs.
-- Automatic student admission IDs.
-- Teacher creation with automatic teacher codes.
-- Teacher approval state and approval endpoint.
-- School-scoped teacher → class → subject assignments.
-- Assignment checks that teacher, class, and subject belong to the same school.
-- Assignment blocked until the teacher is approved.
-- Lightweight class attendance workflow.
-- Attendance records can be created or updated for a student/date/session.
-- Class attendance view returns every student with present/absent/unmarked state.
-- CA + exam assessment entry with simple 30/70 validation.
-- Assessment entry requires an approved teacher assignment for the class and subject.
-- Student result generation with grade and subject position.
-- Simple result publishing endpoint.
-- Simple fee record per student.
-- Cashier-only payment recording with school isolation.
-- Payment cannot exceed the remaining balance.
-- Student fee view showing total fee, payments, total paid, and balance.
-
-Authentication/session handling and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
-
-## Development rule
-
-Before adding a feature, ask:
-
-> Does this directly help the core school record flow?
-
-If not, do not build it in this stage.
-
-**Think small. Build the core. Stop when the core flow works.**
+**Think small. Build one useful piece at a time.**
