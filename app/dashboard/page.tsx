@@ -1,2 +1,42 @@
-import {redirect} from "next/navigation"; import {getCurrentUser} from "@/lib/auth"; import {db} from "@/lib/db";
-export default async function Dashboard(){const u=await getCurrentUser();if(!u)redirect("/login");if(!u.schoolId||!u.role)return <main className="shell"><div className="card"><p className="muted">Personal SkulGo account</p><h1>Welcome, {u.name}</h1><p>Your account is ready. Search for your school and send a job or admission request.</p><a className="button" href="/schools">Find a school</a></div></main>;const s=await db.school.findUnique({where:{id:u.schoolId},select:{name:true,abbr:true}});return <main className="shell"><div className="card"><p className="muted">{s?.name} · {u.role}</p><h1>Welcome, {u.name}</h1><p>Your SkulGo account is connected to your school.</p></div></main>;}
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import AdminRequests from "@/components/admin-requests";
+
+export default async function Dashboard() {
+  const u = await getCurrentUser();
+  if (!u) redirect("/login");
+
+  if (!u.schoolId || !u.role) {
+    return (
+      <main className="shell">
+        <div className="card">
+          <p className="muted">Personal SkulGo account</p>
+          <h1>Welcome, {u.name}</h1>
+          <p>Your account is ready. Search for your school and send a job or admission request.</p>
+          <a className="button" href="/schools">Find a school</a>
+        </div>
+      </main>
+    );
+  }
+
+  const s = await db.school.findUnique({
+    where: { id: u.schoolId },
+    select: { name: true, abbr: true },
+  });
+
+  return (
+    <main className="shell">
+      <div className="card">
+        <p className="muted">{s?.name} · {u.role}</p>
+        <h1>Welcome, {u.name}</h1>
+        <p>Your SkulGo account is connected to your school.</p>
+      </div>
+      {u.role === "ADMIN" && (
+        <div style={{ marginTop: 16 }}>
+          <AdminRequests schoolId={u.schoolId} />
+        </div>
+      )}
+    </main>
+  );
+}
