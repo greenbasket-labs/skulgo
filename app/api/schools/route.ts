@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(
-    { id: school.id, name: school.name, abbr: school.abbr },
+    { id: school.id, name: school.name, abbr: school.abbr, membershipId: await db.schoolMembership.findUnique({ where: { schoolId_userId: { schoolId: school.id, userId: user.id } }, select: { id: true } }).then(m => m?.id ?? null) },
     { status: 201 }
   );
 }
