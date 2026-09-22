@@ -15,7 +15,6 @@ test("SkulGo registers its offline app shell", async ({ browser }) => {
         const registration = await navigator.serviceWorker.getRegistration("/sw.js");
         if (!registration) return false;
 
-        await registration.update();
         return registration.active !== null && navigator.serviceWorker.controller !== null;
       });
     }, { timeout: 10000 }).toBeTruthy();
