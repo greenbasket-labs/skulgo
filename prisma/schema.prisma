@@ -7,8 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role { ADMIN TEACHER STUDENT PARENT CASHIER }
-enum RequestType { JOB ADMISSION }
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  CASHIER
+}
+
+enum RequestType {
+  JOB
+  ADMISSION
+}
 
 model School {
   id String @id @default(cuid())
