@@ -8,7 +8,7 @@ export async function PATCH(
   const { schoolId, teacherId } = await params;
 
   const teacher = await db.teacher.findFirst({
-    where: { id: teacherId, user: { schoolId } },
+    where: { id: teacherId, user: { memberships: { some: { schoolId, active: true, role: "TEACHER" } } } },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
