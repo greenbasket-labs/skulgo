@@ -134,6 +134,34 @@ Do not build payroll, inventory, hostel, transport, library, biometric systems, 
 
 **Think small. Build one useful piece at a time.**
 
+## Current MVP status — September 2026
+
+The core pilot record flow is implemented and has focused local Playwright proof:
+
+- personal account → school workspace
+- student admission and approval
+- parent → child approval
+- teacher approval and assignment
+- cashier approval
+- attendance
+- CA + Exam score entry
+- offline attendance → automatic sync
+- offline score entry → automatic sync
+- result generation
+- result publishing
+- published-result visibility for students
+- shared fee/payment flow across Student, Parent, Cashier and Admin
+
+Recent owner-run checks include passing typecheck, offline attendance, payment, teacher assignment, offline score, and result-generation/publish flows. See ROADMAP.md for the launch checklist and HANDOVER.md for continuation details.
+
+### Offline-first principle
+
+Offline is a SkulGo-wide behavior, not a payment-only feature. The shared offline layer stores queued actions and cached records locally, then synchronizes when internet returns. Attendance and Scores currently have proven offline flows. Full offline app-shell/navigation support is still a launch task.
+
+### Launch boundary
+
+SkulGo does not need to become a large school ERP before its first pilot. The next work is production reliability: full offline app-shell behavior, production PostgreSQL, deployment, security review, subscription enforcement, backup/recovery, and live smoke testing.
+
 ## Current verification
 
 The personal-account → school workspace → student admission approval journey is passing in Playwright. The teacher approval/assignment path has been aligned so an approved teacher can receive class/subject assignments. The remaining local E2E step is verifying the teacher workspace selection and assigned-work view.
