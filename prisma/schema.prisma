@@ -41,7 +41,6 @@ model School {
   phone String
   email String
   createdAt DateTime @default(now())
-  users User[]
   sections Section[]
   classes SchoolClass[]
   subjects Subject[]
