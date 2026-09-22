@@ -5,7 +5,7 @@ import { useState } from "react";
 type School = { id: string; name: string; abbr: string; address: string };
 type SchoolClass = { id: string; name: string; arm?: string | null; section?: { name: string } };
 
-type ApplyType = "STUDENT" | "TEACHER" | "STAFF" | "PARENT";
+type ApplyType = "STUDENT" | "TEACHER" | "CASHIER" | "STAFF" | "PARENT";
 
 export default function Schools() {
   const [q, setQ] = useState("");
@@ -73,10 +73,13 @@ export default function Schools() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         schoolId: school.id,
-        type: "ADMISSION",
-        requestedRole: type === "STUDENT" ? "STUDENT" : type === "PARENT" ? "PARENT" : "TEACHER",
+        type: type === "TEACHER" || type === "CASHIER" ? "JOB" : "ADMISSION",
+        requestedRole:
+          type === "STUDENT" ? "STUDENT" :
+          type === "PARENT" ? "PARENT" :
+          type === "CASHIER" ? "CASHIER" : "TEACHER",
         classId: type === "STUDENT" ? classId : null,
-        studentAdmissionId,
+        studentAdmissionId: type === "PARENT" ? studentAdmissionId : null,
       }),
     });
 
