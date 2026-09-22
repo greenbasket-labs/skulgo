@@ -94,17 +94,6 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     });
     expect(assignmentResponse.status(), await assignmentResponse.text()).toBe(201);
 
-    await teacherPage.goto("/signup");
-    await teacherPage.request.post("/api/auth/login", {
-      data: { email: teacherEmail, password },
-    });
-
-    await adminPage.goto("/signup");
-    await adminPage.request.post("/api/auth/login", {
-      data: { email: ownerEmail, password },
-    });
-
-    await teacherPage.goto("/dashboard");
     const teacherLogin = await teacherPage.request.post("/api/auth/login", {
       data: { email: teacherEmail, password },
     });
@@ -120,14 +109,15 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     });
     expect(selectTeacher.ok()).toBeTruthy();
 
-    await adminPage.goto("/signup");
-    await adminPage.locator('input[name="name"]').fill("Offline Test Student");
-    await adminPage.locator('input[name="email"]').fill(studentEmail);
-    await adminPage.locator('input[name="password"]').fill(password);
-    await adminPage.getByRole("button", { name: /create account/i }).click();
-    await expect(adminPage).toHaveURL(/\/dashboard/);
+    const studentPage = await (await browser.newContext()).newPage();
+    await studentPage.goto("/signup");
+    await studentPage.locator('input[name="name"]').fill("Offline Test Student");
+    await studentPage.locator('input[name="email"]').fill(studentEmail);
+    await studentPage.locator('input[name="password"]').fill(password);
+    await studentPage.getByRole("button", { name: /create account/i }).click();
+    await expect(studentPage).toHaveURL(/\/dashboard/);
 
-    const studentApplication = await adminPage.request.post("/api/school-requests", {
+    const studentApplication = await studentPage.request.post("/api/school-requests", {
       data: {
         schoolId: school.id,
         type: "ADMISSION",
@@ -138,13 +128,27 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     expect(studentApplication.status()).toBe(201);
     const studentRequest = await studentApplication.json();
 
-    const studentApproval = await teacherPage.request.patch(
+    const adminLogin = await adminPage.request.post("/api/auth/login", {
+      data: { email: ownerEmail, password },
+    });
+    expect(adminLogin.ok()).toBeTruthy();
+    const adminLoginBody = await adminLogin.json();
+    const adminWorkspace = adminLoginBody.workspaces.find(
+      (item: { schoolId: string; membershipId: string }) => item.schoolId === school.id
+    );
+    expect(adminWorkspace).toBeTruthy();
+    const selectOwner = await adminPage.request.post("/api/workspaces/select", {
+      data: { membershipId: adminWorkspace.membershipId },
+    });
+    expect(selectOwner.ok()).toBeTruthy();
+
+    const studentApproval = await adminPage.request.patch(
       `/api/schools/${school.id}/requests/${studentRequest.id}`,
       { data: { action: "APPROVE", classId: schoolClass.id } }
     );
     expect(studentApproval.ok()).toBeTruthy();
 
-    const studentsResponse = await teacherPage.request.get(`/api/schools/${school.id}/students`);
+    const studentsResponse = await adminPage.request.get(`/api/schools/${school.id}/students`);
     expect(studentsResponse.ok()).toBeTruthy();
     const students = await studentsResponse.json();
     const studentRecord = students.find(
