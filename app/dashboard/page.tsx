@@ -1,0 +1,1 @@
+export default function Dashboard(){return <main className="shell"><div className="card"><p className="muted">SkulGo</p><h1>School dashboard</h1><p>Core foundation is ready. The next step is role-based authentication and connected school records.</p></div></main>;}
