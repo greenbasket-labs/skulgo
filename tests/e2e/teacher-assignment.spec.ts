@@ -113,8 +113,9 @@ test("approved teacher receives only the assigned class and subject", async ({ b
       email: `teacher-school-${runId}@example.com`,
     },
   });
-  expect(schoolResponse.ok()).toBeTruthy();
-  const school = await schoolResponse.json();
+  const schoolBody = await schoolResponse.json().catch(() => ({}));
+  expect(schoolResponse.ok(), JSON.stringify(schoolBody)).toBeTruthy();
+  const school = schoolBody;
 
   const selectWorkspace = await adminPage.request.post("/api/workspaces/select", {
     data: { membershipId: school.membershipId },
