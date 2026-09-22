@@ -18,7 +18,14 @@ test("personal account can create a school and student can join after admin appr
   await adminPage.getByRole("button", { name: /create account/i }).click();
   await expect(adminPage).toHaveURL(/\/dashboard/);
 
-  const schoolResponse = await adminPage.request.post("/api/schools", {
+  const schoolResponse = await adminPage.evaluate(async (payload) => {
+    const response = await fetch("/api/schools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) };
+  }, {
     data: {
       name: `Pilot Community School ${runId}`,
       abbr: schoolAbbr,
@@ -112,10 +119,9 @@ test("approved teacher receives only the assigned class and subject", async ({ b
       phone: "08000000001",
       email: `teacher-school-${runId}@example.com`,
     },
-  });
-  const schoolBody = await schoolResponse.json().catch(() => ({}));
-  expect(schoolResponse.ok(), JSON.stringify(schoolBody)).toBeTruthy();
-  const school = schoolBody;
+  );
+  expect(schoolResponse.ok, JSON.stringify(schoolResponse.body)).toBeTruthy();
+  const school = schoolResponse.body;
 
   const selectWorkspace = await adminPage.request.post("/api/workspaces/select", {
     data: { membershipId: school.membershipId },
