@@ -109,7 +109,7 @@ model SchoolRequest {
   createdAt DateTime @default(now())
   reviewedAt DateTime?
   @@index([schoolId,status])
-  @@unique([schoolId,userId,type])
+  @@unique([schoolId,userId,type,requestedRole])
 }
 
 model Section {
