@@ -34,6 +34,6 @@ export async function POST(request: Request) {
   });
 
   // Keep the session at the personal-account level until a school workspace is chosen.
-  setSession(response, { id: user.id, schoolId: null, role: null });
+  setSession(response, { id: user.id }, null);
   return response;
 }
