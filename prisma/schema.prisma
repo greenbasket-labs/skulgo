@@ -45,19 +45,15 @@ model School {
 
 model User {
   id String @id @default(cuid())
-  schoolId String?
-  school School? @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   name String
   email String @unique
   passwordHash String
-  role Role?
   teacher Teacher?
   student Student?
   parent Parent?
   createdAt DateTime @default(now())
   requests SchoolRequest[]
   memberships SchoolMembership[]
-  @@index([schoolId])
 }
 
 model SchoolMembership {
