@@ -83,6 +83,8 @@ export async function PATCH(
           },
         });
       }
+    } else if (schoolRequest.requestedRole === "CASHIER") {
+      // Cashier needs only the approved school membership.
     } else if (schoolRequest.requestedRole === "PARENT") {
       const admissionId = String(schoolRequest.studentAdmissionId ?? "").trim();
       const student = await tx.student.findFirst({
