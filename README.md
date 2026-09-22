@@ -74,8 +74,12 @@ The repository now has:
 - Assessment entry requires an approved teacher assignment for the class and subject.
 - Student result generation with grade and subject position.
 - Simple result publishing endpoint.
+- Simple fee record per student.
+- Cashier-only payment recording with school isolation.
+- Payment cannot exceed the remaining balance.
+- Student fee view showing total fee, payments, total paid, and balance.
 
-Authentication/session handling, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
+Authentication/session handling and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
 
 ## Development rule
 
