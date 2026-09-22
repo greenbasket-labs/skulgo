@@ -115,7 +115,8 @@ test("teacher can save a score offline and it syncs when online returns", async 
       `/api/schools/${school.id}/requests/${studentRequest.id}`,
       { data: { action: "APPROVE", classId: schoolClass.id } }
     );
-    expect(studentApproval.ok()).toBeTruthy();
+    const studentApprovalBody = await studentApproval.json().catch(() => ({}));
+    expect(studentApproval.ok(), JSON.stringify(studentApprovalBody)).toBeTruthy();
 
     const studentId = await getStudentId(adminPage, school.id, studentEmail);
 
