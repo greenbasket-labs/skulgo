@@ -20,6 +20,19 @@ enum RequestType {
   ADMISSION
 }
 
+
+enum SubscriptionPlan {
+  MONTHLY
+  TERM
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  TRIAL
+}
+
 model School {
   id String @id @default(cuid())
   name String
@@ -41,6 +54,19 @@ model School {
   assignments TeacherAssignment[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
+  subscription SchoolSubscription?
+  manualPaymentsEnabled Boolean @default(true)
+}
+
+model SchoolSubscription {
+  id String @id @default(cuid())
+  schoolId String @unique
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  plan SubscriptionPlan
+  status SubscriptionStatus @default(TRIAL)
+  startedAt DateTime @default(now())
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
 }
 
 model User {
