@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { makeTeacherId } from "@/lib/ids";
-import { randomBytes, scryptSync } from "node:crypto";
-
-function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, 64).toString("hex");
-  return `scrypt:${salt}:${hash}`;
-}
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
+  const user = await getCurrentUser();
   const { schoolId } = await params;
+
+  if (!user?.membership || user.membership.schoolId !== schoolId) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
   const teachers = await db.teacher.findMany({
-    where: { user: { schoolId } },
+    where: { user: { memberships: { some: { schoolId, active: true, role: "TEACHER" } } } },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { user: { name: "asc" } },
   });
+
   return NextResponse.json(teachers);
 }
 
