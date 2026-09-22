@@ -61,7 +61,7 @@ export async function PATCH(
   if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
 
   await db.$transaction(async tx => {
-    await tx.schoolMembership.create({
+    await tx.schoolMembership.upsert({
       data: {
         schoolId,
         userId: schoolRequest.userId,
