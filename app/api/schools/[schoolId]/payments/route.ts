@@ -42,6 +42,18 @@ export async function POST(
   const reference = body?.reference ? String(body.reference).trim() : null;
   const recordedById = user.id;
 
+  if (reference) {
+    const existing = await db.payment.findFirst({
+      where: { schoolId, reference },
+    });
+    if (existing) {
+      return NextResponse.json({
+        payment: existing,
+        duplicate: true,
+      }, { status: 200 });
+    }
+  }
+
   if (!studentId || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json(
       { error: "studentId, positive amount and recordedById are required" },
