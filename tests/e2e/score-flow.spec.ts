@@ -157,7 +157,7 @@ test("teacher can save a score offline and it syncs when online returns", async 
 
     await teacherPage.goto("/scores");
     await expect(teacherPage.getByRole("heading", { name: "Scores" })).toBeVisible();
-    await expect(teacherPage.getByText("Mathematics")).toBeVisible();
+    await expect(teacherPage.getByRole("paragraph").filter({ hasText: /Mathematics · Primary/ })).toBeVisible();
     await expect(teacherPage.getByText(/Score Test Student/)).toBeVisible();
 
     await teacherPage.context().setOffline(true);
