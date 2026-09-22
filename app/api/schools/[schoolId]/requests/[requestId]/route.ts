@@ -83,6 +83,26 @@ export async function PATCH(
           },
         });
       }
+    } else if (schoolRequest.requestedRole === "PARENT") {
+      const admissionId = String(schoolRequest.studentAdmissionId ?? "").trim();
+      const student = await tx.student.findFirst({
+        where: { schoolId, admissionId },
+        select: { id: true },
+      });
+      if (!student) throw new Error("Child not found");
+
+      const existingParent = await tx.parent.findUnique({
+        where: { userId: schoolRequest.userId },
+      });
+      const parent = existingParent ?? await tx.parent.create({
+        data: { userId: schoolRequest.userId },
+      });
+
+      await tx.parentStudent.upsert({
+        where: { parentId_studentId: { parentId: parent.id, studentId: student.id } },
+        update: { approved: true },
+        create: { parentId: parent.id, studentId: student.id, approved: true },
+      });
     } else {
       const finalClassId = String(requestedClassId ?? schoolRequest.classId ?? "");
       const validClass = await tx.schoolClass.findFirst({
