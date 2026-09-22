@@ -8,6 +8,12 @@ export async function GET(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+
+  if (!user?.membership || user.membership.schoolId !== schoolId) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
   const classId = request.nextUrl.searchParams.get("classId");
   const subjectId = request.nextUrl.searchParams.get("subjectId");
   const term = request.nextUrl.searchParams.get("term");
