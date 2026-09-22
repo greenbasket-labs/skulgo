@@ -19,6 +19,7 @@ export function navForRole(role: WorkspaceRole) {
         ["My Class", "/my-class"],
         ["My Subjects", "/my-subjects"],
         ["Students", "/students"],
+        ["Scores", "/scores"],
         ["My Account", "/account"],
       ];
     case "STUDENT":
