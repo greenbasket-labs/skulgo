@@ -83,14 +83,21 @@ A simple announcement area is available to the school community. Admin can write
 
 ### Parent
 
-After an approved child link:
+After an approved child link, the parent sees only **My Child / My Children** and their connected school records.
 
-- my child / my children
-- attendance
-- school results when published
-- assigned fees
-- payments and balance
-- simple result/record viewing
+The parent workspace stays very small:
+
+- **My Children**
+- **Attendance**
+- **Fees & Payments**
+- **Results**
+- **Announcements / School messages**
+
+For attendance, when the class teacher submits daily attendance, the parent can see whether the child was **present or absent that day**.
+
+For fees, the parent sees assigned fees, amount paid and outstanding balance, and can pay directly from SkulGo. The payment is recorded for the school without the parent needing to contact the school separately.
+
+When a result is published, the parent sees that the **result is ready**. Viewing/downloading the result requires the configured result-view payment (for example **₦200 once per result**). After payment, the parent can view and download the result digitally.
 
 ### Cashier
 
