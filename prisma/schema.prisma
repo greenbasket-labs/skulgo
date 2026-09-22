@@ -108,6 +108,7 @@ model SchoolRequest {
   status String @default("PENDING")
   createdAt DateTime @default(now())
   reviewedAt DateTime?
+  applicationDetails String?
   @@index([schoolId,status])
   @@unique([schoolId,userId,type])
 }
