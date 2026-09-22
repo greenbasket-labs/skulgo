@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  CASHIER
+}
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  abbr      String
+  address   String
+  phone     String
+  email     String
+  createdAt DateTime @default(now())
+  users     User[]
+  sections  Section[]
+  classes   SchoolClass[]
+  subjects  Subject[]
+  students  Student[]
+  attendance Attendance[]
+  assessments Assessment[]
+  results   Result[]
+  feeRecords FeeRecord[]
+  payments  Payment[]
+  assignments TeacherAssignment[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  schoolId  String
+  school    School   @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  name      String
+  email     String
+  passwordHash String
+  role      Role
+  teacher   Teacher?
+  student   Student?
+  parent    Parent?
+  createdAt DateTime @default(now())
+  @@unique([schoolId,email])
+}
+
+model Section {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  name String
+  classes SchoolClass[]
+  @@unique([schoolId,name])
+}
+
+model SchoolClass {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  sectionId String
+  section Section @relation(fields:[sectionId],references:[id],onDelete:Cascade)
+  name String
+  arm String?
+  students Student[]
+  assignments TeacherAssignment[]
+  attendance Attendance[]
+  assessments Assessment[]
+  @@unique([schoolId,name,arm])
+}
+
+model Subject {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  name String
+  assignments TeacherAssignment[]
+  assessments Assessment[]
+  results Result[]
+  @@unique([schoolId,name])
+}
+
+model UserTeacher {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  teacherId String @unique
+  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
+}
+
+model Teacher {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  teacherCode String @unique
+  assignments TeacherAssignment[]
+}
+
+model Student {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  userId String? @unique
+  user User? @relation(fields:[userId],references:[id],onDelete:Cascade)
+  admissionId String @unique
+  firstName String
+  lastName String
+  classId String?
+  class SchoolClass? @relation(fields:[classId],references:[id],onDelete:SetNull)
+  parentLinks ParentStudent[]
+  attendance Attendance[]
+  assessments Assessment[]
+  results Result[]
+  feeRecords FeeRecord[]
+  payments Payment[]
+}
+
+model Parent {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  links ParentStudent[]
+}
+
+model ParentStudent {
+  id String @id @default(cuid())
+  parentId String
+  parent Parent @relation(fields:[parentId],references:[id],onDelete:Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
+  approved Boolean @default(false)
+  @@unique([parentId,studentId])
+}
+
+model TeacherAssignment {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  teacherId String
+  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
+  classId String
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
+  subjectId String
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
+  @@unique([teacherId,classId,subjectId])
+}
+
+model Attendance {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  classId String
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete: Cascade)
+  date DateTime
+  session String
+  present Boolean
+  @@unique([studentId,date,session])
+}
+
+model Assessment {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  classId String
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete: Cascade)
+  subjectId String
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete: Cascade)
+  term String
+  ca Float
+  exam Float
+  @@unique([studentId,subjectId,term])
+}
+
+model Result {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  subjectId String
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete: Cascade)
+  term String
+  total Float
+  percentage Float
+  grade String
+  position Int
+  published Boolean @default(false)
+  @@unique([studentId,subjectId,term])
+}
+
+model FeeRecord {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  totalFee Float
+  @@unique([studentId])
+}
+
+model Payment {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  studentId String
+  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  amount Float
+  reference String?
+  paidAt DateTime @default(now())
+  recordedById String
+}
