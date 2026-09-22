@@ -5,79 +5,162 @@ import { useState } from "react";
 type School = { id: string; name: string; abbr: string; address: string };
 type SchoolClass = { id: string; name: string; arm?: string | null; section?: { name: string } };
 
+type ApplyType = "STUDENT" | "TEACHER" | "STAFF" | "PARENT";
+
 export default function Schools() {
   const [q, setQ] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
   const [classes, setClasses] = useState<Record<string, SchoolClass[]>>({});
+  const [openSchool, setOpenSchool] = useState("");
+  const [applyType, setApplyType] = useState<Record<string, ApplyType | "">>({});
   const [selectedClass, setSelectedClass] = useState<Record<string, string>>({});
-  const [m, setM] = useState("");
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
 
-  async function search(v: string) {
-    setQ(v);
-    if (v.length < 2) { setSchools([]); return; }
-    const r = await fetch("/api/schools/search?q=" + encodeURIComponent(v));
-    setSchools(await r.json());
+  async function search(value: string) {
+    setQ(value);
+    setMessage("");
+    if (value.length < 2) {
+      setSchools([]);
+      return;
+    }
+
+    const response = await fetch("/api/schools/search?q=" + encodeURIComponent(value));
+    const data = await response.json().catch(() => []);
+    setSchools(response.ok ? data : []);
   }
 
   async function loadClasses(schoolId: string) {
     if (classes[schoolId]) return;
-    const r = await fetch("/api/schools/" + schoolId + "/classes");
-    const data = await r.json();
-    if (r.ok) setClasses(prev => ({ ...prev, [schoolId]: data }));
+    const response = await fetch("/api/schools/" + schoolId + "/classes");
+    const data = await response.json().catch(() => []);
+    if (response.ok) setClasses(current => ({ ...current, [schoolId]: data }));
   }
 
-  async function request(s: School, type: "JOB" | "ADMISSION") {
-    setM("");
-    if (type === "ADMISSION" && !selectedClass[s.id]) {
-      setM("Please choose the class you are applying for.");
+  function chooseType(schoolId: string, type: ApplyType) {
+    setApplyType(current => ({ ...current, [schoolId]: type }));
+    if (type === "STUDENT") loadClasses(schoolId);
+    setMessage("");
+  }
+
+  async function submit(school: School) {
+    const type = applyType[school.id];
+    if (!type) {
+      setMessage("Choose how you want to connect to the school.");
       return;
     }
-    setBusy(s.id + type);
-    const role = type === "JOB" ? "TEACHER" : "STUDENT";
-    const classId = type === "ADMISSION" ? selectedClass[s.id] : null;
-    const r = await fetch("/api/school-requests", {
+
+    const classId = selectedClass[school.id] || null;
+    if (type === "STUDENT" && !classId) {
+      setMessage("Choose the class you are applying for.");
+      return;
+    }
+
+    if (type === "STAFF" || type === "PARENT") {
+      setMessage(
+        type === "PARENT"
+          ? "Parent linking is the next application step."
+          : "Staff applications are the next application step."
+      );
+      return;
+    }
+
+    setBusy(school.id);
+    const response = await fetch("/api/school-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schoolId: s.id, type, requestedRole: role, classId }),
+      body: JSON.stringify({
+        schoolId: school.id,
+        type: type === "STUDENT" ? "ADMISSION" : "JOB",
+        requestedRole: type === "STUDENT" ? "STUDENT" : "TEACHER",
+        classId,
+      }),
     });
-    const j = await r.json().catch(() => ({}));
-    setM(r.ok ? "Request sent to " + s.name : (j.error || "Request failed"));
+
+    const data = await response.json().catch(() => ({}));
     setBusy("");
+    setMessage(response.ok ? "Application sent to " + school.name : (data.error || "Application failed"));
   }
 
   return (
     <main className="shell">
-      <div className="card">
+      <div className="card" style={{ maxWidth: 800, margin: "0 auto" }}>
         <p className="muted">Personal SkulGo account</p>
-        <h1>Find your school</h1>
-        <input value={q} onChange={e => search(e.target.value)} placeholder="Search school name or abbreviation" />
-        {schools.map(s => (
-          <div className="card" key={s.id} style={{ marginTop: 12 }}>
-            <strong>{s.name}</strong>
-            <p className="muted">{s.abbr} · {s.address}</p>
-            <div className="grid">
-              <button className="button" disabled={!!busy} onClick={() => request(s, "JOB")}>Send job request</button>
-              <div>
-                <p><strong>Admission</strong></p>
-                <select
-                  value={selectedClass[s.id] || ""}
-                  onFocus={() => loadClasses(s.id)}
-                  onChange={e => setSelectedClass(prev => ({ ...prev, [s.id]: e.target.value }))}
+        <h1>Find a school</h1>
+        <p className="muted">Open the school, choose your connection, and apply.</p>
+
+        <input
+          value={q}
+          onChange={event => search(event.target.value)}
+          placeholder="Search school name or abbreviation"
+        />
+
+        <div className="grid" style={{ marginTop: 16 }}>
+          {schools.map(school => {
+            const selected = applyType[school.id] || "";
+
+            return (
+              <div className="card" key={school.id}>
+                <strong>{school.name}</strong>
+                <p className="muted">{school.abbr} · {school.address}</p>
+
+                <button
+                  className="button"
+                  onClick={() => setOpenSchool(current => current === school.id ? "" : school.id)}
                 >
-                  <option value="">Choose class</option>
-                  {(classes[s.id] || []).map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.section?.name ? c.section.name + " · " : ""}{c.name}{c.arm ? " · " + c.arm : ""}
-                    </option>
-                  ))}
-                </select>
-                <button className="button" style={{ marginTop: 8 }} disabled={!!busy} onClick={() => request(s, "ADMISSION")}>Send admission request</button>
+                  {openSchool === school.id ? "Close" : "Apply"}
+                </button>
+
+                {openSchool === school.id && (
+                  <div className="grid" style={{ marginTop: 14 }}>
+                    <div className="grid grid-2">
+                      {(["STUDENT", "TEACHER", "STAFF", "PARENT"] as ApplyType[]).map(type => (
+                        <button
+                          key={type}
+                          className="button"
+                          onClick={() => chooseType(school.id, type)}
+                        >
+                          {type === "STUDENT" && "Student"}
+                          {type === "TEACHER" && "Teacher"}
+                          {type === "STAFF" && "Staff"}
+                          {type === "PARENT" && "Parent"}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selected === "STUDENT" && (
+                      <select
+                        value={selectedClass[school.id] || ""}
+                        onChange={event =>
+                          setSelectedClass(current => ({ ...current, [school.id]: event.target.value }))
+                        }
+                      >
+                        <option value="">Choose class</option>
+                        {(classes[school.id] || []).map(schoolClass => (
+                          <option key={schoolClass.id} value={schoolClass.id}>
+                            {schoolClass.section?.name ? schoolClass.section.name + " · " : ""}
+                            {schoolClass.name}
+                            {schoolClass.arm ? " · " + schoolClass.arm : ""}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <button
+                      className="button"
+                      disabled={busy === school.id}
+                      onClick={() => submit(school)}
+                    >
+                      {busy === school.id ? "Sending…" : "Send application"}
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        ))}
-        {m && <p>{m}</p>}
+            );
+          })}
+        </div>
+
+        {message && <p>{message}</p>}
       </div>
     </main>
   );
