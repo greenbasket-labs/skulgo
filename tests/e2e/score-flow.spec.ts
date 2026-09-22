@@ -92,7 +92,31 @@ test("teacher can save a score offline and it syncs when online returns", async 
     });
     expect(assignment.status(), JSON.stringify(await assignment.text())).toBe(201);
 
-    await studentPageSetup(teacherPage, studentEmail, password, school.id, schoolClass.id, schoolClass);
+    const studentPage = await owner.context().newPage();
+    await studentPage.goto("/signup");
+    await studentPage.locator('input[name="name"]').fill("Score Test Student");
+    await studentPage.locator('input[name="email"]').fill(studentEmail);
+    await studentPage.locator('input[name="password"]').fill(password);
+    await studentPage.getByRole("button", { name: /create account/i }).click();
+    await expect(studentPage).toHaveURL(/\/dashboard/);
+
+    const studentApplication = await studentPage.request.post("/api/school-requests", {
+      data: {
+        schoolId: school.id,
+        type: "ADMISSION",
+        requestedRole: "STUDENT",
+        classId: schoolClass.id,
+      },
+    });
+    expect(studentApplication.status()).toBe(201);
+    const studentRequest = await studentApplication.json();
+
+    const studentApproval = await adminPage.request.patch(
+      `/api/schools/${school.id}/requests/${studentRequest.id}`,
+      { data: { action: "APPROVE", classId: schoolClass.id } }
+    );
+    expect(studentApproval.ok()).toBeTruthy();
+
     const studentId = await getStudentId(adminPage, school.id, studentEmail);
 
     const login = await teacherPage.evaluate(async payload => {
@@ -161,47 +185,6 @@ test("teacher can save a score offline and it syncs when online returns", async 
     await teacher.close();
   }
 });
-
-async function studentPageSetup(
-  page: import("@playwright/test").Page,
-  email: string,
-  password: string,
-  schoolId: string,
-  classId: string,
-  _schoolClass: unknown,
-) {
-  await page.context().newPage();
-  const studentPage = page;
-  await studentPage.evaluate(async () => undefined);
-
-  // This helper is replaced below by creating the student through the same context API.
-  const response = await studentPage.request.post("/api/accounts", {
-    data: { name: "Score Test Student", email, password },
-  });
-  expect(response.status(), await response.text()).toBe(201);
-
-  const login = await studentPage.request.post("/api/auth/login", {
-    data: { email, password },
-  });
-  expect(login.ok()).toBeTruthy();
-
-  const application = await studentPage.request.post("/api/school-requests", {
-    data: {
-      schoolId,
-      type: "ADMISSION",
-      requestedRole: "STUDENT",
-      classId,
-    },
-  });
-  expect(application.status()).toBe(201);
-  const request = await application.json();
-
-  const admin = studentPage.context().pages()[0];
-  await admin.request.patch(
-    `/api/schools/${schoolId}/requests/${request.id}`,
-    { data: { action: "APPROVE", classId } }
-  );
-}
 
 async function getStudentId(
   adminPage: import("@playwright/test").Page,
