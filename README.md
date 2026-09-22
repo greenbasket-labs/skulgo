@@ -67,9 +67,12 @@ The repository now has:
 - School-scoped teacher → class → subject assignments.
 - Assignment checks that teacher, class, and subject belong to the same school.
 - Assignment blocked until the teacher is approved.
+- Lightweight class attendance workflow.
+- Attendance records can be created or updated for a student/date/session.
+- Class attendance view returns every student with present/absent/unmarked state.
 - Simple grading helpers.
 
-Authentication/session handling, attendance, assessments/results, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
+Authentication/session handling, assessments/results, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
 
 ## Development rule
 
