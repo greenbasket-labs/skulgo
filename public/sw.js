@@ -1,9 +1,20 @@
-const CACHE_NAME = "skulgo-shell-v2";
+const CACHE_NAME = "skulgo-shell-v3";
 const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.all(
+        APP_SHELL.map(async (url) => {
+          try {
+            const response = await fetch(url);
+            if (response.ok) await cache.put(url, response);
+          } catch {
+            // A shell route may be unavailable during local/dev startup.
+          }
+        })
+      );
+    })
   );
   self.skipWaiting();
 });
