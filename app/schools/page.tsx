@@ -14,6 +14,7 @@ export default function Schools() {
   const [openSchool, setOpenSchool] = useState("");
   const [applyType, setApplyType] = useState<Record<string, ApplyType | "">>({});
   const [selectedClass, setSelectedClass] = useState<Record<string, string>>({});
+  const [childAdmissionId, setChildAdmissionId] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
 
@@ -51,7 +52,7 @@ export default function Schools() {
     }
 
     const classId = selectedClass[school.id] || null;
-    const studentAdmissionId = type === "PARENT" ? (selectedClass[school.id] || null) : null;
+    const studentAdmissionId = type === "PARENT" ? (childAdmissionId[school.id] || "") : null;
     if (type === "STUDENT" && !classId) {
       setMessage("Choose the class you are applying for.");
       return;
@@ -150,9 +151,9 @@ export default function Schools() {
 
                     {selected === "PARENT" && (
                       <input
-                        value={selectedClass[school.id] || ""}
+                        value={childAdmissionId[school.id] || ""}
                         onChange={event =>
-                          setSelectedClass(current => ({ ...current, [school.id]: event.target.value }))
+                          setChildAdmissionId(current => ({ ...current, [school.id]: event.target.value }))
                         }
                         placeholder="Child Admission ID"
                       />
