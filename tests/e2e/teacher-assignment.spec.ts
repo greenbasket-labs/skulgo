@@ -26,13 +26,11 @@ test("personal account can create a school and student can join after admin appr
     });
     return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) };
   }, {
-    data: {
-      name: `Pilot Community School ${runId}`,
-      abbr: schoolAbbr,
-      address: "Pilot Road",
-      phone: "08000000000",
-      email: `school-${Date.now()}@example.com`,
-    },
+    name: `Pilot Community School ${runId}`,
+    abbr: schoolAbbr,
+    address: "Pilot Road",
+    phone: "08000000000",
+    email: `school-${Date.now()}@example.com`,
   });
   const schoolBody = schoolResponse.body;
   expect(schoolResponse.ok, JSON.stringify(schoolBody)).toBeTruthy();
