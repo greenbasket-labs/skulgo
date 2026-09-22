@@ -7,48 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  TEACHER
-  STUDENT
-  PARENT
-  CASHIER
-}
+enum Role { ADMIN TEACHER STUDENT PARENT CASHIER }
+enum RequestType { JOB ADMISSION }
 
 model School {
-  id        String   @id @default(cuid())
-  name      String
-  abbr      String
-  address   String
-  phone     String
-  email     String
+  id String @id @default(cuid())
+  name String
+  abbr String
+  address String
+  phone String
+  email String
   createdAt DateTime @default(now())
-  users     User[]
-  sections  Section[]
-  classes   SchoolClass[]
-  subjects  Subject[]
-  students  Student[]
+  users User[]
+  sections Section[]
+  classes SchoolClass[]
+  subjects Subject[]
+  students Student[]
   attendance Attendance[]
   assessments Assessment[]
-  results   Result[]
+  results Result[]
   feeRecords FeeRecord[]
-  payments  Payment[]
+  payments Payment[]
   assignments TeacherAssignment[]
+  requests SchoolRequest[]
 }
 
 model User {
-  id        String   @id @default(cuid())
-  schoolId  String
-  school    School   @relation(fields:[schoolId],references:[id],onDelete:Cascade)
-  name      String
-  email     String
+  id String @id @default(cuid())
+  schoolId String?
+  school School? @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  name String
+  email String @unique
   passwordHash String
-  role      Role
-  teacher   Teacher?
-  student   Student?
-  parent    Parent?
+  role Role?
+  teacher Teacher?
+  student Student?
+  parent Parent?
   createdAt DateTime @default(now())
-  @@unique([schoolId,email])
+  requests SchoolRequest[]
+  @@index([schoolId])
+}
+
+model SchoolRequest {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  type RequestType
+  requestedRole Role
+  classId String?
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  @@index([schoolId,status])
+  @@unique([schoolId,userId,type])
 }
 
 model Section {
@@ -72,6 +85,7 @@ model SchoolClass {
   assignments TeacherAssignment[]
   attendance Attendance[]
   assessments Assessment[]
+  requests SchoolRequest[]
   @@unique([schoolId,name,arm])
 }
 
@@ -147,11 +161,11 @@ model TeacherAssignment {
 model Attendance {
   id String @id @default(cuid())
   schoolId String
-  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   studentId String
-  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   classId String
-  class SchoolClass @relation(fields:[classId],references:[id],onDelete: Cascade)
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
   date DateTime
   session String
   present Boolean
@@ -161,13 +175,13 @@ model Attendance {
 model Assessment {
   id String @id @default(cuid())
   schoolId String
-  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   studentId String
-  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   classId String
-  class SchoolClass @relation(fields:[classId],references:[id],onDelete: Cascade)
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
   subjectId String
-  subject Subject @relation(fields:[subjectId],references:[id],onDelete: Cascade)
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
   term String
   ca Float
   exam Float
@@ -177,11 +191,11 @@ model Assessment {
 model Result {
   id String @id @default(cuid())
   schoolId String
-  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   studentId String
-  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   subjectId String
-  subject Subject @relation(fields:[subjectId],references:[id],onDelete: Cascade)
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
   term String
   total Float
   percentage Float
@@ -194,9 +208,9 @@ model Result {
 model FeeRecord {
   id String @id @default(cuid())
   schoolId String
-  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   studentId String
-  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   totalFee Float
   @@unique([studentId])
 }
@@ -204,9 +218,9 @@ model FeeRecord {
 model Payment {
   id String @id @default(cuid())
   schoolId String
-  school School @relation(fields:[schoolId],references:[id],onDelete: Cascade)
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   studentId String
-  student Student @relation(fields:[studentId],references:[id],onDelete: Cascade)
+  student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   amount Float
   reference String?
   paidAt DateTime @default(now())
