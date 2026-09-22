@@ -54,7 +54,22 @@ Payroll, inventory, hostel, transport, library, timetable engines, biometric int
 
 This repository intentionally starts clean. No App-School or Bridge Hosting code is part of the foundation.
 
-As implementation progresses, this README will document the actual architecture, database, authentication, tenant isolation, local setup, tests, and extension points.
+## Current implementation
+
+The repository now has:
+
+- Next.js + Prisma foundation with SQLite development database.
+- School registration with automatic base sections.
+- Simple school-scoped sections, classes, subjects, and student APIs.
+- Automatic student admission IDs.
+- Teacher creation with automatic teacher codes.
+- Teacher approval state and approval endpoint.
+- School-scoped teacher → class → subject assignments.
+- Assignment checks that teacher, class, and subject belong to the same school.
+- Assignment blocked until the teacher is approved.
+- Simple grading helpers.
+
+Authentication/session handling, attendance, assessments/results, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
 
 ## Development rule
 
@@ -65,10 +80,3 @@ Before adding a feature, ask:
 If not, do not build it in this stage.
 
 **Think small. Build the core. Stop when the core flow works.**
-
-
-## Current implementation
-
-The repository currently contains the clean Next.js + Prisma foundation, a relational SQLite development database schema, school registration API, automatic base sections, a simple grading module, and a minimal dashboard entry point.
-
-Authentication/session handling, approval workflows, teacher assignments, attendance, assessments/results, fees, and lightweight offline synchronization are intentionally the next core implementation steps rather than being faked as complete.
