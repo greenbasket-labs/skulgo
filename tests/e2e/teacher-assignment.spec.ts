@@ -185,24 +185,15 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   );
   expect(approvedTeacher).toBeTruthy();
 
-  const assignment = await adminPage.evaluate(async payload => {
-    const response = await fetch(`/api/schools/${payload.schoolId}/assignments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        teacherId: payload.teacherId,
-        classId: payload.classId,
-        subjectId: payload.subjectId,
-      }),
-    });
-    return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) };
-  }, {
-    schoolId: school.id,
-    teacherId: approvedTeacher.id,
-    classId: schoolClass.id,
-    subjectId: subject.id,
+  const assignment = await adminPage.request.post(`/api/schools/${school.id}/assignments`, {
+    data: {
+      teacherId: approvedTeacher.id,
+      classId: schoolClass.id,
+      subjectId: subject.id,
+    },
   });
-  expect(assignment.status, JSON.stringify(assignment.body)).toBe(201);
+
+  expect(assignment.status(), JSON.stringify(await assignment.text())).toBe(201);
 
   await teacherPage.goto("/dashboard");
   const teacherLogin = await teacherPage.evaluate(async payload => {
