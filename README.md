@@ -14,6 +14,9 @@ The same person who owns a school can register that school, configure it, then r
 
 ## Keep it light
 
+SkulGo is an **internal school operating record tool**, not a large all-in-one software suite. It should feel as simple as the school's existing register, ledger or notebook, but keep records connected so staff do not repeatedly write the same information. Schools can keep familiar offline/manual processes where they prefer. Online payment, digital result payment and similar options are **optional school settings**, not mandatory parts of daily school work.
+
+
 SkulGo is built in small modules. Each module should solve one real school task and fit into the connected record flow.
 
 ### Principal / School owner
