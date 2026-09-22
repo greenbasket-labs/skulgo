@@ -23,10 +23,12 @@ export async function POST(request: Request) {
   const type = String(body?.type ?? "");
   const requestedRole = String(body?.requestedRole ?? "");
   const classId = String(body?.classId ?? "") || null;
+  const studentAdmissionId = String(body?.studentAdmissionId ?? "").trim() || null;
 
   const allowed =
     (type === "JOB" && requestedRole === "TEACHER") ||
-    (type === "ADMISSION" && requestedRole === "STUDENT");
+    (type === "ADMISSION" && requestedRole === "STUDENT") ||
+    (type === "ADMISSION" && requestedRole === "PARENT");
 
   if (!schoolId || !allowed) {
     return NextResponse.json({ error: "school, request type and role are required" }, { status: 400 });
@@ -42,10 +44,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You are already connected to this school" }, { status: 409 });
   }
 
-  if (type === "ADMISSION") {
+  if (type === "ADMISSION" && requestedRole === "STUDENT") {
     if (!classId) return NextResponse.json({ error: "Choose a class for admission" }, { status: 400 });
     const valid = await db.schoolClass.findFirst({ where: { id: classId, schoolId }, select: { id: true } });
     if (!valid) return NextResponse.json({ error: "Class does not belong to this school" }, { status: 400 });
+  }
+
+  if (type === "ADMISSION" && requestedRole === "PARENT") {
+    if (!studentAdmissionId) {
+      return NextResponse.json({ error: "Child Admission ID is required" }, { status: 400 });
+    }
+
+    const student = await db.student.findFirst({
+      where: { schoolId, admissionId: studentAdmissionId },
+      select: { id: true },
+    });
+
+    if (!student) {
+      return NextResponse.json({ error: "Student not found with that Admission ID" }, { status: 404 });
+    }
   }
 
   try {
@@ -54,8 +71,9 @@ export async function POST(request: Request) {
         schoolId,
         userId: user.id,
         type: type as "JOB" | "ADMISSION",
-        requestedRole: requestedRole as "TEACHER" | "STUDENT",
+        requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT",
         classId,
+        studentAdmissionId,
       },
     });
     return NextResponse.json(requestRecord, { status: 201 });
