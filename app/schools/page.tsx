@@ -51,17 +51,18 @@ export default function Schools() {
     }
 
     const classId = selectedClass[school.id] || null;
+    const studentAdmissionId = type === "PARENT" ? (selectedClass[school.id] || null) : null;
     if (type === "STUDENT" && !classId) {
       setMessage("Choose the class you are applying for.");
       return;
     }
 
-    if (type === "STAFF" || type === "PARENT") {
-      setMessage(
-        type === "PARENT"
-          ? "Parent linking is the next application step."
-          : "Staff applications are the next application step."
-      );
+    if (type === "STAFF") {
+      setMessage("Staff applications are the next application step.");
+      return;
+    }
+    if (type === "PARENT" && !studentAdmissionId) {
+      setMessage("Enter your child's Admission ID.");
       return;
     }
 
@@ -71,9 +72,10 @@ export default function Schools() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         schoolId: school.id,
-        type: type === "STUDENT" ? "ADMISSION" : "JOB",
-        requestedRole: type === "STUDENT" ? "STUDENT" : "TEACHER",
-        classId,
+        type: "ADMISSION",
+        requestedRole: type === "STUDENT" ? "STUDENT" : type === "PARENT" ? "PARENT" : "TEACHER",
+        classId: type === "STUDENT" ? classId : null,
+        studentAdmissionId,
       }),
     });
 
@@ -144,6 +146,16 @@ export default function Schools() {
                           </option>
                         ))}
                       </select>
+                    )}
+
+                    {selected === "PARENT" && (
+                      <input
+                        value={selectedClass[school.id] || ""}
+                        onChange={event =>
+                          setSelectedClass(current => ({ ...current, [school.id]: event.target.value }))
+                        }
+                        placeholder="Child Admission ID"
+                      />
                     )}
 
                     <button
