@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { makeStudentId } from "@/lib/ids";
-import { hashPassword } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(_: Request, { params }: { params: Promise<{ schoolId: string }> }) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+
+  if (!user?.membership || user.membership.schoolId !== schoolId) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
   return NextResponse.json(await db.student.findMany({
-    where: { schoolId }, include: { class: true, user: { select: { id: true, email: true } } },
+    where: { schoolId },
+    include: { class: true, user: { select: { id: true, email: true } } },
     orderBy: { lastName: "asc" }
   }));
 }
