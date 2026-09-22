@@ -1,34 +1,39 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
-export async function GET(_: Request, { params }: { params: Promise<{ schoolId: string }> }) {
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ schoolId: string }> }
+) {
+  const user = await getCurrentUser();
   const { schoolId } = await params;
-  return NextResponse.json(await db.user.findMany({
-    where: { schoolId, role: "CASHIER" },
-    select: { id: true, name: true, email: true, role: true },
-    orderBy: { name: "asc" }
-  }));
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const membership = await db.schoolMembership.findUnique({
+    where: { schoolId_userId: { schoolId, userId: user.id } },
+  });
+  if (!membership || !membership.active) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
+  const cashiers = await db.schoolMembership.findMany({
+    where: { schoolId, active: true, role: "CASHIER" },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { user: { name: "asc" } },
+  });
+
+  return NextResponse.json(cashiers.map(item => ({
+    id: item.user.id,
+    name: item.user.name,
+    email: item.user.email,
+    role: item.role,
+  })));
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ schoolId: string }> }) {
-  const { schoolId } = await params;
-  const body = await request.json().catch(() => null);
-  const name = String(body?.name ?? "").trim();
-  const email = String(body?.email ?? "").trim().toLowerCase();
-  const password = String(body?.password ?? "").trim();
-
-  if (!name || !email || !password)
-    return NextResponse.json({ error: "name, email and password are required" }, { status: 400 });
-
-  const school = await db.school.findUnique({ where: { id: schoolId } });
-  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
-
-  const existing = await db.user.findUnique({ where: { schoolId_email: { schoolId, email } } });
-  if (existing) return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
-
-  const user = await db.user.create({
-    data: { schoolId, name, email, passwordHash: hashPassword(password), role: "CASHIER" }
-  });
-  return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role }, { status: 201 });
+export async function POST() {
+  return NextResponse.json(
+    { error: "Cashier accounts are created from personal SkulGo accounts and approved through the school application flow." },
+    { status: 410 }
+  );
 }
