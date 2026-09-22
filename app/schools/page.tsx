@@ -4,8 +4,16 @@ import { useState } from "react";
 
 type School = { id: string; name: string; abbr: string; address: string };
 type SchoolClass = { id: string; name: string; arm?: string | null; section?: { name: string } };
+type ApplyType = "STUDENT" | "TEACHER" | "CASHIER" | "PARENT";
 
-type ApplyType = "STUDENT" | "TEACHER" | "CASHIER" | "STAFF" | "PARENT";
+type FormData = Record<string, string>;
+
+const emptyForms = (): Record<ApplyType, FormData> => ({
+  STUDENT: {},
+  TEACHER: {},
+  CASHIER: {},
+  PARENT: {},
+});
 
 export default function Schools() {
   const [q, setQ] = useState("");
@@ -14,7 +22,7 @@ export default function Schools() {
   const [openSchool, setOpenSchool] = useState("");
   const [applyType, setApplyType] = useState<Record<string, ApplyType | "">>({});
   const [selectedClass, setSelectedClass] = useState<Record<string, string>>({});
-  const [childAdmissionId, setChildAdmissionId] = useState<Record<string, string>>({});
+  const [forms, setForms] = useState<Record<string, Record<ApplyType, FormData>>>({});
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
 
@@ -44,6 +52,34 @@ export default function Schools() {
     setMessage("");
   }
 
+  function updateField(schoolId: string, type: ApplyType, field: string, value: string) {
+    setForms(current => ({
+      ...current,
+      [schoolId]: {
+        ...(current[schoolId] || emptyForms()),
+        [type]: {
+          ...((current[schoolId] || emptyForms())[type]),
+          [field]: value,
+        },
+      },
+    }));
+  }
+
+  function fieldValue(schoolId: string, type: ApplyType, field: string) {
+    return forms[schoolId]?.[type]?.[field] || "";
+  }
+
+  function input(schoolId: string, type: ApplyType, field: string, placeholder: string, required = true) {
+    return (
+      <input
+        value={fieldValue(schoolId, type, field)}
+        onChange={event => updateField(schoolId, type, field, event.target.value)}
+        placeholder={placeholder}
+        required={required}
+      />
+    );
+  }
+
   async function submit(school: School) {
     const type = applyType[school.id];
     if (!type) {
@@ -51,19 +87,28 @@ export default function Schools() {
       return;
     }
 
+    const form = forms[school.id]?.[type] || {};
     const classId = selectedClass[school.id] || null;
-    const studentAdmissionId = type === "PARENT" ? (childAdmissionId[school.id] || "") : null;
+
     if (type === "STUDENT" && !classId) {
       setMessage("Choose the class you are applying for.");
       return;
     }
 
-    if (type === "STAFF") {
-      setMessage("Staff applications are the next application step.");
+    if (type === "PARENT" && !form.childAdmissionId) {
+      setMessage("Enter your child's Admission ID.");
       return;
     }
-    if (type === "PARENT" && !studentAdmissionId) {
-      setMessage("Enter your child's Admission ID.");
+
+    const requiredFields: Record<ApplyType, string[]> = {
+      STUDENT: ["firstName", "lastName", "dateOfBirth", "gender", "guardianName", "guardianPhone"],
+      TEACHER: ["phone", "qualification", "teachingSubjects", "yearsExperience"],
+      CASHIER: ["phone", "qualification", "yearsExperience"],
+      PARENT: ["relationship", "phone"],
+    };
+
+    if (requiredFields[type].some(field => !form[field])) {
+      setMessage("Please complete the required application fields.");
       return;
     }
 
@@ -74,12 +119,10 @@ export default function Schools() {
       body: JSON.stringify({
         schoolId: school.id,
         type: type === "TEACHER" || type === "CASHIER" ? "JOB" : "ADMISSION",
-        requestedRole:
-          type === "STUDENT" ? "STUDENT" :
-          type === "PARENT" ? "PARENT" :
-          type === "CASHIER" ? "CASHIER" : "TEACHER",
+        requestedRole: type,
         classId: type === "STUDENT" ? classId : null,
-        studentAdmissionId: type === "PARENT" ? studentAdmissionId : null,
+        studentAdmissionId: type === "PARENT" ? form.childAdmissionId : null,
+        applicationDetails: form,
       }),
     });
 
@@ -93,7 +136,7 @@ export default function Schools() {
       <div className="card" style={{ maxWidth: 800, margin: "0 auto" }}>
         <p className="muted">Personal SkulGo account</p>
         <h1>Find a school</h1>
-        <p className="muted">Open the school, choose your connection, and apply.</p>
+        <p className="muted">Open the school, choose your connection, complete the application, then send it.</p>
 
         <input
           value={q}
@@ -119,56 +162,96 @@ export default function Schools() {
 
                 {openSchool === school.id && (
                   <div className="grid" style={{ marginTop: 14 }}>
-                    <div className="grid grid-2">
-                      {(["STUDENT", "TEACHER", "STAFF", "PARENT"] as ApplyType[]).map(type => (
-                        <button
-                          key={type}
-                          className="button"
-                          onClick={() => chooseType(school.id, type)}
-                        >
-                          {type === "STUDENT" && "Student"}
-                          {type === "TEACHER" && "Teacher"}
-                          {type === "STAFF" && "Staff"}
-                          {type === "PARENT" && "Parent"}
-                        </button>
-                      ))}
-                    </div>
+                    <label>
+                      <span className="muted">How do you want to connect?</span>
+                      <select
+                        value={selected}
+                        onChange={event => chooseType(school.id, event.target.value as ApplyType)}
+                      >
+                        <option value="">Choose one</option>
+                        <option value="STUDENT">Student</option>
+                        <option value="TEACHER">Teacher</option>
+                        <option value="CASHIER">Cashier</option>
+                        <option value="PARENT">Parent</option>
+                      </select>
+                    </label>
 
                     {selected === "STUDENT" && (
-                      <select
-                        value={selectedClass[school.id] || ""}
-                        onChange={event =>
-                          setSelectedClass(current => ({ ...current, [school.id]: event.target.value }))
-                        }
-                      >
-                        <option value="">Choose class</option>
-                        {(classes[school.id] || []).map(schoolClass => (
-                          <option key={schoolClass.id} value={schoolClass.id}>
-                            {schoolClass.section?.name ? schoolClass.section.name + " · " : ""}
-                            {schoolClass.name}
-                            {schoolClass.arm ? " · " + schoolClass.arm : ""}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <h3>Student admission</h3>
+                        {input(school.id, selected, "firstName", "First name")}
+                        {input(school.id, selected, "middleName", "Middle name", false)}
+                        {input(school.id, selected, "lastName", "Last name")}
+                        {input(school.id, selected, "dateOfBirth", "Date of birth (DD/MM/YYYY)")}
+                        <select
+                          value={fieldValue(school.id, selected, "gender")}
+                          onChange={event => updateField(school.id, selected, "gender", event.target.value)}
+                        >
+                          <option value="">Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                        <select
+                          value={selectedClass[school.id] || ""}
+                          onChange={event => setSelectedClass(current => ({ ...current, [school.id]: event.target.value }))}
+                        >
+                          <option value="">Choose class</option>
+                          {(classes[school.id] || []).map(schoolClass => (
+                            <option key={schoolClass.id} value={schoolClass.id}>
+                              {schoolClass.section?.name ? schoolClass.section.name + " · " : ""}
+                              {schoolClass.name}{schoolClass.arm ? " · " + schoolClass.arm : ""}
+                            </option>
+                          ))}
+                        </select>
+                        {input(school.id, selected, "guardianName", "Parent / guardian full name")}
+                        {input(school.id, selected, "guardianPhone", "Parent / guardian phone number")}
+                        {input(school.id, selected, "previousSchool", "Previous school", false)}
+                      </>
+                    )}
+
+                    {selected === "TEACHER" && (
+                      <>
+                        <h3>Teacher application</h3>
+                        {input(school.id, selected, "phone", "Phone number")}
+                        {input(school.id, selected, "qualification", "Highest qualification")}
+                        {input(school.id, selected, "teachingQualification", "Teaching qualification / certificate", false)}
+                        {input(school.id, selected, "teachingSubjects", "Subjects you can teach")}
+                        {input(school.id, selected, "yearsExperience", "Years of teaching experience")}
+                        {input(school.id, selected, "previousSchool", "Previous school / employer", false)}
+                        {input(school.id, selected, "trcnStatus", "TRCN status / registration", false)}
+                      </>
+                    )}
+
+                    {selected === "CASHIER" && (
+                      <>
+                        <h3>Cashier application</h3>
+                        {input(school.id, selected, "phone", "Phone number")}
+                        {input(school.id, selected, "qualification", "Highest qualification")}
+                        {input(school.id, selected, "yearsExperience", "Years of cashier / accounts experience")}
+                        {input(school.id, selected, "previousSchool", "Previous school / employer", false)}
+                        {input(school.id, selected, "accountingExperience", "Accounting / bookkeeping experience", false)}
+                      </>
                     )}
 
                     {selected === "PARENT" && (
-                      <input
-                        value={childAdmissionId[school.id] || ""}
-                        onChange={event =>
-                          setChildAdmissionId(current => ({ ...current, [school.id]: event.target.value }))
-                        }
-                        placeholder="Child Admission ID"
-                      />
+                      <>
+                        <h3>Parent connection</h3>
+                        {input(school.id, selected, "childAdmissionId", "Child Admission ID")}
+                        {input(school.id, selected, "relationship", "Relationship to child")}
+                        {input(school.id, selected, "phone", "Phone number")}
+                        {input(school.id, selected, "occupation", "Occupation", false)}
+                      </>
                     )}
 
-                    <button
-                      className="button"
-                      disabled={busy === school.id}
-                      onClick={() => submit(school)}
-                    >
-                      {busy === school.id ? "Sending…" : "Send application"}
-                    </button>
+                    {selected && (
+                      <button
+                        className="button"
+                        disabled={busy === school.id}
+                        onClick={() => submit(school)}
+                      >
+                        {busy === school.id ? "Sending…" : "Send application"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
