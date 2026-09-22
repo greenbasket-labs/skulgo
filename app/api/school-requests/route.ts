@@ -24,6 +24,9 @@ export async function POST(request: Request) {
   const requestedRole = String(body?.requestedRole ?? "");
   const classId = String(body?.classId ?? "") || null;
   const studentAdmissionId = String(body?.studentAdmissionId ?? "").trim() || null;
+  const applicationDetails = body?.applicationDetails && typeof body.applicationDetails === "object"
+    ? JSON.stringify(body.applicationDetails)
+    : null;
 
   const allowed =
     (type === "JOB" && (requestedRole === "TEACHER" || requestedRole === "CASHIER")) ||
@@ -87,6 +90,7 @@ export async function POST(request: Request) {
         requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT" | "CASHIER",
         classId,
         studentAdmissionId,
+        applicationDetails,
       },
     });
     return NextResponse.json(requestRecord, { status: 201 });
