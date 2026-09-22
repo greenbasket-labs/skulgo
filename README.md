@@ -18,6 +18,12 @@ SkulGo is built in small modules. Each module should solve one real school task 
 
 ### Principal / School owner
 
+Sidebar stays small:
+
+**Dashboard · Applications · People · Classes · Subjects · Fees · My Account**
+
+Applications is where the principal reviews and approves both **student admissions and staff/job applications**.
+
 Sees the whole school operation needed for the role:
 
 - school structure
