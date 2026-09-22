@@ -22,7 +22,7 @@ Sidebar stays small:
 
 **Dashboard · Applications · People · Assign · Classes · Subjects · Fees · My Account**
 
-Applications is where the principal reviews and approves both **student admissions and staff/job applications**.
+Applications is where the principal reviews and approves **student admissions, staff/job applications, and parent/child link requests**.
 
 Assign is where the principal connects approved people to school duties, such as **teacher → class, teacher → subject, and class-master responsibility**.
 
