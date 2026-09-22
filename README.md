@@ -51,6 +51,8 @@ Subjects use a Nigerian school subject catalog. Admin selects only the subjects 
 
 ### Teacher
 
+After approval, the teacher gets a small duty workspace. If nothing has been assigned yet, the workspace stays empty and clearly says what is still waiting, such as **Class not assigned**, **Subject not assigned**, or **Students not assigned**.
+
 Only sees the work assigned to them.
 
 **Class master:**
@@ -74,6 +76,10 @@ Sees their own connected school records, such as:
 - subjects
 - scores/results
 - fees and balance
+
+### Announcements and messages
+
+A simple announcement area is available to the school community. Admin can write one announcement and it can be shown to the relevant **staff, students and parents** connected to the school. Parents also have a simple way to message/contact the school through the same communication area. This stays lightweight; it is not a full chat or social network.
 
 ### Parent
 
