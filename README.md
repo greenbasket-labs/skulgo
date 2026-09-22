@@ -65,3 +65,10 @@ Before adding a feature, ask:
 If not, do not build it in this stage.
 
 **Think small. Build the core. Stop when the core flow works.**
+
+
+## Current implementation
+
+The repository currently contains the clean Next.js + Prisma foundation, a relational SQLite development database schema, school registration API, automatic base sections, a simple grading module, and a minimal dashboard entry point.
+
+Authentication/session handling, approval workflows, teacher assignments, attendance, assessments/results, fees, and lightweight offline synchronization are intentionally the next core implementation steps rather than being faked as complete.
