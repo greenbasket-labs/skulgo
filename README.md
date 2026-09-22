@@ -70,9 +70,12 @@ The repository now has:
 - Lightweight class attendance workflow.
 - Attendance records can be created or updated for a student/date/session.
 - Class attendance view returns every student with present/absent/unmarked state.
-- Simple grading helpers.
+- CA + exam assessment entry with simple 30/70 validation.
+- Assessment entry requires an approved teacher assignment for the class and subject.
+- Student result generation with grade and subject position.
+- Simple result publishing endpoint.
 
-Authentication/session handling, assessments/results, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
+Authentication/session handling, fees, and lightweight offline synchronization are still intentionally small next steps rather than being faked as complete.
 
 ## Development rule
 
