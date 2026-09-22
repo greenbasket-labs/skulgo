@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { gradeFor, percentage } from "@/lib/grading";
 
 export async function GET(
@@ -7,6 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user?.membership || user.membership.schoolId !== schoolId) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
   const studentId = request.nextUrl.searchParams.get("studentId");
   const term = request.nextUrl.searchParams.get("term");
   const publishedOnly = request.nextUrl.searchParams.get("published") === "true";
@@ -33,6 +39,11 @@ export async function POST(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user?.membership || user.membership.schoolId !== schoolId || user.membership.role !== "TEACHER") {
+    return NextResponse.json({ error: "Teacher workspace required" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   const studentId = String(body?.studentId ?? "");
   const term = String(body?.term ?? "").trim();
