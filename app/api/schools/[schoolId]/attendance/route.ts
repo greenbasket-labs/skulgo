@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user?.membership || user.membership.schoolId !== schoolId) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
   const classId = request.nextUrl.searchParams.get("classId");
   const date = request.nextUrl.searchParams.get("date");
 
@@ -30,6 +35,17 @@ export async function POST(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user?.membership || user.membership.schoolId !== schoolId || user.membership.role !== "TEACHER") {
+    return NextResponse.json({ error: "Teacher access required" }, { status: 403 });
+  }
+
+  const teacher = await db.teacher.findUnique({
+    where: { userId: user.id },
+    select: { id: true, approved: true },
+  });
+  if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
+
   const body = await request.json().catch(() => null);
 
   const studentId = String(body?.studentId ?? "");
@@ -49,6 +65,12 @@ export async function POST(
   if (Number.isNaN(date.getTime())) {
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
   }
+
+  const assignment = await db.teacherAssignment.findFirst({
+    where: { schoolId, teacherId: teacher.id, classId },
+    select: { id: true },
+  });
+  if (!assignment) return NextResponse.json({ error: "Teacher is not assigned to this class" }, { status: 403 });
 
   const student = await db.student.findFirst({
     where: { id: studentId, schoolId, classId },
