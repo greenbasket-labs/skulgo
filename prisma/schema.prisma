@@ -57,6 +57,7 @@ model SchoolRequest {
   type RequestType
   requestedRole Role
   classId String?
+  class SchoolClass? @relation(fields:[classId],references:[id],onDelete:SetNull)
   status String @default("PENDING")
   createdAt DateTime @default(now())
   reviewedAt DateTime?
