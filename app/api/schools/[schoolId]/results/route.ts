@@ -25,7 +25,7 @@ export async function GET(
   } else if (user.membership.role === "PARENT") {
     if (!user.parent?.id) return NextResponse.json([]);
     const links = await db.parentStudent.findMany({
-      where: { parentId: user.parent.id, approved: true },
+      where: { parentId: user.parent.id, approved: true, student: { schoolId } },
       select: { studentId: true },
     });
     visibleStudentIds = links.map(link => link.studentId);
@@ -59,6 +59,14 @@ export async function POST(
     return NextResponse.json({ error: "Teacher workspace required" }, { status: 403 });
   }
 
+  const teacher = await db.teacher.findUnique({
+    where: { userId: user.id },
+    select: { id: true, approved: true },
+  });
+  if (!teacher?.approved) {
+    return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   const studentId = String(body?.studentId ?? "");
   const term = String(body?.term ?? "").trim();
@@ -78,6 +86,24 @@ export async function POST(
 
   if (!assessments.length) {
     return NextResponse.json({ error: "No assessments found for this student and term" }, { status: 404 });
+  }
+
+  const assignments = await db.teacherAssignment.findMany({
+    where: {
+      schoolId,
+      teacherId: teacher.id,
+      classId: student.classId,
+      subjectId: { in: assessments.map(a => a.subjectId) },
+    },
+    select: { subjectId: true },
+  });
+
+  const assignedSubjects = new Set(assignments.map(a => a.subjectId));
+  if (assessments.some(assessment => !assignedSubjects.has(assessment.subjectId))) {
+    return NextResponse.json(
+      { error: "You can only generate results for subjects assigned to you" },
+      { status: 403 }
+    );
   }
 
   const results = [];
