@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server"; import {db} from "@/lib/db";
+export async function GET(request:Request){const q=new URL(request.url).searchParams.get("q")?.trim()||"";if(q.length<2)return NextResponse.json([]);return NextResponse.json(await db.school.findMany({where:{OR:[{name:{contains:q}},{abbr:{contains:q}}]},select:{id:true,name:true,abbr:true,address:true},take:20,orderBy:{name:"asc"}}));}
