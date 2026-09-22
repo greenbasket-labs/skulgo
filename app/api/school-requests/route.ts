@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         schoolId,
         userId: user.id,
         type: type as "JOB" | "ADMISSION",
-        requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT",
+        requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT" | "CASHIER",
         classId,
         studentAdmissionId,
       },
