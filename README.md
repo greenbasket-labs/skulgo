@@ -136,7 +136,7 @@ Do not build payroll, inventory, hostel, transport, library, biometric systems, 
 
 ## Current MVP status — September 2026
 
-The core pilot record flow is implemented and has focused local Playwright proof:
+The core lightweight school-record flow is implemented and has focused local Playwright proof:
 
 - personal account → school workspace
 - student admission and approval
@@ -152,22 +152,51 @@ The core pilot record flow is implemented and has focused local Playwright proof
 - published-result visibility for students
 - shared fee/payment flow across Student, Parent, Cashier and Admin
 
-Recent owner-run checks include passing typecheck, offline attendance, payment, teacher assignment, offline score, and result-generation/publish flows. See ROADMAP.md for the launch checklist and HANDOVER.md for continuation details.
+Owner-run local checks have passed for typecheck, teacher assignment, offline attendance, offline score, payment, and result generation/publishing.
+
+### Production launch status
+
+The current `main` branch is deployed to Render.
+
+- Production web service: `https://skulgo.onrender.com`
+- Production database: Render PostgreSQL
+- Production Prisma schema: `prisma/schema.production.prisma`
+- Custom domain: `https://skulgo.com`
+- `www.skulgo.com` is configured to redirect to `skulgo.com`
+- Custom domains are verified in Render and HTTPS is active.
+- Live smoke test completed: `skulgo.com` loads the SkulGo landing page.
+- Live smoke test completed: the production Sign in page loads correctly.
+
+Production database initialization was completed from the Render environment using the PostgreSQL Prisma schema.
 
 ### Offline-first principle
 
-Offline is a SkulGo-wide behavior, not a payment-only feature. The shared offline layer stores queued actions and cached records locally, then synchronizes when internet returns. Attendance and Scores currently have proven offline flows. Full offline app-shell/navigation support is still a launch task.
+Offline is a SkulGo-wide behavior. The shared offline layer stores queued actions and cached records locally, then synchronizes when internet returns. Offline attendance and offline score entry have been proven. The offline app shell/navigation test has also passed.
 
 ### Launch boundary
 
-SkulGo does not need to become a large school ERP before its first pilot. The next work is production reliability: production PostgreSQL, deployment, security review, subscription enforcement, backup/recovery, and live smoke testing.
+This is a **working pilot baseline, not a completed product**.
 
-For local development, SkulGo continues to use SQLite. Production uses the PostgreSQL Prisma schema in `prisma/schema.production.prisma`.
+Do not interpret the current production deployment as completion. The next work should stay small and practical: finish live smoke tests, review production/object-level security, enforce the school subscription boundary, verify backup/recovery, and then prepare for a controlled pilot.
 
-## Current verification
+For local development, SkulGo continues to use SQLite. Production uses PostgreSQL through `prisma/schema.production.prisma`.
 
-The personal-account → school workspace → student admission approval journey is passing in Playwright. The teacher approval/assignment path has been aligned so an approved teacher can receive class/subject assignments. The remaining local E2E step is verifying the teacher workspace selection and assigned-work view.
+## Current handover checkpoint
 
+**Handover point: production is live and the custom domain is verified.**
+
+Verified so far:
+
+1. Local core record flows with focused Playwright proof.
+2. PostgreSQL production schema initialized successfully on Render.
+3. Render web service deployed from `main`.
+4. `https://skulgo.com` resolves to the live application.
+5. `skulgo.com` and `www.skulgo.com` are verified in Render.
+6. HTTPS certificate is active.
+7. The production landing page loads.
+8. The production Sign in page loads.
+
+The next person should continue from this checkpoint rather than rebuilding or expanding the system. Keep the product lightweight and preserve the connected-record model.
 
 ## Initial onboarding flow
 
