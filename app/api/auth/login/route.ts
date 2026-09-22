@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     ok: true,
     name: user.name,
     workspaces: memberships.map(m => ({
+      membershipId: m.id,
       schoolId: m.schoolId,
       schoolName: m.school.name,
       schoolAbbr: m.school.abbr,
