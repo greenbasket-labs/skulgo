@@ -139,14 +139,12 @@ export default function AttendancePage() {
   }
 
   async function save(student: Student, present: boolean) {
-    const schoolId = await schoolFromSession();
+    const schoolId = userSchoolId();
     if (!schoolId || !selectedClassId) return;
 
-    setMarks(current => ({ ...current, [student.id]: present }));
-    cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, {
-      ...marks,
-      [student.id]: present,
-    });
+    const nextMarks = { ...marks, [student.id]: present };
+    setMarks(nextMarks);
+    cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
 
     const body = {
       studentId: student.id,
@@ -167,15 +165,19 @@ export default function AttendancePage() {
       return;
     }
 
-    const response = await fetch(`/api/schools/${schoolId}/attendance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (response.ok) {
-      setMessage("Attendance saved.");
-      return;
+      if (response.ok) {
+        setMessage("Attendance saved.");
+        return;
+      }
+    } catch {
+      // Fall through to local queue when the connection drops during a write.
     }
 
     queueAction({
@@ -186,6 +188,16 @@ export default function AttendancePage() {
     setPending(queuedCount());
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
+
+  function userSchoolId() {
+    return data?.assignments[0]?.class ? schoolIdFromAssignment() : "";
+  }
+
+  function schoolIdFromAssignment() {
+    return userMembershipSchoolId;
+  }
+
+  const userMembershipSchoolId = (globalThis as { __SKULGO_SCHOOL_ID__?: string }).__SKULGO_SCHOOL_ID__ ?? "";
 
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;
