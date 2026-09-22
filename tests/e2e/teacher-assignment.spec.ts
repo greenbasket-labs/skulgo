@@ -110,7 +110,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   await adminPage.locator('input[name="email"]').fill(ownerEmail);
   await adminPage.locator('input[name="password"]').fill(password);
   await adminPage.getByRole("button", { name: /create account/i }).click();
-  await expect(adminPage).toHaveURL(/\\/dashboard/);
+  await expect(adminPage).toHaveURL(/\/dashboard/);
 
   const schoolResponse = await adminPage.evaluate(async payload => {
     const response = await fetch("/api/schools", {
@@ -174,7 +174,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   await teacherPage.locator('input[name="email"]').fill(teacherEmail);
   await teacherPage.locator('input[name="password"]').fill(password);
   await teacherPage.getByRole("button", { name: /create account/i }).click();
-  await expect(teacherPage).toHaveURL(/\\/dashboard/);
+  await expect(teacherPage).toHaveURL(/\/dashboard/);
 
   const application = await teacherPage.evaluate(async payload => {
     const response = await fetch("/api/school-requests", {
