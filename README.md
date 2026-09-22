@@ -35,6 +35,8 @@ Sees the whole school operation needed for the role:
 - results
 - fees, payments and outstanding balances
 
+The dashboard can show a few compact daily activity cards. Examples: **today's attendance percentage**, **today's payments**, and **result completion progress**. Each card opens the related school records when tapped. The information is calculated from the connected records rather than entered manually.
+
 The principal mainly **approves, assigns and manages**.
 
 ### Classes
