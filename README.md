@@ -126,3 +126,22 @@ If no, leave it out.
 Do not build payroll, inventory, hostel, transport, library, biometric systems, complex accounting, AI features, CRM, school websites, marketplaces, advanced analytics, or large notification systems in this stage.
 
 **Think small. Build one useful piece at a time.**
+
+
+## Initial onboarding flow
+
+1. Create a **personal SkulGo account**.
+2. From the personal account, search for a school.
+3. Open the school and choose **Apply**.
+4. Choose the intended connection:
+   - **Student** → admission application form.
+   - **Teacher / staff** → job application form.
+   - **Parent** → parent/child connection request.
+5. Submit the application. The person is **not connected to the school until Admin approves**.
+6. After Admin approves:
+   - Student receives an automatic **Admission ID** and becomes connected to the selected class.
+   - Teacher receives an automatic **Teacher ID** and becomes connected to the school.
+   - Parent becomes connected only after the school verifies and approves the child relationship.
+7. The person returns to their personal SkulGo account and enters the connected school workspace to perform the duties allowed by that connection.
+
+The school remains a separate entity. Personal accounts are identities; school connections define the person's role and access.
