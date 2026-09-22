@@ -10,9 +10,6 @@ test("personal account can open the school workspace doorway", async ({ page }) 
   await inputs.nth(0).fill("Pilot Owner");
   await inputs.nth(1).fill(email);
   await inputs.nth(2).fill("PilotPassword123!");
-  if (await inputs.count() > 3) {
-    await inputs.nth(3).fill("PilotPassword123!");
-  }
 
   await page.getByRole("button").filter({ hasText: /create|sign up/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);
