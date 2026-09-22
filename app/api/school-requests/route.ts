@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const studentAdmissionId = String(body?.studentAdmissionId ?? "").trim() || null;
 
   const allowed =
-    (type === "JOB" && requestedRole === "TEACHER") ||
+    (type === "JOB" && (requestedRole === "TEACHER" || requestedRole === "CASHIER")) ||
     (type === "ADMISSION" && requestedRole === "STUDENT") ||
     (type === "ADMISSION" && requestedRole === "PARENT");
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       schoolId,
       userId: user.id,
       type: type as "JOB" | "ADMISSION",
-      requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT",
+      requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT" | "CASHIER",
       status: "PENDING",
     },
   });
