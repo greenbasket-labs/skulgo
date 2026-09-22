@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { scryptSync, randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 
 function clean(value:unknown){ return typeof value === "string" ? value.trim() : ""; }
@@ -18,7 +19,8 @@ export async function POST(request:Request){
   if(exists) return NextResponse.json({error:"School email or abbreviation already exists"},{status:409});
 
   // MVP foundation: password hashing/auth session will be added with the auth step.
-  const passwordHash=Buffer.from(password).toString("base64");
+  const salt=randomBytes(16).toString("hex");
+  const passwordHash=`scrypt:${salt}:${scryptSync(password,salt,64).toString("hex")}`;
 
   const school=await db.$transaction(async tx=>{
     const created=await tx.school.create({data:{name,abbr,address,phone,email}});
