@@ -44,6 +44,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You are already connected to this school" }, { status: 409 });
   }
 
+  const existingRequest = await db.schoolRequest.findFirst({
+    where: {
+      schoolId,
+      userId: user.id,
+      type: type as "JOB" | "ADMISSION",
+      requestedRole: requestedRole as "TEACHER" | "STUDENT" | "PARENT",
+      status: "PENDING",
+    },
+  });
+  if (existingRequest) {
+    return NextResponse.json({ error: "You already sent this type of request to this school" }, { status: 409 });
+  }
+
   if (type === "ADMISSION" && requestedRole === "STUDENT") {
     if (!classId) return NextResponse.json({ error: "Choose a class for admission" }, { status: 400 });
     const valid = await db.schoolClass.findFirst({ where: { id: classId, schoolId }, select: { id: true } });
@@ -78,6 +91,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(requestRecord, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "You already sent this type of request to this school" }, { status: 409 });
+    return NextResponse.json({ error: "Could not create the school request" }, { status: 400 });
   }
 }
