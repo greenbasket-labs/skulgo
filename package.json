@@ -11,8 +11,8 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "e2e": "playwright test",
-    "db:generate:prod": "prisma generate --schema prisma/schema.production.prisma",
-    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma"
+    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma",
+    "build:prod": "prisma generate --schema prisma/schema.production.prisma && next build"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
