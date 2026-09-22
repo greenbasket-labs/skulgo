@@ -26,7 +26,7 @@ test("personal account can create and enter a school workspace", async ({ page }
 
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByText(/good morning, pilot/i)).toBeVisible();
-  await expect(page.getByText(/pilot community school/i)).toBeVisible();
+  await expect(page.getByRole("complementary").getByText(/pilot community school/i)).toBeVisible();
   await expect(page.getByText(/admin/i)).toBeVisible();
   await expect(page.getByRole("link", { name: "Applications" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Classes" })).toBeVisible();
