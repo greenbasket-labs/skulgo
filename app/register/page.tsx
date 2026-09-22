@@ -1,2 +1,5 @@
-"use client"; import {FormEvent,useState} from "react"; import {useRouter} from "next/navigation";
-export default function Register(){const[m,setM]=useState("");const[b,setB]=useState(false);const r=useRouter();async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setB(true);const x=await fetch("/api/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});const j=await x.json().catch(()=>({}));setB(false);if(!x.ok){setM(j.error??"Could not create account");return;}r.push("/dashboard");r.refresh();}return <main className="shell"><div className="card" style={{maxWidth:520,margin:"40px auto"}}><p className="muted">SkulGo</p><h1>Create your personal account</h1><p className="muted">Create your account first. Then search for your school and send a request.</p><form onSubmit={submit} className="grid"><input required name="name" placeholder="Full name"/><input required type="email" name="email" placeholder="Email"/><input required type="password" name="password" placeholder="Password"/><button className="button" disabled={b}>{b?"Creating…":"Create account"}</button></form>{m&&<p>{m}</p>}</div></main>}
+import { redirect } from "next/navigation";
+
+export default function SchoolRegistration() {
+  redirect("/schools/new");
+}
