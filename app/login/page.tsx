@@ -4,9 +4,18 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+type Workspace = {
+  membershipId: string;
+  schoolId: string;
+  schoolName: string;
+  schoolAbbr: string;
+  role: string;
+};
+
 export default function Login() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -28,6 +37,46 @@ export default function Login() {
       return;
     }
 
+    const available = Array.isArray(data.workspaces) ? data.workspaces : [];
+    setWorkspaces(available);
+
+    if (available.length === 1) {
+      const selected = await fetch("/api/workspaces/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membershipId: available[0].membershipId }),
+      });
+      if (!selected.ok) {
+        setMessage("Signed in, but the school workspace could not be opened.");
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }
+
+  async function chooseWorkspace(membershipId: string) {
+    setBusy(true);
+    setMessage("");
+
+    const response = await fetch("/api/workspaces/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membershipId }),
+    });
+
+    setBusy(false);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setMessage(data.error || "Could not open workspace");
+      return;
+    }
+
     router.push("/dashboard");
     router.refresh();
   }
@@ -41,21 +90,37 @@ export default function Login() {
           Use your SkulGo account to continue to your available school workspaces.
         </p>
 
-        <form onSubmit={submit} className="grid">
-          <label className="grid">
-            <span>Email</span>
-            <input required type="email" name="email" placeholder="Email" />
-          </label>
+        {!workspaces.length ? (
+          <form onSubmit={submit} className="grid">
+            <label className="grid">
+              <span>Email</span>
+              <input required type="email" name="email" placeholder="Email" />
+            </label>
 
-          <label className="grid">
-            <span>Password</span>
-            <input required type="password" name="password" placeholder="Password" />
-          </label>
+            <label className="grid">
+              <span>Password</span>
+              <input required type="password" name="password" placeholder="Password" />
+            </label>
 
-          <button className="button" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <button className="button" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+        ) : (
+          <div className="grid">
+            <strong>Choose school workspace</strong>
+            {workspaces.map(workspace => (
+              <button
+                key={workspace.membershipId}
+                className="button"
+                disabled={busy}
+                onClick={() => void chooseWorkspace(workspace.membershipId)}
+              >
+                {workspace.schoolName} · {workspace.role}
+              </button>
+            ))}
+          </div>
+        )}
 
         {message && <p>{message}</p>}
 
