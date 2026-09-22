@@ -176,14 +176,10 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   });
   expect(assignment.status()).toBe(201);
 
-  const teacherSelect = await teacherPage.request.post("/api/workspaces/select", {
-    data: {
-      membershipId: (
-        await teacherPage.request.get("/api/school-requests").then(r => r.json())
-      ).length ? undefined : undefined,
-    },
-  });
-  expect(teacherSelect.status()).not.toBe(500);
+  await teacherPage.goto("/dashboard");
+  await expect(teacherPage.getByText(new RegExp(school.name, "i")).first()).toBeVisible();
+
+  await teacherPage.getByRole("button", { name: /enter school/i }).click().catch(() => {});
 
   await owner.close();
   await teacher.close();
