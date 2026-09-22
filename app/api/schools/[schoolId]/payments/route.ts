@@ -40,24 +40,23 @@ export async function POST(
   const studentId = String(body?.studentId ?? "");
   const amount = Number(body?.amount);
   const reference = body?.reference ? String(body.reference).trim() : null;
-  const recordedById = String(body?.recordedById ?? "");
+  const recordedById = user.id;
 
-  if (!studentId || !Number.isFinite(amount) || amount <= 0 || !recordedById) {
+  if (!studentId || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json(
       { error: "studentId, positive amount and recordedById are required" },
       { status: 400 }
     );
   }
 
-  const [student, fee, recorder] = await Promise.all([
+  const [student, fee] = await Promise.all([
     db.student.findFirst({ where: { id: studentId, schoolId } }),
     db.feeRecord.findFirst({ where: { studentId, schoolId } }),
-    db.user.findFirst({ where: { id: recordedById, memberships: { some: { schoolId, active: true, role: "CASHIER" } } } }),
   ]);
 
   if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
   if (!fee) return NextResponse.json({ error: "Create a fee record for the student first" }, { status: 400 });
-  if (!recorder) return NextResponse.json({ error: "Payment must be recorded by a cashier in this school" }, { status: 400 });
+
 
   const paid = await db.payment.aggregate({
     where: { schoolId, studentId },
