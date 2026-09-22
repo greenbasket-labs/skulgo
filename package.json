@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:generate:prod": "prisma generate --schema prisma/schema.production.prisma",
+    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
