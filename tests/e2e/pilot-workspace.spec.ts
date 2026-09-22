@@ -29,6 +29,11 @@ test("personal account can create a school and student can join after admin appr
   const school = await schoolResponse.json();
   expect(school.membershipId).toBeTruthy();
 
+  const selectWorkspace = await adminPage.request.post("/api/workspaces/select", {
+    data: { membershipId: school.membershipId },
+  });
+  expect(selectWorkspace.ok()).toBeTruthy();
+
   const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
   expect(sectionsResponse.ok()).toBeTruthy();
   const sections = await sectionsResponse.json();
