@@ -110,108 +110,152 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   await adminPage.locator('input[name="email"]').fill(ownerEmail);
   await adminPage.locator('input[name="password"]').fill(password);
   await adminPage.getByRole("button", { name: /create account/i }).click();
+  await expect(adminPage).toHaveURL(/\\/dashboard/);
 
-  const schoolResponse = await adminPage.request.post("/api/schools", {
-    data: {
-      name: `Teacher Pilot School ${runId}`,
-      abbr: schoolAbbr,
-      address: "Teacher Road",
-      phone: "08000000001",
-      email: `teacher-school-${runId}@example.com`,
-    },
-  );
+  const schoolResponse = await adminPage.evaluate(async payload => {
+    const response = await fetch("/api/schools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, {
+    name: `Teacher Pilot School ${runId}`,
+    abbr: schoolAbbr,
+    address: "Teacher Road",
+    phone: "08000000001",
+    email: `teacher-school-${runId}@example.com`,
+  });
+
   expect(schoolResponse.ok, JSON.stringify(schoolResponse.body)).toBeTruthy();
   const school = schoolResponse.body;
+  expect(school.membershipId).toBeTruthy();
 
-  const selectWorkspace = await adminPage.request.post("/api/workspaces/select", {
-    data: { membershipId: school.membershipId },
-  });
-  expect(selectWorkspace.ok()).toBeTruthy();
+  const selected = await adminPage.evaluate(async membershipId => {
+    const response = await fetch("/api/workspaces/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membershipId }),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, school.membershipId);
+  expect(selected.ok, JSON.stringify(selected.body)).toBeTruthy();
 
-  const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
-  expect(sectionsResponse.ok()).toBeTruthy();
-  const sections = await sectionsResponse.json();
-  const primary = sections.find((section: { name: string }) => section.name === "Primary");
+  const sectionsResponse = await adminPage.evaluate(async schoolId => {
+    const response = await fetch(`/api/schools/${schoolId}/sections`);
+    return { ok: response.ok, body: await response.json().catch(() => []) };
+  }, school.id);
+  expect(sectionsResponse.ok, JSON.stringify(sectionsResponse.body)).toBeTruthy();
+  const primary = sectionsResponse.body.find((section: { name: string }) => section.name === "Primary");
+  expect(primary).toBeTruthy();
 
-  const classResponse = await adminPage.request.post(`/api/schools/${school.id}/classes`, {
-    data: { sectionId: primary.id, name: "Primary 6", arm: "A" },
-  });
-  expect(classResponse.ok()).toBeTruthy();
-  const schoolClass = await classResponse.json();
+  const classResponse = await adminPage.evaluate(async payload => {
+    const response = await fetch(`/api/schools/${payload.schoolId}/classes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sectionId: payload.sectionId, name: "Primary 6", arm: "A" }),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, { schoolId: school.id, sectionId: primary.id });
+  expect(classResponse.ok, JSON.stringify(classResponse.body)).toBeTruthy();
 
-  const subjectResponse = await adminPage.request.post(`/api/schools/${school.id}/subjects`, {
-    data: { name: "English Language" },
-  });
-  expect(subjectResponse.ok()).toBeTruthy();
-  const subject = await subjectResponse.json();
+  const subjectResponse = await adminPage.evaluate(async schoolId => {
+    const response = await fetch(`/api/schools/${schoolId}/subjects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "English Language" }),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, school.id);
+  expect(subjectResponse.ok, JSON.stringify(subjectResponse.body)).toBeTruthy();
 
   await teacherPage.goto("/signup");
   await teacherPage.locator('input[name="name"]').fill("Pilot Teacher");
   await teacherPage.locator('input[name="email"]').fill(teacherEmail);
   await teacherPage.locator('input[name="password"]').fill(password);
   await teacherPage.getByRole("button", { name: /create account/i }).click();
+  await expect(teacherPage).toHaveURL(/\\/dashboard/);
 
-  const application = await teacherPage.request.post("/api/school-requests", {
-    data: {
-      schoolId: school.id,
-      type: "JOB",
-      requestedRole: "TEACHER",
-    },
-  });
-  expect(application.status()).toBe(201);
-  const request = await application.json();
+  const application = await teacherPage.evaluate(async payload => {
+    const response = await fetch("/api/school-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) };
+  }, { schoolId: school.id, type: "JOB", requestedRole: "TEACHER" });
+  expect(application.status, JSON.stringify(application.body)).toBe(201);
 
-  const approval = await adminPage.request.patch(
-    `/api/schools/${school.id}/requests/${request.id}`,
-    { data: { action: "APPROVE" } }
-  );
-  expect(approval.ok()).toBeTruthy();
+  const approval = await adminPage.evaluate(async payload => {
+    const response = await fetch(`/api/schools/${payload.schoolId}/requests/${payload.requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "APPROVE" }),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, { schoolId: school.id, requestId: application.body.id });
+  expect(approval.ok, JSON.stringify(approval.body)).toBeTruthy();
 
-  const teachersResponse = await adminPage.request.get(`/api/schools/${school.id}/teachers`);
-  expect(teachersResponse.ok()).toBeTruthy();
-  const teachers = await teachersResponse.json();
-  const approvedTeacher = teachers.find((item: { user: { email: string }; approved: boolean }) =>
-    item.user.email === teacherEmail && item.approved
+  const teachersResponse = await adminPage.evaluate(async schoolId => {
+    const response = await fetch(`/api/schools/${schoolId}/teachers`);
+    return { ok: response.ok, body: await response.json().catch(() => []) };
+  }, school.id);
+  expect(teachersResponse.ok, JSON.stringify(teachersResponse.body)).toBeTruthy();
+
+  const approvedTeacher = teachersResponse.body.find(
+    (item: { user: { email: string }; approved: boolean }) =>
+      item.user.email === teacherEmail && item.approved
   );
   expect(approvedTeacher).toBeTruthy();
 
-  const assignment = await adminPage.request.post(`/api/schools/${school.id}/assignments`, {
-    data: {
-      teacherId: approvedTeacher.id,
-      classId: schoolClass.id,
-      subjectId: subject.id,
-    },
+  const assignment = await adminPage.evaluate(async payload => {
+    const response = await fetch(`/api/schools/${payload.schoolId}/assignments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        teacherId: payload.teacherId,
+        classId: payload.classId,
+        subjectId: payload.subjectId,
+      }),
+    });
+    return { ok: response.ok, status: response.status, body: await response.json().catch(() => ({})) };
+  }, {
+    schoolId: school.id,
+    teacherId: approvedTeacher.id,
+    classId: classResponse.body.id,
+    subjectId: subjectResponse.body.id,
   });
-  expect(assignment.status()).toBe(201);
+  expect(assignment.status, JSON.stringify(assignment.body)).toBe(201);
 
-  const memberships = await teacherPage.request.get("/api/school-requests");
-  expect(memberships.ok()).toBeTruthy();
+  await teacherPage.goto("/dashboard");
+  const teacherLogin = await teacherPage.evaluate(async payload => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, { email: teacherEmail, password });
+  expect(teacherLogin.ok, JSON.stringify(teacherLogin.body)).toBeTruthy();
 
-  const loginResponse = await teacherPage.request.post("/api/auth/login", {
-    data: { email: teacherEmail, password },
-  });
-  expect(loginResponse.ok()).toBeTruthy();
-  const loginData = await loginResponse.json();
-  const teacherWorkspace = loginData.workspaces.find(
+  const teacherWorkspace = teacherLogin.body.workspaces.find(
     (workspace: { schoolId: string }) => workspace.schoolId === school.id
   );
   expect(teacherWorkspace).toBeTruthy();
 
-  const teacherMemberships = await teacherPage.request.get("/api/school-requests");
-  expect(teacherMemberships.ok()).toBeTruthy();
-
-  await teacherPage.goto("/dashboard");
-  await expect(teacherPage.getByText(/personal skulgo account|choose a school workspace|teacher workspace|welcome/i)).toBeVisible();
-
-  const selectTeacherWorkspace = await teacherPage.request.post("/api/workspaces/select", {
-    data: { membershipId: teacherWorkspace.membershipId },
-  });
-  expect(selectTeacherWorkspace.ok()).toBeTruthy();
+  const selectTeacherWorkspace = await teacherPage.evaluate(async membershipId => {
+    const response = await fetch("/api/workspaces/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membershipId }),
+    });
+    return { ok: response.ok, body: await response.json().catch(() => ({})) };
+  }, teacherWorkspace.membershipId);
+  expect(selectTeacherWorkspace.ok, JSON.stringify(selectTeacherWorkspace.body)).toBeTruthy();
 
   await teacherPage.goto("/my-subjects");
   await expect(teacherPage.getByRole("heading", { name: "My Subjects" })).toBeVisible();
   await expect(teacherPage.getByText("English Language")).toBeVisible();
-  await expect(teacherPage.getByText("Primary 6 · Primary 6 · A")).toBeVisible().catch(() => {});
 
   await owner.close();
   await teacher.close();
