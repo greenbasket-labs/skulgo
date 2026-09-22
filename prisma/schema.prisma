@@ -86,14 +86,6 @@ model Subject {
   @@unique([schoolId,name])
 }
 
-model UserTeacher {
-  id String @id @default(cuid())
-  userId String @unique
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
-  teacherId String @unique
-  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
-}
-
 model Teacher {
   id String @id @default(cuid())
   userId String @unique
