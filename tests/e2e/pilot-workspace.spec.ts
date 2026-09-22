@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test("personal account can create a school and student can join after admin approval", async ({ browser }) => {
-  const ownerEmail = `owner-${Date.now()}@example.com`;
-  const studentEmail = `student-${Date.now()}@example.com`;
+  const runId = Date.now();
+  const ownerEmail = `owner-${runId}@example.com`;
+  const studentEmail = `student-${runId}@example.com`;
+  const schoolAbbr = `P${String(runId).slice(-4)}`;
   const password = "PilotPassword123!";
   const owner = await browser.newContext();
   const student = await browser.newContext();
@@ -18,8 +20,8 @@ test("personal account can create a school and student can join after admin appr
 
   const schoolResponse = await adminPage.request.post("/api/schools", {
     data: {
-      name: "Pilot Community School",
-      abbr: "PCS",
+      name: `Pilot Community School ${runId}`,
+      abbr: schoolAbbr,
       address: "Pilot Road",
       phone: "08000000000",
       email: `school-${Date.now()}@example.com`,
