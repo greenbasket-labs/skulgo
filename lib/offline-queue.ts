@@ -27,6 +27,14 @@ export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
     ...action,
     id: crypto.randomUUID(),
     createdAt: Date.now(),
+    body:
+      action.method === "POST" &&
+      action.body &&
+      typeof action.body === "object" &&
+      !Array.isArray(action.body) &&
+      !("reference" in action.body)
+        ? { ...action.body, reference: `OFFLINE-${crypto.randomUUID()}` }
+        : action.body,
   };
   writeQueue([...readQueue(), item]);
   return item;
