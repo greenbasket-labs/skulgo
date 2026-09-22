@@ -180,6 +180,9 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   const memberships = await teacherPage.request.get("/api/school-requests");
   expect(memberships.ok()).toBeTruthy();
 
+  const teacherMemberships = await teacherPage.request.get("/api/school-requests");
+  expect(teacherMemberships.ok()).toBeTruthy();
+
   await teacherPage.goto("/dashboard");
   await expect(teacherPage.getByText(/choose a school workspace|teacher workspace|welcome/i)).toBeVisible();
 
