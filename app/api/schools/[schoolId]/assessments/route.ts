@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { percentage } from "@/lib/grading";
 
 export async function GET(
@@ -33,6 +34,19 @@ export async function POST(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user?.membership || user.membership.schoolId !== schoolId || user.membership.role !== "TEACHER") {
+    return NextResponse.json({ error: "Teacher workspace required" }, { status: 403 });
+  }
+
+  const teacher = await db.teacher.findUnique({
+    where: { userId: user.id },
+    select: { id: true, approved: true },
+  });
+  if (!teacher?.approved) {
+    return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
 
   const studentId = String(body?.studentId ?? "");
@@ -53,21 +67,20 @@ export async function POST(
     return NextResponse.json({ error: "CA must be 0-30 and exam must be 0-70" }, { status: 400 });
   }
 
-  const [student, schoolClass, subject] = await Promise.all([
+  const [student, schoolClass, subject, assigned] = await Promise.all([
     db.student.findFirst({ where: { id: studentId, schoolId, classId } }),
     db.schoolClass.findFirst({ where: { id: classId, schoolId } }),
     db.subject.findFirst({ where: { id: subjectId, schoolId } }),
+    db.teacherAssignment.findFirst({
+      where: { schoolId, teacherId: teacher.id, classId, subjectId },
+    }),
   ]);
 
   if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
   if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
   if (!subject) return NextResponse.json({ error: "Subject not found" }, { status: 404 });
-
-  const assigned = await db.teacherAssignment.findFirst({
-    where: { schoolId, classId, subjectId, teacher: { approved: true } },
-  });
   if (!assigned) {
-    return NextResponse.json({ error: "No approved teacher is assigned to this class and subject" }, { status: 400 });
+    return NextResponse.json({ error: "You are not assigned to this class and subject" }, { status: 403 });
   }
 
   const assessment = await db.assessment.upsert({
