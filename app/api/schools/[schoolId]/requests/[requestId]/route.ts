@@ -79,6 +79,7 @@ export async function PATCH(
           data: {
             userId: schoolRequest.userId,
             teacherCode: makeTeacherId(school.abbr, new Date().getFullYear(), ids.map(x => x.teacherCode)),
+            approved: true,
           },
         });
       }
