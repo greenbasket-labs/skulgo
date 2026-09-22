@@ -33,7 +33,7 @@ export async function POST(
   }
 
   const [teacher, schoolClass, subject] = await Promise.all([
-    db.teacher.findFirst({ where: { id: teacherId, user: { schoolId } } }),
+    db.teacher.findFirst({ where: { id: teacherId, user: { memberships: { some: { schoolId, active: true, role: "TEACHER" } } } } }),
     db.schoolClass.findFirst({ where: { id: classId, schoolId } }),
     db.subject.findFirst({ where: { id: subjectId, schoolId } }),
   ]);
