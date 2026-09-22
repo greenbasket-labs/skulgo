@@ -17,10 +17,25 @@ export async function GET(
   const term = request.nextUrl.searchParams.get("term");
   const publishedOnly = request.nextUrl.searchParams.get("published") === "true";
 
+  let visibleStudentIds: string[] | null = null;
+
+  if (user.membership.role === "STUDENT") {
+    if (!user.student?.id) return NextResponse.json([]);
+    visibleStudentIds = [user.student.id];
+  } else if (user.membership.role === "PARENT") {
+    if (!user.parent?.id) return NextResponse.json([]);
+    const links = await db.parentStudent.findMany({
+      where: { parentId: user.parent.id, approved: true },
+      select: { studentId: true },
+    });
+    visibleStudentIds = links.map(link => link.studentId);
+  }
+
   const results = await db.result.findMany({
     where: {
       schoolId,
       ...(studentId ? { studentId } : {}),
+      ...(visibleStudentIds ? { studentId: { in: visibleStudentIds } } : {}),
       ...(term ? { term } : {}),
       ...(publishedOnly ? { published: true } : {}),
     },
