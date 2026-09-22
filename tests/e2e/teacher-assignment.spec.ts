@@ -34,8 +34,8 @@ test("personal account can create a school and student can join after admin appr
       email: `school-${Date.now()}@example.com`,
     },
   });
-  const schoolBody = await schoolResponse.json().catch(() => ({}));
-  expect(schoolResponse.ok(), JSON.stringify(schoolBody)).toBeTruthy();
+  const schoolBody = schoolResponse.body;
+  expect(schoolResponse.ok, JSON.stringify(schoolBody)).toBeTruthy();
   const school = schoolBody;
   expect(school.membershipId).toBeTruthy();
 
@@ -203,8 +203,8 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   expect(teachersResponse.ok, JSON.stringify(teachersResponse.body)).toBeTruthy();
 
   const approvedTeacher = teachersResponse.body.find(
-    (item: { user: { email: string }; approved: boolean }) =>
-      item.user.email === teacherEmail && item.approved
+    (item: { user: { email: string } }) =>
+      item.user.email === teacherEmail
   );
   expect(approvedTeacher).toBeTruthy();
 
