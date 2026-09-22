@@ -68,8 +68,11 @@ export default function AttendancePage() {
       return;
     }
 
-    const key = `skulgo-attendance-students-${classId}`;
-    const response = await fetch(`/api/schools/${data?.assignments[0]?.class.id ? data.assignments[0].class.id : ""}/students`);
+    const schoolId = await schoolFromSession();
+    if (!schoolId) return;
+
+    const key = `skulgo-attendance-students-${schoolId}-${classId}`;
+    const response = await fetch(`/api/schools/${schoolId}/students`);
 
     if (response.ok) {
       const body = await response.json();
