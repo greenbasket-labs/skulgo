@@ -270,7 +270,7 @@ model Payment {
   studentId String
   student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   amount Float
-  reference String?
+  reference String? @unique
   paidAt DateTime @default(now())
   recordedById String
 }
