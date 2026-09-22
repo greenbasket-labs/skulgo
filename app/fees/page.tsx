@@ -254,10 +254,10 @@ export default function FeesPage() {
                   />
                   <button
                     className="button"
-                    disabled={busy}
+                    disabled={busy || (role !== "STUDENT" && selectedStudentId !== fee.studentId)}
                     onClick={() => {
-                      if (role === "STUDENT") setSelectedStudentId(fee.studentId);
-                      void pay();
+                      setSelectedStudentId(fee.studentId);
+                      window.setTimeout(() => { void pay(); }, 0);
                     }}
                   >
                     {busy ? "Saving…" : "Record payment"}
