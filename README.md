@@ -20,7 +20,7 @@ SkulGo is built in small modules. Each module should solve one real school task 
 
 Sidebar stays small:
 
-**Dashboard · Applications · People · Assign · Classes · Subjects · Fees · My Account**
+**Dashboard · Applications · Staff · Assign · Classes · Subjects · Fees · My Account**
 
 Applications is where the principal reviews and approves **student admissions, staff/job applications, and parent/child link requests**.
 
@@ -36,6 +36,12 @@ Sees the whole school operation needed for the role:
 - fees, payments and outstanding balances
 
 The principal mainly **approves, assigns and manages**.
+
+### Classes
+
+Classes are selected from a Nigerian school class list. The school only activates the classes it actually offers. The list runs from **Play Class / Nursery through Primary 1–6, JSS 1–3 and SS 1–3**. The class may optionally have an **arm** such as A, B or C.
+
+Selecting and saving a class means that class is part of the school's operating structure. The same class record is then used by admissions, students, class masters, subjects, attendance and results.
 
 ### Teacher
 
