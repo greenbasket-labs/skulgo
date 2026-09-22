@@ -27,6 +27,18 @@ export default function NewSchool() {
       return;
     }
 
+    if (data.membershipId) {
+      const workspace = await fetch("/api/workspaces/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membershipId: data.membershipId }),
+      });
+      if (!workspace.ok) {
+        setMessage("School created, but the workspace could not be opened.");
+        return;
+      }
+    }
+
     router.push("/dashboard");
     router.refresh();
   }
