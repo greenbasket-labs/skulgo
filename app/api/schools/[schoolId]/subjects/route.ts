@@ -20,10 +20,9 @@ export async function GET(
   const membership = await schoolAccess(user.id, schoolId);
   if (!membership) return NextResponse.json({ error: "School access required" }, { status: 403 });
 
-  return NextResponse.json(await db.schoolClass.findMany({
+  return NextResponse.json(await db.subject.findMany({
     where: { schoolId },
-    include: { section: true, students: true },
-    orderBy: [{ name: "asc" }, { arm: "asc" }],
+    orderBy: { name: "asc" },
   }));
 }
 
@@ -41,23 +40,15 @@ export async function POST(
   }
 
   const body = await request.json().catch(() => null);
-  const sectionId = String(body?.sectionId ?? "");
   const name = typeof body?.name === "string" ? body.name.trim() : "";
-  const arm = typeof body?.arm === "string" && body.arm.trim() ? body.arm.trim() : null;
-
-  if (!sectionId || !name) {
-    return NextResponse.json({ error: "sectionId and name are required" }, { status: 400 });
-  }
-
-  const section = await db.section.findFirst({ where: { id: sectionId, schoolId } });
-  if (!section) return NextResponse.json({ error: "Section not found in this school" }, { status: 404 });
+  if (!name) return NextResponse.json({ error: "Subject name is required" }, { status: 400 });
 
   try {
     return NextResponse.json(
-      await db.schoolClass.create({ data: { schoolId, sectionId, name, arm } }),
+      await db.subject.create({ data: { schoolId, name } }),
       { status: 201 }
     );
   } catch {
-    return NextResponse.json({ error: "This class already exists" }, { status: 409 });
+    return NextResponse.json({ error: "This subject already exists" }, { status: 409 });
   }
 }
