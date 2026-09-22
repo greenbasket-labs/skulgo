@@ -41,7 +41,7 @@ export async function POST(
   const [student, fee, recorder] = await Promise.all([
     db.student.findFirst({ where: { id: studentId, schoolId } }),
     db.feeRecord.findFirst({ where: { studentId, schoolId } }),
-    db.user.findFirst({ where: { id: recordedById, schoolId, role: "CASHIER" } }),
+    db.user.findFirst({ where: { id: recordedById, memberships: { some: { schoolId, active: true, role: "CASHIER" } } } }),
   ]);
 
   if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
