@@ -20,9 +20,11 @@ SkulGo is built in small modules. Each module should solve one real school task 
 
 Sidebar stays small:
 
-**Dashboard · Applications · People · Classes · Subjects · Fees · My Account**
+**Dashboard · Applications · People · Assign · Classes · Subjects · Fees · My Account**
 
 Applications is where the principal reviews and approves both **student admissions and staff/job applications**.
+
+Assign is where the principal connects approved people to school duties, such as **teacher → class, teacher → subject, and class-master responsibility**.
 
 Sees the whole school operation needed for the role:
 
