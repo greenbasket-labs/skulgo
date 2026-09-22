@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+  const membership = await db.schoolMembership.findUnique({ where: { schoolId_userId: { schoolId, userId: user.id } } });
+  if (!membership?.active) return NextResponse.json({ error: "School access required" }, { status: 403 });
   const studentId = request.nextUrl.searchParams.get("studentId");
 
   const records = await db.feeRecord.findMany({
@@ -35,6 +40,12 @@ export async function POST(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+  const membership = await db.schoolMembership.findUnique({ where: { schoolId_userId: { schoolId, userId: user.id } } });
+  if (!membership?.active || (membership.role !== "ADMIN" && membership.role !== "CASHIER")) {
+    return NextResponse.json({ error: "Admin or cashier access required" }, { status: 403 });
+  }
   const body = await request.json().catch(() => null);
   const studentId = String(body?.studentId ?? "");
   const totalFee = Number(body?.totalFee);
