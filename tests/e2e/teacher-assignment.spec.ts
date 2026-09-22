@@ -207,19 +207,14 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   expect(teacherLogin.ok, JSON.stringify(teacherLogin.body)).toBeTruthy();
 
   const teacherWorkspace = teacherLogin.body.workspaces.find(
-    (workspace: { schoolId: string }) => workspace.schoolId === school.id
+    (workspace: { schoolId: string; membershipId: string }) => workspace.schoolId === school.id
   );
   expect(teacherWorkspace).toBeTruthy();
 
-  const selectTeacherWorkspace = await teacherPage.evaluate(async membershipId => {
-    const response = await fetch("/api/workspaces/select", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ membershipId }),
-    });
-    return { ok: response.ok, body: await response.json().catch(() => ({})) };
-  }, teacherWorkspace.membershipId);
-  expect(selectTeacherWorkspace.ok, JSON.stringify(selectTeacherWorkspace.body)).toBeTruthy();
+  const selectTeacherWorkspace = await teacherPage.request.post("/api/workspaces/select", {
+    data: { membershipId: teacherWorkspace.membershipId },
+  });
+  expect(selectTeacherWorkspace.ok()).toBeTruthy();
 
   await teacherPage.goto("/my-subjects");
   await expect(teacherPage.getByRole("heading", { name: "My Subjects" })).toBeVisible();
