@@ -134,6 +134,10 @@ Do not build payroll, inventory, hostel, transport, library, biometric systems, 
 
 **Think small. Build one useful piece at a time.**
 
+## Current verification
+
+The personal-account → school workspace → student admission approval journey is passing in Playwright. The teacher journey currently exposes a product bug: an approved teacher request must create the Teacher profile as approved before a class/subject assignment can be made. This is being fixed in the approval path; do not mark the teacher journey complete until the local E2E test passes.
+
 
 ## Initial onboarding flow
 
