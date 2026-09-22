@@ -160,7 +160,9 @@ Offline is a SkulGo-wide behavior, not a payment-only feature. The shared offlin
 
 ### Launch boundary
 
-SkulGo does not need to become a large school ERP before its first pilot. The next work is production reliability: full offline app-shell behavior, production PostgreSQL, deployment, security review, subscription enforcement, backup/recovery, and live smoke testing.
+SkulGo does not need to become a large school ERP before its first pilot. The next work is production reliability: production PostgreSQL, deployment, security review, subscription enforcement, backup/recovery, and live smoke testing.
+
+For local development, SkulGo continues to use SQLite. Production uses the PostgreSQL Prisma schema in `prisma/schema.production.prisma`.
 
 ## Current verification
 
