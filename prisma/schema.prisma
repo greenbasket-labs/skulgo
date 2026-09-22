@@ -54,7 +54,6 @@ model User {
   createdAt DateTime @default(now())
   requests SchoolRequest[]
   memberships SchoolMembership[]
-  selectedMembershipId String?
 }
 
 model SchoolMembership {
