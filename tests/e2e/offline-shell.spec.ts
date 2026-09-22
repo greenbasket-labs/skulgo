@@ -17,7 +17,7 @@ test("SkulGo registers its offline app shell", async ({ browser }) => {
     }, { timeout: 10000 }).toBeTruthy();
 
     await context.setOffline(true);
-    await page.goto("/offline");
+    await page.reload();
     await expect(page.getByRole("heading", { name: "You are offline" })).toBeVisible();
   } finally {
     await context.close();
