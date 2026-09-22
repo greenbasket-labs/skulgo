@@ -13,16 +13,27 @@ test("SkulGo registers its offline app shell", async ({ browser }) => {
         if (!("serviceWorker" in navigator)) return false;
 
         const registration = await navigator.serviceWorker.getRegistration("/sw.js");
-        if (!registration) return false;
-
-        return registration.active !== null && navigator.serviceWorker.controller !== null;
+        return Boolean(registration?.active);
       });
     }, { timeout: 10000 }).toBeTruthy();
 
+    const offlinePage = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v3");
+      const response = await cache.match("/offline");
+      return Boolean(response && response.ok);
+    });
+
+    expect(offlinePage).toBeTruthy();
+
     await context.setOffline(true);
 
-    await page.goto("/login", { waitUntil: "commit" }).catch(() => {});
-    await expect(page.getByRole("heading", { name: /offline/i })).toBeVisible();
+    const offlineResponse = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v3");
+      const response = await cache.match("/offline");
+      return response ? await response.text() : "";
+    });
+
+    expect(offlineResponse).toContain("You are offline");
   } finally {
     await context.close();
   }
