@@ -41,6 +41,7 @@ export default function AttendancePage() {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
+  const [schoolId, setSchoolId] = useState("");
   const date = useMemo(() => today(), []);
 
   const assignments = data?.assignments ?? [];
@@ -56,6 +57,10 @@ export default function AttendancePage() {
 
     setData(body);
 
+    const meResponse = await fetch("/api/auth/me");
+    const me = await meResponse.json().catch(() => ({}));
+    setSchoolId(me.user?.membership?.schoolId ?? "");
+
     if (!selectedClassId && body.assignments?.length) {
       setSelectedClassId(body.assignments[0].class.id);
     }
@@ -68,7 +73,6 @@ export default function AttendancePage() {
       return;
     }
 
-    const schoolId = await schoolFromSession();
     if (!schoolId) return;
 
     const key = `skulgo-attendance-students-${schoolId}-${classId}`;
@@ -115,7 +119,6 @@ export default function AttendancePage() {
     const loadToday = async () => {
       if (!data?.assignments.length || !selectedClassId) return;
 
-      const schoolId = await schoolFromSession();
       if (!schoolId) return;
 
       const response = await fetch(
@@ -132,14 +135,7 @@ export default function AttendancePage() {
     void loadToday();
   }, [data, selectedClassId, date]);
 
-  async function schoolFromSession() {
-    const response = await fetch("/api/auth/me");
-    const body = await response.json().catch(() => ({}));
-    return body.user?.membership?.schoolId ?? "";
-  }
-
   async function save(student: Student, present: boolean) {
-    const schoolId = userSchoolId();
     if (!schoolId || !selectedClassId) return;
 
     const nextMarks = { ...marks, [student.id]: present };
@@ -189,15 +185,7 @@ export default function AttendancePage() {
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
 
-  function userSchoolId() {
-    return data?.assignments[0]?.class ? schoolIdFromAssignment() : "";
-  }
 
-  function schoolIdFromAssignment() {
-    return userMembershipSchoolId;
-  }
-
-  const userMembershipSchoolId = (globalThis as { __SKULGO_SCHOOL_ID__?: string }).__SKULGO_SCHOOL_ID__ ?? "";
 
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;
