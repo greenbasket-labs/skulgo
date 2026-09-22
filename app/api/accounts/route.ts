@@ -29,6 +29,6 @@ export async function POST(request: Request) {
     { id: user.id, name: user.name, email: user.email },
     { status: 201 }
   );
-  setSession(response, user);
+  setSession(response, user, null);
   return response;
 }
