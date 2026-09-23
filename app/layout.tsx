@@ -6,6 +6,7 @@ import ServiceWorkerRegister from "@/components/service-worker-register";
 export const metadata: Metadata = {
   title: "SkulGo",
   description: "Transparent and Secure Records",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

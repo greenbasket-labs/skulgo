@@ -1,0 +1,72 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+
+async function access(userId: string, schoolId: string) {
+  return db.schoolMembership.findUnique({
+    where: { schoolId_userId: { schoolId, userId } },
+    select: { id: true, role: true, active: true },
+  });
+}
+
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ schoolId: string }> }
+) {
+  const user = await getCurrentUser();
+  const { schoolId } = await params;
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const membership = await access(user.id, schoolId);
+  if (!membership?.active) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
+
+  return NextResponse.json(await db.announcement.findMany({
+    where: { schoolId },
+    orderBy: { createdAt: "desc" },
+  }));
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ schoolId: string }> }
+) {
+  const user = await getCurrentUser();
+  const { schoolId } = await params;
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const membership = await access(user.id, schoolId);
+  if (!membership?.active || membership.role !== "ADMIN") {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const announcementBody = typeof body?.body === "string" ? body.body.trim() : "";
+
+  if (!title || !announcementBody) {
+    return NextResponse.json({ error: "Title and message are required" }, { status: 400 });
+  }
+
+  const announcement = await db.announcement.create({
+    data: {
+      schoolId,
+      title,
+      body: announcementBody,
+      createdById: user.id,
+    },
+  });
+
+  await recordAudit({
+    schoolId,
+    actorUserId: user.id,
+    action: "CREATE",
+    entity: "ANNOUNCEMENT",
+    entityId: announcement.id,
+    details: { title },
+  });
+
+  return NextResponse.json(announcement, { status: 201 });
+}

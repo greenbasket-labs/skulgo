@@ -18,17 +18,41 @@ test("SkulGo registers its offline app shell", async ({ browser }) => {
     }, { timeout: 10000 }).toBeTruthy();
 
     const offlinePage = await page.evaluate(async () => {
-      const cache = await caches.open("skulgo-shell-v3");
+      const cache = await caches.open("skulgo-shell-v4");
       const response = await cache.match("/offline");
       return Boolean(response && response.ok);
     });
 
     expect(offlinePage).toBeTruthy();
 
+    const attendancePage = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v4");
+      const response = await cache.match("/attendance");
+      return Boolean(response && response.ok);
+    });
+    expect(attendancePage).toBeTruthy();
+
+    const feesPage = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v4");
+      const response = await cache.match("/fees");
+      return Boolean(response && response.ok);
+    });
+    expect(feesPage).toBeTruthy();
+
+    const resultsPage = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v4");
+      const response = await cache.match("/results");
+      return Boolean(response && response.ok);
+    });
+    expect(resultsPage).toBeTruthy();
+
     await context.setOffline(true);
 
+    await page.goto("/attendance");
+    await expect(page).toHaveTitle(/SkulGo/i);
+
     const offlineResponse = await page.evaluate(async () => {
-      const cache = await caches.open("skulgo-shell-v3");
+      const cache = await caches.open("skulgo-shell-v4");
       const response = await cache.match("/offline");
       return response ? await response.text() : "";
     });

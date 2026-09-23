@@ -7,19 +7,20 @@ export function navForRole(role: WorkspaceRole) {
         ["Dashboard", "/dashboard"],
         ["Applications", "/applications"],
         ["Staff", "/staff"],
-        ["Assign", "/assign"],
+        ["Sections", "/sections"],
         ["Classes", "/classes"],
         ["Subjects", "/subjects"],
+        ["Assign", "/assign"],
         ["Fees", "/fees"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "TEACHER":
       return [
         ["Dashboard", "/dashboard"],
-        ["My Class", "/my-class"],
         ["My Subjects", "/my-subjects"],
-        ["Students", "/students"],
         ["Scores", "/scores"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "STUDENT":
@@ -30,6 +31,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Attendance", "/attendance"],
         ["Results", "/results"],
         ["Fees", "/fees"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "PARENT":
@@ -46,8 +48,6 @@ export function navForRole(role: WorkspaceRole) {
       return [
         ["Dashboard", "/dashboard"],
         ["Fees", "/fees"],
-        ["Payments", "/payments"],
-        ["Balances", "/balances"],
         ["My Account", "/account"],
       ];
   }

@@ -51,10 +51,14 @@ model School {
   feeRecords FeeRecord[]
   payments Payment[]
   assignments TeacherAssignment[]
+  classTeacherAssignments ClassTeacher[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
   subscription SchoolSubscription?
   manualPaymentsEnabled Boolean @default(true)
+  announcements Announcement[]
+  auditLogs AuditLog[]
+  classSubjects ClassSubject[]
 }
 
 model SchoolSubscription {
@@ -79,6 +83,7 @@ model User {
   createdAt DateTime @default(now())
   requests SchoolRequest[]
   memberships SchoolMembership[]
+  auditLogs AuditLog[] @relation("AuditActor")
 }
 
 model SchoolMembership {
@@ -135,6 +140,8 @@ model SchoolClass {
   attendance Attendance[]
   assessments Assessment[]
   requests SchoolRequest[]
+  classSubjects ClassSubject[]
+  classTeacherAssignments ClassTeacher[]
   @@unique([schoolId,name,arm])
 }
 
@@ -146,7 +153,21 @@ model Subject {
   assignments TeacherAssignment[]
   assessments Assessment[]
   results Result[]
+  classSubjects ClassSubject[]
   @@unique([schoolId,name])
+}
+
+model ClassSubject {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  classId String
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
+  subjectId String
+  subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  @@unique([classId,subjectId])
+  @@index([schoolId,classId])
 }
 
 model Teacher {
@@ -156,6 +177,7 @@ model Teacher {
   teacherCode String @unique
   approved Boolean @default(false)
   assignments TeacherAssignment[]
+  classTeacherAssignments ClassTeacher[]
 }
 
 model Student {
@@ -167,6 +189,7 @@ model Student {
   admissionId String @unique
   firstName String
   lastName String
+  gender String?
   classId String?
   class SchoolClass? @relation(fields:[classId],references:[id],onDelete:SetNull)
   parentLinks ParentStudent[]
@@ -274,4 +297,42 @@ model Payment {
   reference String? @unique
   paidAt DateTime @default(now())
   recordedById String
+}
+
+model Announcement {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  title String
+  body String
+  createdById String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([schoolId,createdAt])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  actorUserId String
+  actor User @relation("AuditActor",fields:[actorUserId],references:[id],onDelete:Cascade)
+  action String
+  entity String
+  entityId String
+  details String?
+  createdAt DateTime @default(now())
+  @@index([schoolId,createdAt])
+  @@index([schoolId,entity,entityId])
+}
+
+model ClassTeacher {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  classId String @unique
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
+  teacherId String
+  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
 }

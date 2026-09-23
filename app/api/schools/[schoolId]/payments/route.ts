@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
@@ -82,6 +83,8 @@ export async function POST(
   const payment = await db.payment.create({
     data: { schoolId, studentId, amount, reference, recordedById },
   });
+
+  await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "PAYMENT", entityId: payment.id, details: { studentId, amount, reference, payerRole } });
 
   return NextResponse.json({
     payment,

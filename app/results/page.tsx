@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { cacheRecord, readCachedRecord } from "@/lib/offline-queue";
 
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "CASHIER";
 
 type User = {
+  id: string;
   name: string;
   membership: {
     schoolId: string;
@@ -46,16 +48,27 @@ export default function ResultsPage() {
   const schoolId = user?.membership?.schoolId;
 
   async function loadMe() {
-    const response = await fetch("/api/auth/me");
-    const data = await response.json().catch(() => ({ user: null }));
+    const meKey = "skulgo-current-me";
+    try {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json().catch(() => ({ user: null }));
+      if (response.ok && data.user?.membership) {
+        cacheRecord(meKey, data);
+        setUser(data.user);
+        return data.user as User;
+      }
+    } catch {
+      // Use the last known workspace identity below.
+    }
 
-    if (!response.ok || !data.user?.membership) {
+    const cached = readCachedRecord<{ user?: User }>(meKey);
+    if (!cached?.user?.membership) {
       setMessage("Open a school workspace first.");
       return null;
     }
 
-    setUser(data.user);
-    return data.user as User;
+    setUser(cached.user);
+    return cached.user;
   }
 
   async function loadResults(currentUser: User | null = user) {
@@ -68,11 +81,25 @@ export default function ResultsPage() {
       params.set("studentId", currentUser.student.id);
     }
 
-    const response = await fetch(
-      `/api/schools/${currentUser.membership.schoolId}/results?${params.toString()}`
-    );
-    const data = await response.json().catch(() => []);
-    setResults(response.ok ? data : []);
+    const schoolId = currentUser.membership.schoolId;
+    const userScope = `${currentUser.id}:${schoolId}`;
+    const cacheKey = `skulgo:results:${userScope}:${term}:${role === "STUDENT" ? currentUser.student?.id ?? "self" : role ?? "workspace"}`;
+
+    try {
+      const response = await fetch(
+        `/api/schools/${schoolId}/results?${params.toString()}`
+      );
+      const data = await response.json().catch(() => []);
+      if (response.ok) {
+        setResults(data);
+        cacheRecord(cacheKey, data);
+        return;
+      }
+    } catch {
+      // Fall through to the last successful result snapshot.
+    }
+
+    setResults(readCachedRecord<Result[]>(cacheKey) ?? []);
   }
 
   async function loadStudents(currentUser: User | null) {
@@ -86,6 +113,17 @@ export default function ResultsPage() {
   }
 
   useEffect(() => {
+    if (!navigator.onLine) {
+      const cached = readCachedRecord<{ user?: User }>("skulgo-current-me");
+      if (cached?.user?.membership) {
+        setUser(cached.user);
+        void loadResults(cached.user);
+      } else {
+        setMessage("Open a school workspace first.");
+      }
+      return;
+    }
+
     void (async () => {
       const current = await loadMe();
       if (!current) return;

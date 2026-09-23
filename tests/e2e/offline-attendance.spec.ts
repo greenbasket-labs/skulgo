@@ -94,6 +94,14 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     });
     expect(assignmentResponse.status(), await assignmentResponse.text()).toBe(201);
 
+    const classTeacherResponse = await adminPage.request.post(`/api/schools/${school.id}/class-teachers`, {
+      data: {
+        teacherId: teacherRecord.id,
+        classId: schoolClass.id,
+      },
+    });
+    expect(classTeacherResponse.status(), await classTeacherResponse.text()).toBe(201);
+
     const teacherLogin = await teacherPage.request.post("/api/auth/login", {
       data: { email: teacherEmail, password },
     });
@@ -172,6 +180,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
 
     await teacherPage.context().setOffline(false);
     await expect(teacherPage.getByText(/^Online$/)).toBeVisible();
+    await teacherPage.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect.poll(async () => {
       const response = await teacherPage.request.get(

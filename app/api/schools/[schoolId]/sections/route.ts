@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 async function membership(userId: string, schoolId: string) {
   return db.schoolMembership.findUnique({
@@ -44,10 +45,9 @@ export async function POST(
   if (!name) return NextResponse.json({ error: "Section name is required" }, { status: 400 });
 
   try {
-    return NextResponse.json(
-      await db.section.create({ data: { schoolId, name } }),
-      { status: 201 }
-    );
+    const section = await db.section.create({ data: { schoolId, name } });
+    await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "SECTION", entityId: section.id, details: { name } });
+    return NextResponse.json(section, { status: 201 });
   } catch {
     return NextResponse.json({ error: "This section already exists" }, { status: 409 });
   }

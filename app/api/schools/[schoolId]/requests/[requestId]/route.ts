@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { makeStudentId, makeTeacherId } from "@/lib/ids";
+import { recordAudit } from "@/lib/audit";
 
 export async function PATCH(
   request: Request,
@@ -36,6 +37,7 @@ export async function PATCH(
       where: { id: schoolRequest.id },
       data: { status: "REJECTED", reviewedAt: new Date() },
     });
+    await recordAudit({ schoolId, actorUserId: admin.id, action: "REJECT", entity: "SCHOOL_REQUEST", entityId: schoolRequest.id, details: { requestedRole: schoolRequest.requestedRole } });
     return NextResponse.json({ ok: true, status: "REJECTED" });
   }
 
@@ -148,5 +150,6 @@ export async function PATCH(
     });
   });
 
+  await recordAudit({ schoolId, actorUserId: admin.id, action: "APPROVE", entity: "SCHOOL_REQUEST", entityId: schoolRequest.id, details: { requestedRole: schoolRequest.requestedRole } });
   return NextResponse.json({ ok: true, status: "APPROVED" });
 }

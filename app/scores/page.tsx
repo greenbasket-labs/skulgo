@@ -35,6 +35,7 @@ export default function ScoresPage() {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
+  const [scopeKey, setScopeKey] = useState("");
 
   const assignment = useMemo(
     () => data?.assignments.find(item => item.id === selectedAssignmentId) ?? data?.assignments[0] ?? null,
@@ -42,19 +43,41 @@ export default function ScoresPage() {
   );
 
   async function load() {
-    const assignmentResponse = await fetch("/api/schools/current/my-assignments");
-    const body = await assignmentResponse.json().catch(() => ({}));
+    const meKey = "skulgo-current-me";
+    let me: { user?: { id?: string; membership?: { id?: string; schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
+    } catch { me = readCachedRecord<typeof me>(meKey); }
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    setScopeKey(currentScopeKey);
+    if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
-    if (!assignmentResponse.ok) {
-      setMessage(body.error || "Could not load teacher assignments");
+    let body: Data | null = null;
+    try {
+      const assignmentResponse = await fetch("/api/schools/current/my-assignments");
+      const next = await assignmentResponse.json().catch(() => ({}));
+      if (assignmentResponse.ok) {
+        body = next;
+        cacheRecord(assignmentsKey, next);
+      }
+    } catch {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) body = readCachedRecord<Data>(assignmentsKey);
+
+    if (!body) {
+      setMessage("Teacher assignments are not available on this device yet.");
       return;
     }
 
     setData(body);
 
-    const meResponse = await fetch("/api/auth/me");
-    const me = await meResponse.json().catch(() => ({}));
-    const currentSchoolId = me.user?.membership?.schoolId ?? "";
+    const currentSchoolId = me?.user?.membership?.schoolId ?? "";
     setSchoolId(currentSchoolId);
 
     if (!selectedAssignmentId && body.assignments?.length) {
@@ -99,7 +122,7 @@ export default function ScoresPage() {
     };
     setScores(next);
     if (schoolId && assignment) {
-      cacheRecord(`skulgo-scores-${schoolId}-${assignment.id}-${term}`, next);
+      cacheRecord(`skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`, next);
     }
   }
 
@@ -126,11 +149,12 @@ export default function ScoresPage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey,
         url: `/api/schools/${schoolId}/assessments`,
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
     }
@@ -152,23 +176,24 @@ export default function ScoresPage() {
       return;
     } catch {
       queueAction({
+        scopeKey,
         url: `/api/schools/${schoolId}/assessments`,
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       setMessage("Connection dropped. Saved on this device and queued for sync.");
     }
   }
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setPending(queuedCount());
+    setPending(queuedCount(scopeKey));
     void load();
 
     const onOnline = () => {
       setOnline(true);
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
     };
     const onOffline = () => setOnline(false);
 
@@ -178,15 +203,15 @@ export default function ScoresPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [scopeKey]);
 
   useEffect(() => {
     if (!schoolId || !assignment) return;
     void loadStudents(schoolId, assignment.class.id);
 
-    const key = `skulgo-scores-${schoolId}-${assignment.id}-${term}`;
+    const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
     setScores(readCachedRecord<ScoreMap>(key) ?? {});
-  }, [schoolId, assignment?.id, term]);
+  }, [schoolId, assignment?.id, term, scopeKey]);
 
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;

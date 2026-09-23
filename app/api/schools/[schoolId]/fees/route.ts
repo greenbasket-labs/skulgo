@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
@@ -69,6 +70,15 @@ export async function POST(
     where: { studentId },
     update: { totalFee },
     create: { schoolId, studentId, totalFee },
+  });
+
+  await recordAudit({
+    schoolId,
+    actorUserId: user.id,
+    action: "UPSERT",
+    entity: "FEE_RECORD",
+    entityId: fee.id,
+    details: { studentId, totalFee },
   });
 
   return NextResponse.json(fee, { status: 201 });

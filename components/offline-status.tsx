@@ -1,21 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queuedCount, startOfflineSync } from "@/lib/offline-queue";
+import { cacheRecord, queuedCount, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
 
 export default function OfflineStatus() {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
-    setOnline(navigator.onLine);
-    setPending(queuedCount());
+    let scopeKey = "";
 
-    startOfflineSync(result => setPending(result.remaining));
+    const loadScope = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        const data = await response.json().catch(() => ({}));
+        const userId = data?.user?.id;
+        const membershipId = data?.user?.membership?.id;
+        scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
+        if (response.ok) cacheRecord("skulgo-current-me", data);
+      } catch {
+        const cached = readCachedRecord<{ user?: { id?: string; membership?: { id?: string } | null } }>("skulgo-current-me");
+        const userId = cached?.user?.id;
+        const membershipId = cached?.user?.membership?.id;
+        scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
+      }
+
+      setPending(scopeKey ? queuedCount(scopeKey) : 0);
+
+      if (scopeKey) {
+        startOfflineSync(scopeKey, result => setPending(result.remaining));
+      }
+    };
+
+    setOnline(navigator.onLine);
+    void loadScope();
 
     const onOnline = async () => {
       setOnline(true);
-      setPending(queuedCount());
+      if (scopeKey) setPending(queuedCount(scopeKey));
     };
     const onOffline = () => setOnline(false);
 

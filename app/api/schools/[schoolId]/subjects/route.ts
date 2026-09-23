@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 async function schoolAccess(userId: string, schoolId: string) {
   return db.schoolMembership.findFirst({
@@ -44,10 +45,9 @@ export async function POST(
   if (!name) return NextResponse.json({ error: "Subject name is required" }, { status: 400 });
 
   try {
-    return NextResponse.json(
-      await db.subject.create({ data: { schoolId, name } }),
-      { status: 201 }
-    );
+    const subject = await db.subject.create({ data: { schoolId, name } });
+    await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "SUBJECT", entityId: subject.id, details: { name } });
+    return NextResponse.json(subject, { status: 201 });
   } catch {
     return NextResponse.json({ error: "This subject already exists" }, { status: 409 });
   }
