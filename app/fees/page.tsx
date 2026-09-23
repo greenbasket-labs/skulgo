@@ -16,6 +16,17 @@ type User = {
   } | null;
 };
 
+type FeeDefinition = {
+  id: string;
+  title: string;
+  body: string | null;
+  amount: number;
+  targetType: "SCHOOL" | "SECTION" | "CLASS";
+  status: "DRAFT" | "APPROVED";
+  section: { name: string } | null;
+  class: { name: string; arm: string | null; section: { name: string } } | null;
+};
+
 type Fee = {
   id: string;
   studentId: string;
@@ -32,6 +43,15 @@ function money(value: number) {
 export default function FeesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [fees, setFees] = useState<Fee[]>([]);
+  const [feeDefinitions, setFeeDefinitions] = useState<FeeDefinition[]>([]);
+  const [classes, setClasses] = useState<{ id: string; name: string; arm: string | null; section: { name: string } }[]>([]);
+  const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
+  const [feeTitle, setFeeTitle] = useState("");
+  const [feeBody, setFeeBody] = useState("");
+  const [feeTarget, setFeeTarget] = useState<"SCHOOL" | "SECTION" | "CLASS">("SCHOOL");
+  const [feeSectionId, setFeeSectionId] = useState("");
+  const [feeClassId, setFeeClassId] = useState("");
+  const [feeAmount, setFeeAmount] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
   const [online, setOnline] = useState(true);
@@ -70,6 +90,21 @@ export default function FeesPage() {
       ? `${me.user.id}:${me.user.membership.id}`
       : "";
     const feesKey = `skulgo:${currentScope}:fees-${me.user.membership.schoolId}`;
+    if (me.user.membership.role === "ADMIN") {
+      const [classResponse, sectionResponse, definitionResponse] = await Promise.all([
+        fetch(`/api/schools/${me.user.membership.schoolId}/classes`),
+        fetch(`/api/schools/${me.user.membership.schoolId}/sections`),
+        fetch(`/api/schools/${me.user.membership.schoolId}/fees/definitions`),
+      ]);
+      const [classData, sectionData, definitionData] = await Promise.all([
+        classResponse.json().catch(() => []),
+        sectionResponse.json().catch(() => []),
+        definitionResponse.json().catch(() => []),
+      ]);
+      if (classResponse.ok) setClasses(Array.isArray(classData) ? classData : []);
+      if (sectionResponse.ok) setSections(Array.isArray(sectionData) ? sectionData : []);
+      if (definitionResponse.ok) setFeeDefinitions(Array.isArray(definitionData) ? definitionData : []);
+    }
 
     try {
       const feeResponse = await fetch(`/api/schools/${me.user.membership.schoolId}/fees`);
@@ -84,6 +119,47 @@ export default function FeesPage() {
     }
 
     setFees(readCachedRecord<Fee[]>(feesKey) ?? []);
+  }
+
+
+  async function createFeeDefinition() {
+    if (!schoolId || role !== "ADMIN") return;
+    const amountValue = Number(feeAmount);
+    if (!feeTitle.trim()) return setMessage("Enter a fee title.");
+    if (!Number.isFinite(amountValue) || amountValue < 0) return setMessage("Enter a valid fee amount.");
+    if (feeTarget === "SECTION" && !feeSectionId) return setMessage("Choose a section.");
+    if (feeTarget === "CLASS" && !feeClassId) return setMessage("Choose a class.");
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/fees/definitions`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: feeTitle, body: feeBody, amount: amountValue, targetType: feeTarget,
+          sectionId: feeTarget === "SECTION" ? feeSectionId : null,
+          classId: feeTarget === "CLASS" ? feeClassId : null,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Unable to create fee.");
+      setFeeTitle(""); setFeeBody(""); setFeeAmount(""); setFeeTarget("SCHOOL"); setFeeSectionId(""); setFeeClassId("");
+      setMessage("Fee saved as draft."); await load();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create fee."); }
+    finally { setBusy(false); }
+  }
+
+  async function approveFeeDefinition(id: string) {
+    if (!schoolId || role !== "ADMIN") return;
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/fees/definitions`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "APPROVE" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Unable to approve fee.");
+      setMessage("Fee approved."); await load();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to approve fee."); }
+    finally { setBusy(false); }
   }
 
   async function refreshQueue() {
@@ -236,10 +312,59 @@ export default function FeesPage() {
         </div>
 
         {role === "ADMIN" && (
-          <div className="card" style={{ marginBottom: 18 }}>
-            <strong>Fee records</strong>
-            <p className="muted">Fee setup stays with the school. Payment uses the same record.</p>
-          </div>
+          <>
+            <div className="card" style={{ marginBottom: 18 }}>
+              <h2>Create fee</h2>
+              <div className="grid">
+                <input value={feeTitle} onChange={event => setFeeTitle(event.target.value)} placeholder="Fee title" />
+                <textarea value={feeBody} onChange={event => setFeeBody(event.target.value)} placeholder="Description / body" />
+                <input inputMode="decimal" value={feeAmount} onChange={event => setFeeAmount(event.target.value)} placeholder="Amount" />
+                <select value={feeTarget} onChange={event => {
+                  const next = event.target.value as "SCHOOL" | "SECTION" | "CLASS";
+                  setFeeTarget(next); setFeeSectionId(""); setFeeClassId("");
+                }}>
+                  <option value="SCHOOL">Whole school</option>
+                  <option value="SECTION">Section</option>
+                  <option value="CLASS">Class</option>
+                </select>
+                {feeTarget === "SECTION" && (
+                  <select value={feeSectionId} onChange={event => setFeeSectionId(event.target.value)}>
+                    <option value="">Choose section</option>
+                    {sections.map(section => <option key={section.id} value={section.id}>{section.name}</option>)}
+                  </select>
+                )}
+                {feeTarget === "CLASS" && (
+                  <select value={feeClassId} onChange={event => setFeeClassId(event.target.value)}>
+                    <option value="">Choose class</option>
+                    {classes.map(item => (
+                      <option key={item.id} value={item.id}>{item.section.name} · {item.name}{item.arm ? ` · Arm ${item.arm}` : ""}</option>
+                    ))}
+                  </select>
+                )}
+                <button className="button" type="button" onClick={() => void createFeeDefinition()} disabled={busy}>
+                  {busy ? "Saving..." : "Save as Draft"}
+                </button>
+              </div>
+            </div>
+            <div className="card" style={{ marginBottom: 18 }}>
+              <h2>Fee definitions</h2>
+              {!feeDefinitions.length ? <p className="muted">No fees created yet.</p> : (
+                <div className="grid">
+                  {feeDefinitions.map(definition => (
+                    <div key={definition.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+                      <strong>{definition.title}</strong>
+                      <p className="muted">{money(definition.amount)} · {definition.targetType === "SCHOOL" ? "Whole school" : definition.targetType === "SECTION" ? definition.section?.name : `${definition.class?.section.name} · ${definition.class?.name}${definition.class?.arm ? ` · Arm ${definition.class.arm}` : ""}`}</p>
+                      {definition.body && <p className="muted">{definition.body}</p>}
+                      <p className="muted">Status: {definition.status}</p>
+                      {definition.status === "DRAFT" && (
+                        <button className="button" type="button" onClick={() => void approveFeeDefinition(definition.id)} disabled={busy}>Approve</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <div className="grid">
