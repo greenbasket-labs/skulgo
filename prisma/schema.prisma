@@ -283,8 +283,15 @@ model Assessment {
   subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
   term String
   ca Float?
+  ca1 Float?
+  ca2 Float?
+  ca3 Float?
+  ca4 Float?
   exam Float?
-  caSavedAt DateTime?
+  ca1SavedAt DateTime?
+  ca2SavedAt DateTime?
+  ca3SavedAt DateTime?
+  ca4SavedAt DateTime?
   examSavedAt DateTime?
   @@unique([studentId,subjectId,term])
 }

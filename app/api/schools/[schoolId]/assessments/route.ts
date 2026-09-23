@@ -5,6 +5,7 @@ import { percentage } from "@/lib/grading";
 import { recordAudit } from "@/lib/audit";
 
 const CORRECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+const SCORE_FIELDS = ["ca1","ca2","ca3","ca4","exam"] as const;
 
 function withinCorrectionWindow(savedAt: Date | null | undefined) {
   return Boolean(savedAt && Date.now() - savedAt.getTime() < CORRECTION_WINDOW_MS);
@@ -83,7 +84,10 @@ export async function GET(
 
   return NextResponse.json(assessments.map(item => ({
     ...item,
-    caCorrectionRemainingMs: remainingMs(item.caSavedAt),
+    ca1CorrectionRemainingMs: remainingMs(item.ca1SavedAt),
+    ca2CorrectionRemainingMs: remainingMs(item.ca2SavedAt),
+    ca3CorrectionRemainingMs: remainingMs(item.ca3SavedAt),
+    ca4CorrectionRemainingMs: remainingMs(item.ca4SavedAt),
     examCorrectionRemainingMs: remainingMs(item.examSavedAt),
   })));
 }
@@ -109,19 +113,12 @@ export async function POST(
   const classId = String(body?.classId ?? "");
   const subjectId = String(body?.subjectId ?? "");
   const term = String(body?.term ?? "").trim();
-  const hasCa = body?.ca !== undefined && body?.ca !== null && String(body.ca).trim() !== "";
-  const hasExam = body?.exam !== undefined && body?.exam !== null && String(body.exam).trim() !== "";
-  const ca = hasCa ? Number(body.ca) : null;
-  const exam = hasExam ? Number(body.exam) : null;
-
-  if (!studentId || !classId || !subjectId || !term || (!hasCa && !hasExam)) {
-    return NextResponse.json({ error: "Enter at least one CA or exam score before saving" }, { status: 400 });
-  }
-  if (hasCa && (!Number.isFinite(ca) || (ca as number) < 0 || (ca as number) > 30)) {
-    return NextResponse.json({ error: "CA must be 0-30" }, { status: 400 });
-  }
-  if (hasExam && (!Number.isFinite(exam) || (exam as number) < 0 || (exam as number) > 70)) {
-    return NextResponse.json({ error: "Exam must be 0-70" }, { status: 400 });
+  const entered = SCORE_FIELDS.filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
+  if (!studentId || !classId || !subjectId || !term || !entered.length) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
+  for (const field of entered) {
+    const value = Number(body[field]);
+    const max = field === "exam" ? 60 : 10;
+    if (!Number.isFinite(value) || value < 0 || value > max) return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
   }
 
   const [student, schoolClass, subject, assigned] = await Promise.all([
@@ -142,35 +139,18 @@ export async function POST(
 
   const now = new Date();
 
-  if (existing?.caSavedAt && hasCa && !withinCorrectionWindow(existing.caSavedAt)) {
-    return NextResponse.json({ error: "CA correction window has expired for this student." }, { status: 409 });
+  const saveTimes = { ca1: "ca1SavedAt", ca2: "ca2SavedAt", ca3: "ca3SavedAt", ca4: "ca4SavedAt", exam: "examSavedAt" } as const;
+  for (const field of entered) {
+    const savedAt = existing?.[saveTimes[field as keyof typeof saveTimes] as keyof typeof existing] as Date | null | undefined;
+    if (savedAt && !withinCorrectionWindow(savedAt)) return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
   }
-  if (existing?.examSavedAt && hasExam && !withinCorrectionWindow(existing.examSavedAt)) {
-    return NextResponse.json({ error: "Exam correction window has expired for this student." }, { status: 409 });
-  }
-
+  const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
+  for (const field of entered) current[field as keyof typeof current] = Number(body[field]);
+  const caTotal = (current.ca1 ?? 0) + (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
+  const data = { classId, ca: caTotal, ca1: current.ca1, ca2: current.ca2, ca3: current.ca3, ca4: current.ca4, exam: current.exam, ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])) };
   const assessment = existing
-    ? await db.assessment.update({
-        where: { id: existing.id },
-        data: {
-          classId,
-          ...(hasCa ? { ca, ...(existing.caSavedAt ? {} : { caSavedAt: now }) } : {}),
-          ...(hasExam ? { exam, ...(existing.examSavedAt ? {} : { examSavedAt: now }) } : {}),
-        },
-      })
-    : await db.assessment.create({
-        data: {
-          schoolId,
-          studentId,
-          classId,
-          subjectId,
-          term,
-          ca,
-          exam,
-          caSavedAt: hasCa ? now : null,
-          examSavedAt: hasExam ? now : null,
-        },
-      });
+    ? await db.assessment.update({ where: { id: existing.id }, data })
+    : await db.assessment.create({ data: { schoolId, studentId, subjectId, term, ...data } });
 
   await recordAudit({
     schoolId,
@@ -178,7 +158,7 @@ export async function POST(
     action: existing ? "UPDATE" : "CREATE",
     entity: "ASSESSMENT",
     entityId: assessment.id,
-    details: { studentId, classId, subjectId, term, ca: hasCa ? ca : undefined, exam: hasExam ? exam : undefined },
+    details: { studentId, classId, subjectId, term, entered: Object.fromEntries(entered.map(field => [field, Number(body[field])])), caTotal },
   });
 
   const total = assessment.ca !== null && assessment.exam !== null
@@ -188,7 +168,10 @@ export async function POST(
   return NextResponse.json({
     ...assessment,
     total,
-    caCorrectionRemainingMs: remainingMs(assessment.caSavedAt),
+    ca1CorrectionRemainingMs: remainingMs(assessment.ca1SavedAt),
+    ca2CorrectionRemainingMs: remainingMs(assessment.ca2SavedAt),
+    ca3CorrectionRemainingMs: remainingMs(assessment.ca3SavedAt),
+    ca4CorrectionRemainingMs: remainingMs(assessment.ca4SavedAt),
     examCorrectionRemainingMs: remainingMs(assessment.examSavedAt),
   }, { status: existing ? 200 : 201 });
 }
