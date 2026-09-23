@@ -47,8 +47,17 @@ export default function AttendancePage() {
   const assignments = data?.assignments ?? [];
 
   async function load() {
-    const assignmentsKey = "skulgo-current-my-assignments";
     const meKey = "skulgo-current-me";
+    let me: { user?: { id?: string; membership?: { id?: string; schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
+    } catch { me = readCachedRecord<typeof me>(meKey); }
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    if (!scopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${scopeKey}:my-assignments`;
 
     let body: Data | null = null;
     try {
@@ -73,19 +82,6 @@ export default function AttendancePage() {
 
     setData(body);
 
-    let me: { user?: { membership?: { schoolId?: string } | null } } | null = null;
-    try {
-      const meResponse = await fetch("/api/auth/me");
-      const next = await meResponse.json().catch(() => ({}));
-      if (meResponse.ok) {
-        me = next;
-        cacheRecord(meKey, next);
-      }
-    } catch {
-      me = readCachedRecord<typeof me>(meKey);
-    }
-
-    if (!me) me = readCachedRecord<typeof me>(meKey);
     setSchoolId(me?.user?.membership?.schoolId ?? "");
 
     if (!selectedClassId && body.assignments?.length) {
@@ -122,7 +118,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setPending(queuedCount());
+    setPending(queuedCount(me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : undefined));
     void load();
 
     const onOnline = () => {
@@ -190,6 +186,7 @@ export default function AttendancePage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
         url: `/api/schools/${schoolId}/attendance`,
         method: "POST",
         body,
@@ -215,6 +212,7 @@ export default function AttendancePage() {
     }
 
     queueAction({
+      scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
       url: `/api/schools/${schoolId}/attendance`,
       method: "POST",
       body,
