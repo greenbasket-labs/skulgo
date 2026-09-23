@@ -1,7 +1,8 @@
 # SkulGo Roadmap
 
-**Current working branch:** `feat/offline-first-core`  
-**Current integration base:** `fix/admin-structure-safe`  
+**Current production branch:** `main`  
+**Latest deployed commit:** `4814d22`  
+**Production:** Render Live at `https://skulgo.com`  
 **Purpose:** lightweight, connected school operating record tool for Nigerian schools.
 
 ## Product direction
@@ -82,7 +83,7 @@ Current hardening includes:
 - centralized Nigerian starter class catalog;
 - continued use of the lightweight PWA/service-worker approach.
 
-**Current status:** PR #2 is open. Its latest head is still under CI validation; do not treat it as merged or fully green until GitHub Actions confirms it.
+**Current status:** Offline-first core was merged through PR #2, then promoted to `main` through PR #3. The resulting `main` merge commit is `4814d22`, and Render is confirmed Live on that commit.
 
 ## Roadmap principle
 
@@ -318,10 +319,10 @@ When a requirement is unclear, inspect the code and existing workflow first. Do 
 
 ## Current priority order
 
-**1. Finish and verify offline-first core**  
+**1. Observe and run the real-school pilot**  
 **2. Fix real gaps in the existing pilot flow**  
-**3. Production security, database, backups and deployment verification**  
-**4. Run real-school pilot**  
+**3. Harden production security, backups and subscription boundary**  
+**4. Improve remaining offline navigation/recovery for pilot routes**  
 **5. Use pilot evidence to choose the next small capability**  
 **6. Repeat: observe → fix → wire → extend → test**
 
