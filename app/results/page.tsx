@@ -113,6 +113,17 @@ export default function ResultsPage() {
   }
 
   useEffect(() => {
+    if (!navigator.onLine) {
+      const cached = readCachedRecord<{ user?: User }>("skulgo-current-me");
+      if (cached?.user?.membership) {
+        setUser(cached.user);
+        void loadResults(cached.user);
+      } else {
+        setMessage("Open a school workspace first.");
+      }
+      return;
+    }
+
     void (async () => {
       const current = await loadMe();
       if (!current) return;
