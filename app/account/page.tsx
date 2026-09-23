@@ -1,9 +1,61 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  return (
+    <AccountWorkspace
+      user={{
+        name: user.name,
+        email: user.email,
+        teacher: user.teacher,
+        student: user.student,
+        memberships: user.memberships,
+      }}
+    />
+  );
+}
+
+function AccountWorkspace({
+  user,
+}: {
+  user: {
+    name: string;
+    email: string;
+    teacher: { teacherCode: string } | null;
+    student: { admissionId: string } | null;
+    memberships: Array<{
+      id: string;
+      role: string;
+      school: { name: string; abbr: string };
+    }>;
+  };
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState("");
+
+  async function openSchool(membershipId: string) {
+    setBusy(membershipId);
+
+    const response = await fetch("/api/workspaces/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membershipId }),
+    });
+
+    setBusy("");
+
+    if (!response.ok) return;
+
+    router.push("/dashboard");
+    router.refresh();
+  }
 
   return (
     <main className="workspace-main">
@@ -50,11 +102,22 @@ export default async function AccountPage() {
         ) : (
           <div className="grid">
             {user.memberships.map(membership => (
-              <div className="card" key={membership.id}>
+              <button
+                key={membership.id}
+                type="button"
+                className="card"
+                disabled={busy === membership.id}
+                onClick={() => openSchool(membership.id)}
+                style={{ width: "100%", textAlign: "left", cursor: "pointer" }}
+              >
                 <strong>{membership.school.name}</strong>
-                <p className="muted">{membership.role}</p>
-                <p className="muted">School connection</p>
-              </div>
+                <p className="muted">
+                  {membership.school.abbr} · {membership.role}
+                </p>
+                <p className="muted">
+                  {busy === membership.id ? "Opening school…" : "Open school workspace →"}
+                </p>
+              </button>
             ))}
           </div>
         )}
