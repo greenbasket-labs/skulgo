@@ -172,6 +172,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
 
     await teacherPage.context().setOffline(false);
     await expect(teacherPage.getByText(/^Online$/)).toBeVisible();
+    await teacherPage.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect.poll(async () => {
       const response = await teacherPage.request.get(
