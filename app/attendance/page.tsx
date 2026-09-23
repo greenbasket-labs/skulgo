@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cacheRecord, queueAction, queuedCount } from "@/lib/offline-queue";
+import { cacheRecord, queueAction, queuedCount, readCachedRecord } from "@/lib/offline-queue";
 
 type Student = {
   id: string;
@@ -47,19 +47,46 @@ export default function AttendancePage() {
   const assignments = data?.assignments ?? [];
 
   async function load() {
-    const response = await fetch("/api/schools/current/my-assignments");
-    const body = await response.json().catch(() => ({}));
+    const assignmentsKey = "skulgo-current-my-assignments";
+    const meKey = "skulgo-current-me";
 
-    if (!response.ok) {
-      setMessage(body.error || "Could not load teacher assignments");
+    let body: Data | null = null;
+    try {
+      const response = await fetch("/api/schools/current/my-assignments");
+      const next = await response.json().catch(() => ({}));
+      if (response.ok) {
+        body = next;
+        cacheRecord(assignmentsKey, next);
+      }
+    } catch {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) {
+      setMessage("Teacher assignments are not available on this device yet.");
       return;
     }
 
     setData(body);
 
-    const meResponse = await fetch("/api/auth/me");
-    const me = await meResponse.json().catch(() => ({}));
-    setSchoolId(me.user?.membership?.schoolId ?? "");
+    let me: { user?: { membership?: { schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) {
+        me = next;
+        cacheRecord(meKey, next);
+      }
+    } catch {
+      me = readCachedRecord<typeof me>(meKey);
+    }
+
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    setSchoolId(me?.user?.membership?.schoolId ?? "");
 
     if (!selectedClassId && body.assignments?.length) {
       setSelectedClassId(body.assignments[0].class.id);
@@ -76,17 +103,20 @@ export default function AttendancePage() {
     if (!schoolId) return;
 
     const key = `skulgo-attendance-students-${schoolId}-${classId}`;
-    const response = await fetch(`/api/schools/${schoolId}/students`);
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/students`);
 
-    if (response.ok) {
-      const body = await response.json();
-      const filtered = body.filter((item: Student & { classId?: string }) => !item.classId || item.classId === classId);
-      setStudents(filtered);
-      cacheRecord(key, filtered);
-      return;
+      if (response.ok) {
+        const body = await response.json();
+        const filtered = body.filter((item: Student & { classId?: string }) => !item.classId || item.classId === classId);
+        setStudents(filtered);
+        cacheRecord(key, filtered);
+        return;
+      }
+    } catch {
+      // Use the last successful student snapshot below.
     }
 
-    const { readCachedRecord } = await import("@/lib/offline-queue");
     setStudents(readCachedRecord<Student[]>(key) ?? []);
   }
 
@@ -121,16 +151,24 @@ export default function AttendancePage() {
 
       if (!schoolId) return;
 
-      const response = await fetch(
-        `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
-      );
-      if (response.ok) {
-        const records = await response.json();
-        const next: Mark = {};
-        for (const item of records) next[item.studentId] = item.present;
-        setMarks(next);
-        cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, next);
+      const key = `skulgo-attendance-${schoolId}-${selectedClassId}-${date}`;
+      try {
+        const response = await fetch(
+          `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
+        );
+        if (response.ok) {
+          const records = await response.json();
+          const next: Mark = {};
+          for (const item of records) next[item.studentId] = item.present;
+          setMarks(next);
+          cacheRecord(key, next);
+          return;
+        }
+      } catch {
+        // Use the last successful attendance snapshot below.
       }
+
+      setMarks(readCachedRecord<Mark>(key) ?? {});
     };
     void loadToday();
   }, [data, selectedClassId, date]);
