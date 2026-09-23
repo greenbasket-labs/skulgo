@@ -3,6 +3,15 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 
+const ATTENDANCE_WINDOW_MS = 60 * 60 * 1000;
+
+async function expireSession(sessionId: string) {
+  return db.attendanceSession.update({
+    where: { id: sessionId },
+    data: { status: "SUBMITTED", submittedAt: new Date() },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
@@ -31,21 +40,31 @@ export async function GET(
     });
     allowedClassIds = classes.map(item => item.classId);
   } else if (user.membership.role === "STUDENT") {
-    if (!user.student?.id) return NextResponse.json([]);
+    if (!user.student?.id) return NextResponse.json({ records: [], session: null });
     allowedStudentIds = [user.student.id];
   } else if (user.membership.role === "PARENT") {
-    if (!user.parent?.id) return NextResponse.json([]);
+    if (!user.parent?.id) return NextResponse.json({ records: [], session: null });
     const links = await db.parentStudent.findMany({
       where: { parentId: user.parent.id, approved: true, student: { schoolId } },
       select: { studentId: true },
     });
     allowedStudentIds = links.map(item => item.studentId);
   } else if (user.membership.role === "CASHIER") {
-    return NextResponse.json([]);
+    return NextResponse.json({ records: [], session: null });
   }
 
   if (classId && allowedClassIds && !allowedClassIds.includes(classId)) {
     return NextResponse.json({ error: "You cannot view attendance for this class" }, { status: 403 });
+  }
+
+  let sessionRecord = null;
+  if (classId && date) {
+    sessionRecord = await db.attendanceSession.findUnique({
+      where: { classId_date_session: { classId, date: new Date(date), session: "morning" } },
+    });
+    if (sessionRecord?.status === "DRAFT" && new Date() >= sessionRecord.deadlineAt) {
+      sessionRecord = await expireSession(sessionRecord.id);
+    }
   }
 
   const records = await db.attendance.findMany({
@@ -63,7 +82,7 @@ export async function GET(
     orderBy: [{ date: "desc" }, { student: { lastName: "asc" } }],
   });
 
-  return NextResponse.json(records);
+  return NextResponse.json({ records, session: sessionRecord });
 }
 
 export async function POST(
@@ -88,9 +107,10 @@ export async function POST(
   const session = String(body?.session ?? "morning").trim();
   const dateValue = String(body?.date ?? "");
   const present = body?.present;
+  const action = String(body?.action ?? "save").toLowerCase();
 
-  if (!studentId || !classId || !dateValue || typeof present !== "boolean") {
-    return NextResponse.json({ error: "studentId, classId, date and present are required" }, { status: 400 });
+  if (!classId || !dateValue || !session) {
+    return NextResponse.json({ error: "classId, date and session are required" }, { status: 400 });
   }
 
   const date = new Date(dateValue);
@@ -102,6 +122,70 @@ export async function POST(
   });
   if (!classTeacher) return NextResponse.json({ error: "Only the assigned class teacher can record attendance" }, { status: 403 });
 
+  let attendanceSession = await db.attendanceSession.findUnique({
+    where: { classId_date_session: { classId, date, session } },
+  });
+
+  if (attendanceSession?.status === "DRAFT" && new Date() >= attendanceSession.deadlineAt) {
+    attendanceSession = await expireSession(attendanceSession.id);
+  }
+
+  if (action === "submit") {
+    if (!attendanceSession) {
+      return NextResponse.json({ error: "Attendance has not been started yet" }, { status: 400 });
+    }
+    if (attendanceSession.status === "SUBMITTED") {
+      return NextResponse.json({ session: attendanceSession });
+    }
+
+    attendanceSession = await db.attendanceSession.update({
+      where: { id: attendanceSession.id },
+      data: { status: "SUBMITTED", submittedAt: new Date() },
+    });
+
+    await recordAudit({
+      schoolId,
+      actorUserId: user.id,
+      action: "SUBMIT",
+      entity: "ATTENDANCE_SESSION",
+      entityId: attendanceSession.id,
+      details: { classId, date: dateValue, session },
+    });
+
+    return NextResponse.json({ session: attendanceSession });
+  }
+
+  if (!studentId || typeof present !== "boolean") {
+    return NextResponse.json({ error: "studentId and present are required to save attendance" }, { status: 400 });
+  }
+
+  if (attendanceSession?.status === "SUBMITTED") {
+    return NextResponse.json({ error: "Attendance is already submitted and locked", session: attendanceSession }, { status: 409 });
+  }
+
+  if (!attendanceSession) {
+    const now = new Date();
+    attendanceSession = await db.attendanceSession.upsert({
+      where: { classId_date_session: { classId, date, session } },
+      update: {},
+      create: {
+        schoolId,
+        classId,
+        teacherId: teacher.id,
+        date,
+        session,
+        status: "DRAFT",
+        startedAt: now,
+        deadlineAt: new Date(now.getTime() + ATTENDANCE_WINDOW_MS),
+      },
+    });
+  }
+
+  if (new Date() >= attendanceSession.deadlineAt) {
+    attendanceSession = await expireSession(attendanceSession.id);
+    return NextResponse.json({ error: "The 1-hour attendance window has ended", session: attendanceSession }, { status: 409 });
+  }
+
   const student = await db.student.findFirst({ where: { id: studentId, schoolId, classId } });
   if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
 
@@ -111,6 +195,14 @@ export async function POST(
     create: { schoolId, studentId, classId, date, session, present },
   });
 
-  await recordAudit({ schoolId, actorUserId: user.id, action: "UPSERT", entity: "ATTENDANCE", entityId: record.id, details: { studentId, classId, date: dateValue, session, present } });
-  return NextResponse.json(record, { status: 201 });
+  await recordAudit({
+    schoolId,
+    actorUserId: user.id,
+    action: "UPSERT",
+    entity: "ATTENDANCE",
+    entityId: record.id,
+    details: { studentId, classId, date: dateValue, session, present },
+  });
+
+  return NextResponse.json({ record, session: attendanceSession }, { status: 201 });
 }

@@ -46,6 +46,7 @@ model School {
   subjects Subject[]
   students Student[]
   attendance Attendance[]
+  attendanceSessions AttendanceSession[]
   assessments Assessment[]
   results Result[]
   feeRecords FeeRecord[]
@@ -61,6 +62,7 @@ model School {
   announcements Announcement[]
   auditLogs AuditLog[]
   classSubjects ClassSubject[]
+  attendanceSessions AttendanceSession[]
 }
 
 model SchoolSubscription {
@@ -246,6 +248,26 @@ model Attendance {
   session String
   present Boolean
   @@unique([studentId,date,session])
+}
+
+model AttendanceSession {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  classId String
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
+  teacherId String
+  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
+  date DateTime
+  session String
+  status String @default("DRAFT")
+  startedAt DateTime @default(now())
+  deadlineAt DateTime
+  submittedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([classId,date,session])
+  @@index([schoolId,date,status])
 }
 
 model Assessment {

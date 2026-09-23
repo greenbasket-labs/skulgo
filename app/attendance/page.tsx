@@ -21,6 +21,14 @@ type ClassTeacherAssignment = {
   };
 };
 
+type AttendanceSession = {
+  id: string;
+  status: "DRAFT" | "SUBMITTED";
+  startedAt: string;
+  deadlineAt: string;
+  submittedAt?: string | null;
+};
+
 type Data = {
   teacher: { teacherCode: string };
   assignments: unknown[];
@@ -44,9 +52,23 @@ export default function AttendancePage() {
   const [message, setMessage] = useState("Loading...");
   const [schoolId, setSchoolId] = useState("");
   const [scopeKey, setScopeKey] = useState("");
+  const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
+  const [now, setNow] = useState(Date.now());
   const date = useMemo(() => today(), []);
 
   const classTeacherAssignments = data?.classTeacherAssignments ?? [];
+  const submitted = attendanceSession?.status === "SUBMITTED";
+  const deadlineMs = attendanceSession ? new Date(attendanceSession.deadlineAt).getTime() : 0;
+  const remainingMs = attendanceSession ? Math.max(0, deadlineMs - now) : 0;
+  const expired = Boolean(attendanceSession && remainingMs <= 0 && !submitted);
+  const locked = submitted || expired;
+  const markedCount = students.filter(student => marks[student.id] !== undefined).length;
+  const presentCount = students.filter(student => marks[student.id] === true).length;
+  const absentCount = students.filter(student => marks[student.id] === false).length;
+
+  const timeLeft = attendanceSession
+    ? `${Math.floor(remainingMs / 60000).toString().padStart(2, "0")}:${Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, "0")}`
+    : "01:00:00";
 
   async function load() {
     const meKey = "skulgo-current-me";
@@ -78,7 +100,6 @@ export default function AttendancePage() {
     }
 
     if (!body) body = readCachedRecord<Data>(assignmentsKey);
-
     if (!body) {
       setMessage("Teacher assignments are not available on this device yet.");
       return;
@@ -102,7 +123,6 @@ export default function AttendancePage() {
     const key = `skulgo:${scopeKey}:attendance-students-${schoolId}-${classId}`;
     try {
       const response = await fetch(`/api/schools/${schoolId}/students`);
-
       if (response.ok) {
         const body = await response.json();
         const filtered = body.filter((item: Student) => item.classId === classId);
@@ -117,6 +137,32 @@ export default function AttendancePage() {
     setStudents(readCachedRecord<Student[]>(key) ?? []);
   }
 
+  async function loadAttendance(classId: string) {
+    if (!classId || !schoolId) return;
+    const key = `skulgo:${scopeKey}:attendance-${schoolId}-${classId}-${date}`;
+
+    try {
+      const response = await fetch(
+        `/api/schools/${schoolId}/attendance?classId=${classId}&date=${date}`
+      );
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) {
+        const next: Mark = {};
+        for (const item of body.records ?? []) next[item.studentId] = item.present;
+        setMarks(next);
+        setAttendanceSession(body.session ?? null);
+        cacheRecord(key, { marks: next, session: body.session ?? null });
+        return;
+      }
+    } catch {
+      // Use the last successful attendance snapshot below.
+    }
+
+    const cached = readCachedRecord<{ marks: Mark; session: AttendanceSession | null }>(key);
+    setMarks(cached?.marks ?? {});
+    setAttendanceSession(cached?.session ?? null);
+  }
+
   useEffect(() => {
     setOnline(navigator.onLine);
     setPending(queuedCount(scopeKey));
@@ -125,13 +171,12 @@ export default function AttendancePage() {
     const onOnline = () => {
       setOnline(true);
       setPending(queuedCount(scopeKey));
-      void loadStudents(selectedClassId);
+      void load();
     };
     const onOffline = () => setOnline(false);
 
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
@@ -139,41 +184,32 @@ export default function AttendancePage() {
   }, [scopeKey]);
 
   useEffect(() => {
-    if (data && selectedClassId) void loadStudents(selectedClassId);
-  }, [data, selectedClassId, schoolId]);
+    if (!data || !selectedClassId) return;
+    void loadStudents(selectedClassId);
+    void loadAttendance(selectedClassId);
+  }, [data, selectedClassId, schoolId, date]);
 
   useEffect(() => {
-    const loadToday = async () => {
-      if (!classTeacherAssignments.length || !selectedClassId || !schoolId) return;
+    if (!attendanceSession || submitted) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [attendanceSession, submitted]);
 
-      const key = `skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`;
-      try {
-        const response = await fetch(
-          `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
-        );
-        if (response.ok) {
-          const records = await response.json();
-          const next: Mark = {};
-          for (const item of records) next[item.studentId] = item.present;
-          setMarks(next);
-          cacheRecord(key, next);
-          return;
-        }
-      } catch {
-        // Use the last successful attendance snapshot below.
-      }
-
-      setMarks(readCachedRecord<Mark>(key) ?? {});
-    };
-    void loadToday();
-  }, [classTeacherAssignments, selectedClassId, schoolId, date, scopeKey]);
+  useEffect(() => {
+    if (expired && attendanceSession?.status === "DRAFT" && navigator.onLine) {
+      void submitAttendance(true);
+    }
+  }, [expired, attendanceSession, online]);
 
   async function save(student: Student, present: boolean) {
-    if (!schoolId || !selectedClassId) return;
+    if (!schoolId || !selectedClassId || locked) return;
 
     const nextMarks = { ...marks, [student.id]: present };
     setMarks(nextMarks);
-    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
+    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`, {
+      marks: nextMarks,
+      session: attendanceSession,
+    });
 
     const body = {
       studentId: student.id,
@@ -181,6 +217,7 @@ export default function AttendancePage() {
       session: "morning",
       date,
       present,
+      action: "save",
     };
 
     if (!navigator.onLine) {
@@ -201,9 +238,15 @@ export default function AttendancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
+      const result = await response.json().catch(() => ({}));
       if (response.ok) {
-        setMessage("Attendance saved.");
+        setAttendanceSession(result.session ?? attendanceSession);
+        setMessage("Attendance draft saved.");
+        return;
+      }
+      if (response.status === 409) {
+        setAttendanceSession(result.session ?? attendanceSession);
+        setMessage(result.error ?? "Attendance is locked.");
         return;
       }
     } catch {
@@ -220,6 +263,60 @@ export default function AttendancePage() {
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
 
+  async function markAll(present: boolean) {
+    for (const student of students) {
+      await save(student, present);
+    }
+  }
+
+  async function submitAttendance(auto = false) {
+    if (!schoolId || !selectedClassId || !attendanceSession || submitted) return;
+
+    const body = {
+      classId: selectedClassId,
+      session: "morning",
+      date,
+      action: "submit",
+    };
+
+    if (!navigator.onLine) {
+      queueAction({
+        scopeKey,
+        url: `/api/schools/${schoolId}/attendance`,
+        method: "POST",
+        body,
+      });
+      setPending(queuedCount(scopeKey));
+      setMessage(auto ? "Time ended offline. Submission is queued for sync." : "Submission saved offline and queued for sync.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setAttendanceSession(result.session ?? { ...attendanceSession, status: "SUBMITTED", submittedAt: new Date().toISOString() });
+        setMessage(auto ? "The 1-hour window ended. Attendance is now submitted and locked." : "Attendance submitted and locked.");
+        return;
+      }
+      setAttendanceSession(result.session ?? attendanceSession);
+      setMessage(result.error ?? "Attendance could not be submitted.");
+    } catch {
+      queueAction({
+        scopeKey,
+        url: `/api/schools/${schoolId}/attendance`,
+        method: "POST",
+        body,
+      });
+      setPending(queuedCount(scopeKey));
+      setMessage(auto ? "Time ended. Submission is queued until internet returns." : "Connection dropped. Submission is queued for sync.");
+    }
+  }
+
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;
   }
@@ -230,7 +327,7 @@ export default function AttendancePage() {
         <p className="muted">Teacher workspace · {online ? "Online" : "Offline"}</p>
         <h1>Attendance</h1>
         <p className="muted">
-          {pending ? `${pending} item(s) waiting to sync` : "Saved records sync automatically."}
+          {pending ? `${pending} item(s) waiting to sync` : "Drafts save automatically."}
         </p>
       </div>
 
@@ -257,6 +354,25 @@ export default function AttendancePage() {
             </label>
           </div>
 
+          <div className="grid grid-3" style={{ marginBottom: 18 }}>
+            <div className="card"><p className="muted">Students</p><div className="stat">{students.length}</div></div>
+            <div className="card"><p className="muted">Marked</p><div className="stat">{markedCount}</div></div>
+            <div className="card"><p className="muted">Present / Absent</p><div className="stat">{presentCount} / {absentCount}</div></div>
+          </div>
+
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div className="grid grid-2">
+              <div>
+                <p className="muted">Attendance window</p>
+                <strong>{submitted ? "Submitted · Locked" : attendanceSession ? `${timeLeft} remaining` : "Starts when you save the first mark · 01:00:00"}</strong>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
+                <button className="button" disabled={locked || !students.length} onClick={() => void markAll(true)}>Mark all Present</button>
+                <button className="button" disabled={locked || !students.length} onClick={() => void submitAttendance(false)}>Submit Attendance</button>
+              </div>
+            </div>
+          </div>
+
           {!students.length ? (
             <div className="card">
               <strong>No students available.</strong>
@@ -271,20 +387,8 @@ export default function AttendancePage() {
                     <strong>{student.firstName} {student.lastName}</strong>
                     <p className="muted">{student.admissionId}</p>
                     <div className="grid grid-2">
-                      <button
-                        className="button"
-                        aria-pressed={present === true}
-                        onClick={() => void save(student, true)}
-                      >
-                        Present
-                      </button>
-                      <button
-                        className="button"
-                        aria-pressed={present === false}
-                        onClick={() => void save(student, false)}
-                      >
-                        Absent
-                      </button>
+                      <button className="button" aria-pressed={present === true} disabled={locked} onClick={() => void save(student, true)}>Present</button>
+                      <button className="button" aria-pressed={present === false} disabled={locked} onClick={() => void save(student, false)}>Absent</button>
                     </div>
                   </div>
                 );

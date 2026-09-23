@@ -116,13 +116,27 @@ export default async function Dashboard() {
       },
     });
 
-    const classIds = Array.from(new Set((teacher?.assignments ?? []).map(item => item.classId)));
-    const students = classIds.length
+    const teachingClassIds = Array.from(new Set((teacher?.assignments ?? []).map(item => item.classId)));
+    const students = teachingClassIds.length
       ? await db.student.findMany({
-          where: { schoolId, classId: { in: classIds } },
+          where: { schoolId, classId: { in: teachingClassIds } },
           orderBy: { lastName: "asc" },
         })
       : [];
+
+    const classTeacherCards = await Promise.all(
+      (teacher?.classTeacherAssignments ?? []).map(async assignment => ({
+        ...assignment,
+        studentCount: await db.student.count({ where: { schoolId, classId: assignment.classId } }),
+        attendanceCount: await db.attendance.count({
+          where: {
+            schoolId,
+            classId: assignment.classId,
+            date: { gte: todayStart, lt: tomorrow },
+          },
+        }),
+      }))
+    );
 
     content = (
       <>
@@ -151,6 +165,21 @@ export default async function Dashboard() {
             <strong>{teacher?.classTeacherAssignments.length ? "Yes" : "No"}</strong>
           </div>
         </div>
+
+        {classTeacherCards.length > 0 && (
+          <div className="card" style={{ marginTop: 18 }}>
+            <p className="muted">My class</p>
+            <div className="grid">
+              {classTeacherCards.map(item => (
+                <div key={item.id}>
+                  <strong>{item.class.section.name} · {item.class.name}{item.class.arm ? ` · ${item.class.arm}` : ""}</strong>
+                  <p className="muted">{item.studentCount} students · {item.attendanceCount} marked today</p>
+                  <Link className="button" href="/attendance">Attendance →</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </>
     );
   } else if (role === "STUDENT") {
