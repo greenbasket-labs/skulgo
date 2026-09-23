@@ -203,7 +203,7 @@ export default function ScoresPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [scopeKey]);
 
   useEffect(() => {
     if (!schoolId || !assignment) return;
