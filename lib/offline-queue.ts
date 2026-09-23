@@ -157,25 +157,32 @@ export async function syncOfflineQueue(scopeKey?: string) {
 
 let started = false;
 let syncing = false;
+let activeScopeKey = "";
+let activeCallback: ((result: { synced: number; remaining: number }) => void) | undefined;
 
 export function startOfflineSync(
   scopeKey?: string,
   onSync?: (result: { synced: number; remaining: number }) => void
 ) {
-  if (started || typeof window === "undefined") return;
-  started = true;
+  if (typeof window === "undefined") return;
+  activeScopeKey = scopeKey ?? "";
+  activeCallback = onSync;
 
   const run = async () => {
-    if (syncing) return;
+    if (syncing || !activeScopeKey) return;
     syncing = true;
     try {
-      const result = await syncOfflineQueue(scopeKey);
-      onSync?.(result);
+      const result = await syncOfflineQueue(activeScopeKey);
+      activeCallback?.(result);
     } finally {
       syncing = false;
     }
   };
 
-  window.addEventListener("online", run);
+  if (!started) {
+    started = true;
+    window.addEventListener("online", run);
+  }
+
   void run();
 }
