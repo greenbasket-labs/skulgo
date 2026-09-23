@@ -271,7 +271,7 @@ export default function ResultsPage() {
       </div>
 
       {(role === "STUDENT" || role === "PARENT") && (
-        <p className="muted">Only published results are shown.</p>
+        <p className="muted">Saved CA records are visible. Final grade, total and position appear only after Admin publishes.</p>
       )}
 
       {(role === "PARENT" || role === "STUDENT") ? (
