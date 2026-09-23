@@ -51,9 +51,10 @@ export default function ScoresPage() {
       if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
     } catch { me = readCachedRecord<typeof me>(meKey); }
     if (!me) me = readCachedRecord<typeof me>(meKey);
-    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
-    if (!scopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
-    const assignmentsKey = `skulgo:${scopeKey}:my-assignments`;
+    const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    setScopeKey(currentScopeKey);
+    if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
     let body: Data | null = null;
     try {
@@ -148,12 +149,12 @@ export default function ScoresPage() {
 
     if (!navigator.onLine) {
       queueAction({
-        scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
+        scopeKey,
         url: `/api/schools/${schoolId}/assessments`,
         method: "POST",
         body,
       });
-      setPending(queuedCount(me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : undefined));
+      setPending(queuedCount(scopeKey));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
     }
@@ -192,7 +193,7 @@ export default function ScoresPage() {
 
     const onOnline = () => {
       setOnline(true);
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
     };
     const onOffline = () => setOnline(false);
 
@@ -208,8 +209,7 @@ export default function ScoresPage() {
     if (!schoolId || !assignment) return;
     void loadStudents(schoolId, assignment.class.id);
 
-    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
-      const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
+    const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
     setScores(readCachedRecord<ScoreMap>(key) ?? {});
   }, [schoolId, assignment?.id, term]);
 
