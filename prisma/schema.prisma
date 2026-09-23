@@ -51,6 +51,7 @@ model School {
   feeRecords FeeRecord[]
   feeDefinitions FeeDefinition[]
   payments Payment[]
+  paymentProviders PaymentProvider[]
   assignments TeacherAssignment[]
   classTeacherAssignments ClassTeacher[]
   requests SchoolRequest[]
@@ -320,6 +321,18 @@ model Payment {
   reference String? @unique
   paidAt DateTime @default(now())
   recordedById String
+}
+
+model PaymentProvider {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  provider String
+  enabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([schoolId,provider])
+  @@index([schoolId,enabled])
 }
 
 model Announcement {
