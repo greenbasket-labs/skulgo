@@ -19,6 +19,7 @@ export default function SectionsPage() {
   const [schoolId, setSchoolId] = useState("");
   const [sections, setSections] = useState<Section[]>([]);
   const [name, setName] = useState("");
+  const [customName, setCustomName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -60,7 +61,7 @@ export default function SectionsPage() {
   async function addSection(event: FormEvent) {
     event.preventDefault();
 
-    const sectionName = name.trim();
+    const sectionName = (name === "Custom" ? customName : name).trim();
     if (!schoolId || !sectionName) return;
 
     setSaving(true);
@@ -81,6 +82,7 @@ export default function SectionsPage() {
 
       setSections(current => [...current, data]);
       setName("");
+      setCustomName("");
       setMessage(`${data.name} saved.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to create section.");
@@ -137,9 +139,18 @@ export default function SectionsPage() {
             ))}
           </select>
 
+          {name === "Custom" && (
+            <input
+              value={customName}
+              onChange={event => setCustomName(event.target.value)}
+              placeholder="Custom section name"
+              style={{ marginTop: 8 }}
+            />
+          )}
+
           <button
             type="submit"
-            disabled={!name || saving}
+            disabled={!name || (name === "Custom" && !customName.trim()) || saving}
             style={{ marginTop: 12 }}
           >
             {saving ? "Saving..." : "Save Section"}

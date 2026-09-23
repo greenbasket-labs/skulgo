@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { queueAction, syncOfflineQueue, queuedActions } from "@/lib/offline-queue";
+import { cacheRecord, queueAction, readCachedRecord, startOfflineSync, syncOfflineQueue, queuedActions } from "@/lib/offline-queue";
 
 type User = {
   id: string;
@@ -43,38 +43,70 @@ export default function FeesPage() {
   const schoolId = user?.membership?.schoolId;
 
   async function load() {
-    const meResponse = await fetch("/api/auth/me");
-    const me = await meResponse.json().catch(() => ({ user: null }));
-    if (!meResponse.ok || !me.user?.membership) {
+    const meKey = "skulgo-current-me";
+    let me: { user?: User } | null = null;
+
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({ user: null }));
+      if (meResponse.ok) {
+        me = next;
+        cacheRecord(meKey, next);
+      }
+    } catch {
+      me = readCachedRecord<typeof me>(meKey);
+    }
+
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+
+    if (!me?.user?.membership) {
       setMessage("Open a school workspace first.");
       return;
     }
 
     setUser(me.user);
 
-    const feeResponse = await fetch(`/api/schools/${me.user.membership.schoolId}/fees`);
-    const data = await feeResponse.json().catch(() => []);
-    setFees(feeResponse.ok ? data : []);
+    const currentScope = me.user.id && me.user.membership.id
+      ? `${me.user.id}:${me.user.membership.id}`
+      : "";
+    const feesKey = `skulgo:${currentScope}:fees-${me.user.membership.schoolId}`;
+
+    try {
+      const feeResponse = await fetch(`/api/schools/${me.user.membership.schoolId}/fees`);
+      const data = await feeResponse.json().catch(() => []);
+      if (feeResponse.ok) {
+        setFees(data);
+        cacheRecord(feesKey, data);
+        return;
+      }
+    } catch {
+      // Use the last successful fee snapshot below.
+    }
+
+    setFees(readCachedRecord<Fee[]>(feesKey) ?? []);
   }
 
   async function refreshQueue() {
-    setWaiting(queuedActions().length);
-    const result = await syncOfflineQueue();
+    setWaiting(queuedActions(user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : undefined).length);
+    const scopeKey = user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "";
+    const result = await syncOfflineQueue(scopeKey || undefined);
     setWaiting(result.remaining);
     if (result.synced) {
       setMessage(`${result.synced} pending payment(s) synced.`);
-      if (schoolId) {
-        const response = await fetch(`/api/schools/${schoolId}/fees`);
-        const data = await response.json().catch(() => []);
-        if (response.ok) setFees(data);
-      }
+      await load();
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
     setOnline(navigator.onLine);
-    refreshQueue();
+
+    const scopeKey = user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "";
+    if (scopeKey) {
+      startOfflineSync(scopeKey, result => setWaiting(result.remaining));
+    }
+
+    void refreshQueue();
 
     const onOnline = () => { setOnline(true); refreshQueue(); };
     const onOffline = () => setOnline(false);
@@ -91,8 +123,8 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
-  async function pay() {
-    if (!schoolId || !selectedStudentId) {
+  async function pay(studentId = selectedStudentId) {
+    if (!schoolId || !studentId) {
       setMessage("Choose the student first.");
       return;
     }
@@ -103,7 +135,7 @@ export default function FeesPage() {
       return;
     }
 
-    const fee = fees.find(item => item.studentId === selectedStudentId);
+    const fee = fees.find(item => item.studentId === studentId);
     if (!fee) {
       setMessage("Fee record not found.");
       return;
@@ -123,11 +155,12 @@ export default function FeesPage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey: user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "",
         url: `/api/schools/${schoolId}/payments`,
         method: "POST",
-        body,
+        body: { ...body, studentId },
       });
-      setWaiting(queuedActions().length);
+      setWaiting(queuedActions(user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : undefined).length);
       setBusy(false);
       setAmount("");
       setMessage("Payment saved on this device. It will sync when internet returns.");
@@ -137,7 +170,7 @@ export default function FeesPage() {
     const response = await fetch(`/api/schools/${schoolId}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, studentId }),
     });
     const data = await response.json().catch(() => ({}));
 
@@ -257,7 +290,7 @@ export default function FeesPage() {
                     disabled={busy || (role !== "STUDENT" && selectedStudentId !== fee.studentId)}
                     onClick={() => {
                       setSelectedStudentId(fee.studentId);
-                      window.setTimeout(() => { void pay(); }, 0);
+                      void pay(fee.studentId);
                     }}
                   >
                     {busy ? "Saving…" : "Record payment"}

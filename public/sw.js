@@ -1,5 +1,5 @@
-const CACHE_NAME = "skulgo-shell-v3";
-const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/offline"];
+const CACHE_NAME = "skulgo-shell-v4";
+const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/attendance", "/scores", "/fees", "/results", "/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -38,10 +38,28 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        const cachedShell = await caches.match(url.pathname);
+        if (cachedShell) return cachedShell;
+
+        const fallback = await caches.match("/offline");
+        if (fallback) return fallback;
+
+        return new Response("Offline", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.ok && event.request.destination !== "document") {
+        if (response.ok) {
           const copy = response.clone();
           void caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
@@ -50,11 +68,6 @@ self.addEventListener("fetch", (event) => {
       .catch(async () => {
         const cached = await caches.match(event.request);
         if (cached) return cached;
-
-        if (event.request.mode === "navigate") {
-          const fallback = await caches.match("/offline");
-          if (fallback) return fallback;
-        }
 
         return new Response("Offline", {
           status: 503,

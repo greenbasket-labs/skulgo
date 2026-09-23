@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { starterClassNames } from "@/lib/class-catalog";
 
 type SchoolClass = {
   id: string;
@@ -12,13 +13,6 @@ type Section = {
   id: string;
   name: string;
   classes: SchoolClass[];
-};
-
-const STARTER_CLASSES: Record<string, string[]> = {
-  Nursery: ["Nursery 1", "Nursery 2", "Nursery 3"],
-  Primary: ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"],
-  "Junior Secondary": ["JSS 1", "JSS 2", "JSS 3"],
-  "Senior Secondary": ["SS 1", "SS 2", "SS 3"],
 };
 
 export default function ClassesPage() {
@@ -65,7 +59,7 @@ export default function ClassesPage() {
   }, []);
 
   const selected = sections.find(section => section.id === selectedId);
-  const starterNames = selected ? STARTER_CLASSES[selected.name] ?? [] : [];
+  const starterNames = selected ? starterClassNames(selected.name) : [];
 
   async function saveStarterClasses() {
     if (!schoolId || !selected || starterNames.length === 0) return;

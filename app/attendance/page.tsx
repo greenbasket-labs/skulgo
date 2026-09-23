@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cacheRecord, queueAction, queuedCount } from "@/lib/offline-queue";
+import { cacheRecord, queueAction, queuedCount, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
 
 type Student = {
   id: string;
@@ -42,24 +42,50 @@ export default function AttendancePage() {
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
   const [schoolId, setSchoolId] = useState("");
+  const [scopeKey, setScopeKey] = useState("");
   const date = useMemo(() => today(), []);
 
   const assignments = data?.assignments ?? [];
 
   async function load() {
-    const response = await fetch("/api/schools/current/my-assignments");
-    const body = await response.json().catch(() => ({}));
+    const meKey = "skulgo-current-me";
+    let me: { user?: { id?: string; membership?: { id?: string; schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
+    } catch { me = readCachedRecord<typeof me>(meKey); }
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    setScopeKey(currentScopeKey);
+    if (currentScopeKey) startOfflineSync(currentScopeKey, result => setPending(result.remaining));
+    if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
-    if (!response.ok) {
-      setMessage(body.error || "Could not load teacher assignments");
+    let body: Data | null = null;
+    try {
+      const response = await fetch("/api/schools/current/my-assignments");
+      const next = await response.json().catch(() => ({}));
+      if (response.ok) {
+        body = next;
+        cacheRecord(assignmentsKey, next);
+      }
+    } catch {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) {
+      setMessage("Teacher assignments are not available on this device yet.");
       return;
     }
 
     setData(body);
 
-    const meResponse = await fetch("/api/auth/me");
-    const me = await meResponse.json().catch(() => ({}));
-    setSchoolId(me.user?.membership?.schoolId ?? "");
+    setSchoolId(me?.user?.membership?.schoolId ?? "");
 
     if (!selectedClassId && body.assignments?.length) {
       setSelectedClassId(body.assignments[0].class.id);
@@ -75,29 +101,32 @@ export default function AttendancePage() {
 
     if (!schoolId) return;
 
-    const key = `skulgo-attendance-students-${schoolId}-${classId}`;
-    const response = await fetch(`/api/schools/${schoolId}/students`);
+    const key = `skulgo:${scopeKey}:attendance-students-${schoolId}-${classId}`;
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/students`);
 
-    if (response.ok) {
-      const body = await response.json();
-      const filtered = body.filter((item: Student & { classId?: string }) => !item.classId || item.classId === classId);
-      setStudents(filtered);
-      cacheRecord(key, filtered);
-      return;
+      if (response.ok) {
+        const body = await response.json();
+        const filtered = body.filter((item: Student & { classId?: string }) => !item.classId || item.classId === classId);
+        setStudents(filtered);
+        cacheRecord(key, filtered);
+        return;
+      }
+    } catch {
+      // Use the last successful student snapshot below.
     }
 
-    const { readCachedRecord } = await import("@/lib/offline-queue");
     setStudents(readCachedRecord<Student[]>(key) ?? []);
   }
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setPending(queuedCount());
+    setPending(queuedCount(scopeKey));
     void load();
 
     const onOnline = () => {
       setOnline(true);
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       void loadStudents(selectedClassId);
     };
     const onOffline = () => setOnline(false);
@@ -109,7 +138,7 @@ export default function AttendancePage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [scopeKey]);
 
   useEffect(() => {
     if (data && selectedClassId) void loadStudents(selectedClassId);
@@ -121,16 +150,24 @@ export default function AttendancePage() {
 
       if (!schoolId) return;
 
-      const response = await fetch(
-        `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
-      );
-      if (response.ok) {
-        const records = await response.json();
-        const next: Mark = {};
-        for (const item of records) next[item.studentId] = item.present;
-        setMarks(next);
-        cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, next);
+      const key = `skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`;
+      try {
+        const response = await fetch(
+          `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
+        );
+        if (response.ok) {
+          const records = await response.json();
+          const next: Mark = {};
+          for (const item of records) next[item.studentId] = item.present;
+          setMarks(next);
+          cacheRecord(key, next);
+          return;
+        }
+      } catch {
+        // Use the last successful attendance snapshot below.
       }
+
+      setMarks(readCachedRecord<Mark>(key) ?? {});
     };
     void loadToday();
   }, [data, selectedClassId, date]);
@@ -140,7 +177,7 @@ export default function AttendancePage() {
 
     const nextMarks = { ...marks, [student.id]: present };
     setMarks(nextMarks);
-    cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
+    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
 
     const body = {
       studentId: student.id,
@@ -152,11 +189,12 @@ export default function AttendancePage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey,
         url: `/api/schools/${schoolId}/attendance`,
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
     }
@@ -177,11 +215,12 @@ export default function AttendancePage() {
     }
 
     queueAction({
+      scopeKey,
       url: `/api/schools/${schoolId}/attendance`,
       method: "POST",
       body,
     });
-    setPending(queuedCount());
+    setPending(queuedCount(scopeKey));
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
 

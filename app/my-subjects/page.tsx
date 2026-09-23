@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cacheRecord, readCachedRecord } from "@/lib/offline-queue";
 
 type Assignment = {
   id: string;
@@ -18,17 +19,52 @@ export default function MySubjects() {
   const [message, setMessage] = useState("Loading...");
 
   useEffect(() => {
-    fetch("/api/schools/current/my-assignments")
-      .then(async response => {
+    const load = async () => {
+      const meKey = "skulgo-current-me";
+      let me: { user?: { id?: string; membership?: { id?: string } | null } } | null = null;
+
+      try {
+        const meResponse = await fetch("/api/auth/me");
+        const next = await meResponse.json().catch(() => ({}));
+        if (meResponse.ok) {
+          me = next;
+          cacheRecord(meKey, next);
+        }
+      } catch {
+        me = readCachedRecord<typeof me>(meKey);
+      }
+
+      if (!me) me = readCachedRecord<typeof me>(meKey);
+
+      const userId = me?.user?.id;
+      const membershipId = me?.user?.membership?.id;
+      const scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
+      const cacheKey = scopeKey ? `skulgo:${scopeKey}:my-assignments` : "";
+
+      try {
+        const response = await fetch("/api/schools/current/my-assignments");
         const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error || "Could not load assignments");
-        return body as Data;
-      })
-      .then(body => {
-        setData(body);
-        setMessage("");
-      })
-      .catch(error => setMessage(error.message));
+        if (response.ok) {
+          setData(body);
+          if (cacheKey) cacheRecord(cacheKey, body);
+          setMessage("");
+          return;
+        }
+      } catch {
+        // Use the last successful assignment snapshot below.
+      }
+
+      const cached = cacheKey ? readCachedRecord<Data>(cacheKey) : null;
+      if (cached) {
+        setData(cached);
+        setMessage(navigator.onLine ? "" : "Showing the last saved assignments.");
+        return;
+      }
+
+      setMessage("Teacher assignments are not available on this device yet.");
+    };
+
+    void load();
   }, []);
 
   if (!data) {
