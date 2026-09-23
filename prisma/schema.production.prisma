@@ -49,6 +49,7 @@ model School {
   assessments Assessment[]
   results Result[]
   feeRecords FeeRecord[]
+  feeDefinitions FeeDefinition[]
   payments Payment[]
   assignments TeacherAssignment[]
   classTeacherAssignments ClassTeacher[]
@@ -124,6 +125,7 @@ model Section {
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   name String
   classes SchoolClass[]
+  feeDefinitions FeeDefinition[] @relation("FeeDefinitionSection")
   @@unique([schoolId,name])
 }
 
@@ -142,6 +144,7 @@ model SchoolClass {
   requests SchoolRequest[]
   classSubjects ClassSubject[]
   classTeacherAssignments ClassTeacher[]
+  feeDefinitions FeeDefinition[] @relation("FeeDefinitionClass")
   @@unique([schoolId,name,arm])
 }
 
@@ -275,6 +278,26 @@ model Result {
   position Int
   published Boolean @default(false)
   @@unique([studentId,subjectId,term])
+}
+
+model FeeDefinition {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  title String
+  body String?
+  amount Float
+  targetType String
+  sectionId String?
+  section Section? @relation("FeeDefinitionSection",fields:[sectionId],references:[id],onDelete:SetNull)
+  classId String?
+  class SchoolClass? @relation("FeeDefinitionClass",fields:[classId],references:[id],onDelete:SetNull)
+  status String @default("DRAFT")
+  createdById String
+  createdAt DateTime @default(now())
+  approvedAt DateTime?
+  @@index([schoolId,status])
+  @@index([schoolId,targetType])
 }
 
 model FeeRecord {
