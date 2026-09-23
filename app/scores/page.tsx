@@ -35,6 +35,7 @@ export default function ScoresPage() {
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
+  const [scopeKey, setScopeKey] = useState("");
 
   const assignment = useMemo(
     () => data?.assignments.find(item => item.id === selectedAssignmentId) ?? data?.assignments[0] ?? null,
@@ -120,7 +121,7 @@ export default function ScoresPage() {
     };
     setScores(next);
     if (schoolId && assignment) {
-      cacheRecord(`skulgo-scores-${schoolId}-${assignment.id}-${term}`, next);
+      cacheRecord(`skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`, next);
     }
   }
 
@@ -174,18 +175,19 @@ export default function ScoresPage() {
       return;
     } catch {
       queueAction({
+        scopeKey,
         url: `/api/schools/${schoolId}/assessments`,
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       setMessage("Connection dropped. Saved on this device and queued for sync.");
     }
   }
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setPending(queuedCount());
+    setPending(queuedCount(scopeKey));
     void load();
 
     const onOnline = () => {
