@@ -18,9 +18,7 @@ export function navForRole(role: WorkspaceRole) {
     case "TEACHER":
       return [
         ["Dashboard", "/dashboard"],
-        ["My Class", "/my-class"],
         ["My Subjects", "/my-subjects"],
-        ["Students", "/students"],
         ["Scores", "/scores"],
         ["Announcements", "/announcements"],
         ["My Account", "/account"],
@@ -50,8 +48,6 @@ export function navForRole(role: WorkspaceRole) {
       return [
         ["Dashboard", "/dashboard"],
         ["Fees", "/fees"],
-        ["Payments", "/payments"],
-        ["Balances", "/balances"],
         ["My Account", "/account"],
       ];
   }
