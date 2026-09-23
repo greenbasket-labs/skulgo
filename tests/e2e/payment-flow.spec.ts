@@ -352,7 +352,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
 
     await studentPage.goto("/fees");
     await expect(studentPage.getByRole("heading", { name: "School fees" })).toBeVisible();
-    await expect(studentPage.getByText("₦50,000")).toBeVisible();
+    await expect(studentPage.getByText("₦50,000")).toHaveCount(2);
 
     await studentPage.context().setOffline(true);
     await expect(studentPage.getByText(/^Offline$/)).toBeVisible();
