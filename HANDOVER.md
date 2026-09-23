@@ -303,3 +303,20 @@ The changes were promoted to `main` through PR #3, merge commit `4814d22`, and R
 The next major engineering focus is **real-school pilot hardening**: observe real usage, repair actual gaps, wire existing records to the right roles, and add only small capabilities justified by evidence.
 
 **Continue from current main; do not restart the product or rebuild existing flows from scratch.**
+
+## Student admission ID format
+
+Student Admission IDs use the school abbreviation, admission year, section code, and a four-digit sequence:
+
+**{SCHOOL-ABBR}/{YEAR}/{SECTION-CODE}/{NNNN}**
+
+Standard section codes are:
+
+- Senior Secondary → **SS**
+- Junior Secondary → **JS**
+- Primary → **PRI**
+- Nursery → **NUR**
+
+For custom sections, SkulGo derives a compact code from the section name (for example, University → **UNI**). This keeps IDs readable without storing the full section name in the ID.
+
+Examples: **ACA/2026/SS/5087**, **ACA/2026/JS/1204**, **ACA/2026/PRI/3411**, **UNI/2026/UNI/0001**.
