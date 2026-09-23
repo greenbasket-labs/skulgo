@@ -72,10 +72,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Verify the provider account before enabling payments" }, { status: 400 });
     }
 
-    const normalizedSchool = school.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const normalizedAccount = accountName.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (!normalizedAccount.includes(normalizedSchool) && !normalizedSchool.includes(normalizedAccount)) {
-      return NextResponse.json({ error: "Provider account name does not match the school name" }, { status: 400 });
+    const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedSchool = normalizeName(school.name);
+    const normalizedAccount = normalizeName(accountName);
+    const exactMatch = normalizedSchool === normalizedAccount;
+    if (!exactMatch) {
+      return NextResponse.json({ error: "Provider account name does not exactly match the school name" }, { status: 400 });
     }
 
     if (!accountNumberLast4 && !merchantReference) {
