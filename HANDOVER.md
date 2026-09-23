@@ -320,3 +320,32 @@ Standard section codes are:
 For custom sections, SkulGo derives a compact code from the section name (for example, University → **UNI**). This keeps IDs readable without storing the full section name in the ID.
 
 Examples: **ACA/2026/SS/5087**, **ACA/2026/JS/1204**, **ACA/2026/PRI/3411**, **UNI/2026/UNI/0001**.
+
+
+## Student Admission ID Format
+
+Student Admission IDs use:
+
+`{SCHOOL-ABBR}/{YEAR}/{SECTION-CODE}/{4-DIGIT}`
+
+The section part must use a short section code, not the full section name.
+
+Standard section codes:
+- Senior Secondary → `SS`
+- Junior Secondary → `JS`
+- Primary → `PRI`
+- Nursery → `NUR`
+
+Custom sections must use a compact code derived from the section name. For example:
+- University → `UNI`
+- College → `COL`
+- Other custom section names should produce a short, readable uppercase code.
+
+Examples:
+- `ACA/2026/SS/5087`
+- `ACA/2026/JS/1204`
+- `ACA/2026/PRI/3411`
+- `ACA/2026/NUR/7820`
+- `UNI/2026/UNI/0001`
+
+Do not put a full section label such as `SENIOR SECONDARY` into a new Student Admission ID. The section code is for compact identification and must remain independent of the human-readable section name.
