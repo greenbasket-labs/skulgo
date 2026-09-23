@@ -52,6 +52,8 @@ export default function FeesPage() {
   const [feeSectionId, setFeeSectionId] = useState("");
   const [feeClassId, setFeeClassId] = useState("");
   const [feeAmount, setFeeAmount] = useState("");
+  const [paymentProviders, setPaymentProviders] = useState<{ provider: string; enabled: boolean }[]>([]);
+
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
   const [online, setOnline] = useState(true);
@@ -91,19 +93,22 @@ export default function FeesPage() {
       : "";
     const feesKey = `skulgo:${currentScope}:fees-${me.user.membership.schoolId}`;
     if (me.user.membership.role === "ADMIN") {
-      const [classResponse, sectionResponse, definitionResponse] = await Promise.all([
+      const [classResponse, sectionResponse, definitionResponse, providerResponse] = await Promise.all([
         fetch(`/api/schools/${me.user.membership.schoolId}/classes`),
         fetch(`/api/schools/${me.user.membership.schoolId}/sections`),
         fetch(`/api/schools/${me.user.membership.schoolId}/fees/definitions`),
+        fetch(`/api/schools/${me.user.membership.schoolId}/payments/providers`),
       ]);
-      const [classData, sectionData, definitionData] = await Promise.all([
+      const [classData, sectionData, definitionData, providerData] = await Promise.all([
         classResponse.json().catch(() => []),
         sectionResponse.json().catch(() => []),
         definitionResponse.json().catch(() => []),
+        providerResponse.json().catch(() => []),
       ]);
       if (classResponse.ok) setClasses(Array.isArray(classData) ? classData : []);
       if (sectionResponse.ok) setSections(Array.isArray(sectionData) ? sectionData : []);
       if (definitionResponse.ok) setFeeDefinitions(Array.isArray(definitionData) ? definitionData : []);
+      if (providerResponse.ok) setPaymentProviders(Array.isArray(providerData) ? providerData : []);
     }
 
     try {
@@ -146,6 +151,22 @@ export default function FeesPage() {
       setMessage("Fee saved as draft."); await load();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create fee."); }
     finally { setBusy(false); }
+  }
+
+  async function setPaymentProvider(provider: string, enabled: boolean) {
+    if (!schoolId || role !== "ADMIN") return;
+    const response = await fetch(`/api/schools/${schoolId}/payments/providers`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, enabled }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(data?.error || "Unable to update payment provider.");
+      return;
+    }
+    setPaymentProviders(current => current.map(item => item.provider === provider ? { ...item, enabled } : item));
+    setMessage(`${provider} payment option ${enabled ? "enabled" : "disabled"}.`);
   }
 
   async function approveFeeDefinition(id: string) {
@@ -345,6 +366,22 @@ export default function FeesPage() {
                 <button className="button" type="button" onClick={() => void createFeeDefinition()} disabled={busy}>
                   {busy ? "Saving..." : "Save as Draft"}
                 </button>
+              </div>
+            </div>
+            <div className="card" style={{ marginBottom: 18 }}>
+              <h2>Payment options</h2>
+              <p className="muted">Enable the payment providers this school accepts. Gateway credentials stay separate from the school records.</p>
+              <div className="grid">
+                {paymentProviders.map(item => (
+                  <label key={item.provider} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <input
+                      type="checkbox"
+                      checked={item.enabled}
+                      onChange={event => void setPaymentProvider(item.provider, event.target.checked)}
+                    />
+                    <span>{item.provider === "PAYSTACK" ? "Paystack" : item.provider === "FLUTTERWAVE" ? "Flutterwave" : "Moniepoint"}</span>
+                  </label>
+                ))}
               </div>
             </div>
             <div className="card" style={{ marginBottom: 18 }}>
