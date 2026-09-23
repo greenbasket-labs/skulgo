@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { queuedCount, startOfflineSync } from "@/lib/offline-queue";
+import { cacheRecord, queuedCount, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
 
 export default function OfflineStatus() {
   const [online, setOnline] = useState(true);
@@ -17,8 +17,12 @@ export default function OfflineStatus() {
         const userId = data?.user?.id;
         const membershipId = data?.user?.membership?.id;
         scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
+        if (response.ok) cacheRecord("skulgo-current-me", data);
       } catch {
-        scopeKey = "";
+        const cached = readCachedRecord<{ user?: { id?: string; membership?: { id?: string } | null } }>("skulgo-current-me");
+        const userId = cached?.user?.id;
+        const membershipId = cached?.user?.membership?.id;
+        scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
       }
 
       setPending(scopeKey ? queuedCount(scopeKey) : 0);
