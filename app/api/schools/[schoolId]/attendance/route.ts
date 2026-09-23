@@ -12,13 +12,48 @@ export async function GET(
   if (!user?.membership || user.membership.schoolId !== schoolId) {
     return NextResponse.json({ error: "School access required" }, { status: 403 });
   }
+
   const classId = request.nextUrl.searchParams.get("classId");
   const date = request.nextUrl.searchParams.get("date");
+  let allowedStudentIds: string[] | null = null;
+  let allowedClassIds: string[] | null = null;
+
+  if (user.membership.role === "TEACHER") {
+    const teacher = await db.teacher.findUnique({
+      where: { userId: user.id },
+      select: { id: true, approved: true },
+    });
+    if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
+
+    const classes = await db.classTeacher.findMany({
+      where: { schoolId, teacherId: teacher.id },
+      select: { classId: true },
+    });
+    allowedClassIds = classes.map(item => item.classId);
+  } else if (user.membership.role === "STUDENT") {
+    if (!user.student?.id) return NextResponse.json([]);
+    allowedStudentIds = [user.student.id];
+  } else if (user.membership.role === "PARENT") {
+    if (!user.parent?.id) return NextResponse.json([]);
+    const links = await db.parentStudent.findMany({
+      where: { parentId: user.parent.id, approved: true, student: { schoolId } },
+      select: { studentId: true },
+    });
+    allowedStudentIds = links.map(item => item.studentId);
+  } else if (user.membership.role === "CASHIER") {
+    return NextResponse.json([]);
+  }
+
+  if (classId && allowedClassIds && !allowedClassIds.includes(classId)) {
+    return NextResponse.json({ error: "You cannot view attendance for this class" }, { status: 403 });
+  }
 
   const records = await db.attendance.findMany({
     where: {
       schoolId,
       ...(classId ? { classId } : {}),
+      ...(allowedClassIds ? { classId: { in: allowedClassIds } } : {}),
+      ...(allowedStudentIds ? { studentId: { in: allowedStudentIds } } : {}),
       ...(date ? { date: new Date(date) } : {}),
     },
     include: {
@@ -48,7 +83,6 @@ export async function POST(
   if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
-
   const studentId = String(body?.studentId ?? "");
   const classId = String(body?.classId ?? "");
   const session = String(body?.session ?? "morning").trim();
@@ -56,16 +90,11 @@ export async function POST(
   const present = body?.present;
 
   if (!studentId || !classId || !dateValue || typeof present !== "boolean") {
-    return NextResponse.json(
-      { error: "studentId, classId, date and present are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "studentId, classId, date and present are required" }, { status: 400 });
   }
 
   const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) {
-    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
-  }
+  if (Number.isNaN(date.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
 
   const classTeacher = await db.classTeacher.findFirst({
     where: { schoolId, teacherId: teacher.id, classId },
@@ -73,12 +102,8 @@ export async function POST(
   });
   if (!classTeacher) return NextResponse.json({ error: "Only the assigned class teacher can record attendance" }, { status: 403 });
 
-  const student = await db.student.findFirst({
-    where: { id: studentId, schoolId, classId },
-  });
-  if (!student) {
-    return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
-  }
+  const student = await db.student.findFirst({ where: { id: studentId, schoolId, classId } });
+  if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
 
   const record = await db.attendance.upsert({
     where: { studentId_date_session: { studentId, date, session } },
