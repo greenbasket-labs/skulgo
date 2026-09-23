@@ -12,6 +12,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Subjects", "/subjects"],
         ["Assign", "/assign"],
         ["Fees", "/fees"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "TEACHER":
@@ -21,6 +22,7 @@ export function navForRole(role: WorkspaceRole) {
         ["My Subjects", "/my-subjects"],
         ["Students", "/students"],
         ["Scores", "/scores"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "STUDENT":
@@ -31,6 +33,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Attendance", "/attendance"],
         ["Results", "/results"],
         ["Fees", "/fees"],
+        ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
     case "PARENT":
