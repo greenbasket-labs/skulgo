@@ -530,3 +530,20 @@ A new developer or AI should prefer:
 7. The person returns to their personal SkulGo account and enters the connected school workspace to perform the duties allowed by that connection.
 
 The school remains a separate entity. Personal accounts are identities; school connections define the person's role and access.
+
+
+### Student Admission IDs
+
+Student Admission IDs use the compact format `{SCHOOL-ABBR}/{YEAR}/{SECTION-CODE}/{4-DIGIT}`.
+
+Standard section codes:
+- Senior Secondary → `SS`
+- Junior Secondary → `JS`
+- Primary → `PRI`
+- Nursery → `NUR`
+
+Custom sections use a compact uppercase code derived from the section name (for example, University → `UNI`).
+
+Examples: `ACA/2026/SS/5087`, `ACA/2026/JS/1204`, `ACA/2026/PRI/3411`, `ACA/2026/NUR/7820`.
+
+Never generate new IDs with the full human-readable section name such as `SENIOR SECONDARY`.
