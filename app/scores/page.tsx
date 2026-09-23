@@ -206,7 +206,8 @@ export default function ScoresPage() {
     if (!schoolId || !assignment) return;
     void loadStudents(schoolId, assignment.class.id);
 
-    const key = `skulgo-scores-${schoolId}-${assignment.id}-${term}`;
+    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+      const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
     setScores(readCachedRecord<ScoreMap>(key) ?? {});
   }, [schoolId, assignment?.id, term]);
 
