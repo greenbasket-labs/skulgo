@@ -146,6 +146,7 @@ model SchoolClass {
   requests SchoolRequest[]
   classSubjects ClassSubject[]
   classTeacherAssignments ClassTeacher[]
+  attendanceSessions AttendanceSession[]
   feeDefinitions FeeDefinition[] @relation("FeeDefinitionClass")
   @@unique([schoolId,name,arm])
 }
