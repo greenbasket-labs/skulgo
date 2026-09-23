@@ -42,6 +42,7 @@ export default function AttendancePage() {
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
   const [schoolId, setSchoolId] = useState("");
+  const [scopeKey, setScopeKey] = useState("");
   const date = useMemo(() => today(), []);
 
   const assignments = data?.assignments ?? [];
@@ -55,9 +56,10 @@ export default function AttendancePage() {
       if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
     } catch { me = readCachedRecord<typeof me>(meKey); }
     if (!me) me = readCachedRecord<typeof me>(meKey);
-    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
-    if (!scopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
-    const assignmentsKey = `skulgo:${scopeKey}:my-assignments`;
+    const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    setScopeKey(currentScopeKey);
+    if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
     let body: Data | null = null;
     try {
@@ -118,12 +120,12 @@ export default function AttendancePage() {
 
   useEffect(() => {
     setOnline(navigator.onLine);
-    setPending(queuedCount(me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : undefined));
+    setPending(queuedCount(scopeKey));
     void load();
 
     const onOnline = () => {
       setOnline(true);
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       void loadStudents(selectedClassId);
     };
     const onOffline = () => setOnline(false);
@@ -186,7 +188,7 @@ export default function AttendancePage() {
 
     if (!navigator.onLine) {
       queueAction({
-        scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
+        scopeKey,
         url: `/api/schools/${schoolId}/attendance`,
         method: "POST",
         body,
