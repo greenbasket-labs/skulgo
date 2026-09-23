@@ -12,7 +12,7 @@
     "db:generate": "prisma generate",
     "e2e": "playwright test",
     "db:push:prod": "prisma db push --schema prisma/schema.production.prisma",
-    "build:prod": "npm install --include=dev && npm run postinstall && next build",
+    "build:prod": "npm install --include=dev && npm run postinstall && npm run db:push:prod && next build",
     "postinstall": "prisma generate --schema prisma/schema.production.prisma"
   },
   "dependencies": {
