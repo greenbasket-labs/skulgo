@@ -17,12 +17,15 @@ export async function GET(
   const term = request.nextUrl.searchParams.get("term");
   const publishedOnly = request.nextUrl.searchParams.get("published") === "true";
   let studentIds: string[] | null = null;
+  let forcePublished = false;
   let assignmentPairs: { classId: string; subjectId: string }[] | null = null;
 
   if (user.membership.role === "STUDENT") {
+    forcePublished = true;
     if (!user.student?.id) return NextResponse.json([]);
     studentIds = [user.student.id];
   } else if (user.membership.role === "PARENT") {
+    forcePublished = true;
     if (!user.parent?.id) return NextResponse.json([]);
     const links = await db.parentStudent.findMany({
       where: { parentId: user.parent.id, approved: true, student: { schoolId } },
@@ -53,7 +56,7 @@ export async function GET(
       ...(studentId ? { studentId } : {}),
       ...(studentIds ? { studentId: { in: studentIds } } : {}),
       ...(term ? { term } : {}),
-      ...(publishedOnly ? { published: true } : {}),
+      ...((publishedOnly || forcePublished) ? { published: true } : {}),
       ...(assignmentPairs ? { OR: assignmentPairs.map(item => ({ subjectId: item.subjectId, student: { classId: item.classId } })) } : {}),
     },
     include: {
