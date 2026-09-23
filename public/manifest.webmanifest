@@ -1,0 +1,10 @@
+{
+  "name": "SkulGo",
+  "short_name": "SkulGo",
+  "description": "Transparent & Secure Records",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "icons": []
+}
