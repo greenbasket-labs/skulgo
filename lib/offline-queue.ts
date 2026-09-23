@@ -41,6 +41,26 @@ function writeRecords(records: OfflineRecord[]) {
   localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
 }
 
+function actionDedupeKey(action: { url: string; method: string; body: unknown }) {
+  if (!action.body || typeof action.body !== "object" || Array.isArray(action.body)) {
+    return null;
+  }
+
+  const body = action.body as Record<string, unknown>;
+
+  if (action.method === "POST" && action.url.endsWith("/attendance")) {
+    const { studentId, date, session } = body;
+    if (studentId && date && session) return `attendance:${studentId}:${date}:${session}`;
+  }
+
+  if (action.method === "POST" && action.url.endsWith("/assessments")) {
+    const { studentId, subjectId, term } = body;
+    if (studentId && subjectId && term) return `assessment:${studentId}:${subjectId}:${term}`;
+  }
+
+  return null;
+}
+
 export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
   const body =
     action.method === "POST" &&
@@ -58,7 +78,16 @@ export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
     body,
   };
 
-  writeActions([...readActions(), item]);
+  const dedupeKey = actionDedupeKey(item);
+  const current = readActions();
+
+  if (dedupeKey) {
+    const next = current.filter(existing => actionDedupeKey(existing) !== dedupeKey);
+    writeActions([...next, item]);
+  } else {
+    writeActions([...current, item]);
+  }
+
   return item;
 }
 
@@ -105,6 +134,7 @@ export async function syncOfflineQueue() {
       }
     } catch {
       remaining.push(action);
+      break;
     }
   }
 
@@ -113,14 +143,21 @@ export async function syncOfflineQueue() {
 }
 
 let started = false;
+let syncing = false;
 
 export function startOfflineSync(onSync?: (result: { synced: number; remaining: number }) => void) {
   if (started || typeof window === "undefined") return;
   started = true;
 
   const run = async () => {
-    const result = await syncOfflineQueue();
-    onSync?.(result);
+    if (syncing) return;
+    syncing = true;
+    try {
+      const result = await syncOfflineQueue();
+      onSync?.(result);
+    } finally {
+      syncing = false;
+    }
   };
 
   window.addEventListener("online", run);
