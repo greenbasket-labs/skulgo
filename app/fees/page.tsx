@@ -123,8 +123,8 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
-  async function pay() {
-    if (!schoolId || !selectedStudentId) {
+  async function pay(studentId = selectedStudentId) {
+    if (!schoolId || !studentId) {
       setMessage("Choose the student first.");
       return;
     }
@@ -135,7 +135,7 @@ export default function FeesPage() {
       return;
     }
 
-    const fee = fees.find(item => item.studentId === selectedStudentId);
+    const fee = fees.find(item => item.studentId === studentId);
     if (!fee) {
       setMessage("Fee record not found.");
       return;
@@ -158,7 +158,7 @@ export default function FeesPage() {
         scopeKey: user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "",
         url: `/api/schools/${schoolId}/payments`,
         method: "POST",
-        body,
+        body: { ...body, studentId },
       });
       setWaiting(queuedActions(user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : undefined).length);
       setBusy(false);
@@ -170,7 +170,7 @@ export default function FeesPage() {
     const response = await fetch(`/api/schools/${schoolId}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, studentId }),
     });
     const data = await response.json().catch(() => ({}));
 
@@ -290,7 +290,7 @@ export default function FeesPage() {
                     disabled={busy || (role !== "STUDENT" && selectedStudentId !== fee.studentId)}
                     onClick={() => {
                       setSelectedStudentId(fee.studentId);
-                      window.setTimeout(() => { void pay(); }, 0);
+                      void pay(fee.studentId);
                     }}
                   >
                     {busy ? "Saving…" : "Record payment"}
