@@ -1,6 +1,7 @@
 name: SkulGo CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feat/offline-first-core
