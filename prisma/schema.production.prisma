@@ -51,6 +51,7 @@ model School {
   feeRecords FeeRecord[]
   payments Payment[]
   assignments TeacherAssignment[]
+  classTeacherAssignments ClassTeacher[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
   subscription SchoolSubscription?
@@ -175,6 +176,7 @@ model Teacher {
   teacherCode String @unique
   approved Boolean @default(false)
   assignments TeacherAssignment[]
+  classTeacherAssignments ClassTeacher[]
 }
 
 model Student {
@@ -186,6 +188,7 @@ model Student {
   admissionId String @unique
   firstName String
   lastName String
+  gender String?
   classId String?
   class SchoolClass? @relation(fields:[classId],references:[id],onDelete:SetNull)
   parentLinks ParentStudent[]
@@ -320,4 +323,15 @@ model AuditLog {
   createdAt DateTime @default(now())
   @@index([schoolId,createdAt])
   @@index([schoolId,entity,entityId])
+}
+
+model ClassTeacher {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  classId String @unique
+  class SchoolClass @relation(fields:[classId],references:[id],onDelete:Cascade)
+  teacherId String
+  teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
 }
