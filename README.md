@@ -418,6 +418,101 @@ A new developer or AI should answer these questions internally:
 
 If the answer is unclear, inspect first. Do not guess.
 
+
+### Current wiring principles
+
+SkulGo is intentionally designed like a **digital school record book with wiring**:
+
+- A school owns the school records.
+- A personal account is the person's identity/profile/CV.
+- A school membership gives that person a role and authorized view.
+- A record is entered once and remains a school record.
+- Authorized people see the same underlying record through their own workspace.
+- Students see only their own records.
+- Parents see only their approved children's records.
+- Teachers see only their assigned classes, students and subjects.
+- Admin sees the school records needed to manage the school.
+- Changes to important school records create an audit entry.
+
+Do not create separate copies of the same attendance, score, result or payment for each role.
+
+### Personal account vs school records
+
+The personal account is intentionally separate from the school workspace.
+
+The personal account is the person's simple profile/CV:
+
+- name and email
+- Teacher ID or Admission ID when applicable
+- connected schools and roles
+
+The school workspace contains the records owned by that school.
+
+A person can therefore keep the same personal identity while having different authorized school connections later.
+
+### Automatic structure
+
+The school setup is intentionally small:
+
+**Section selected → starter classes → starter subjects → Admin edits only what the school needs.**
+
+For the core Nigerian section choices:
+
+- Nursery → Nursery 1–3
+- Primary → Primary 1–6
+- Junior Secondary → JSS 1–3
+- Senior Secondary → SS 1–3
+
+Starter subjects are stored in a small editable catalog in `lib/subject-catalog.ts`. This is deliberately a starter list, not a curriculum engine.
+
+### Class teacher and subject teacher
+
+A class teacher is a separate simple school assignment. Only the assigned class teacher should submit that class's attendance.
+
+A subject teacher works through their existing Teacher → Class → Subject assignment and records CA/exam scores there.
+
+### Audit
+
+Important school changes use `AuditLog`.
+
+The audit record stores:
+
+- who changed it
+- what action happened
+- which school record changed
+- when it happened
+- small details about the change
+
+Audit is a record-history mechanism, not a large workflow.
+
+### Offline-first
+
+The app already has:
+
+- service-worker shell caching
+- online/offline status
+- local record caching
+- an offline write queue
+- automatic queue reconciliation when internet returns
+
+Attendance, assessment and payment writes already use the queue when the device is offline.
+
+Keep offline behavior lightweight. Do not introduce a large sync engine unless real pilot use proves it necessary.
+
+### Launch discipline
+
+The immediate goal is **school testing**, not feature completeness.
+
+A new developer or AI should prefer:
+
+1. make the existing school record flow easier;
+2. keep role access narrow;
+3. enter information once;
+4. let the same record circulate to authorized people;
+5. preserve audit history;
+6. preserve offline entry and reconciliation;
+7. avoid adding a new subsystem when an existing record can be wired to another role.
+
 ## Initial onboarding flow
 
 1. Create a **personal SkulGo account**.
