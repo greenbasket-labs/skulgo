@@ -4,6 +4,17 @@ import { getCurrentUser } from "@/lib/auth";
 import { percentage } from "@/lib/grading";
 import { recordAudit } from "@/lib/audit";
 
+const CORRECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function withinCorrectionWindow(savedAt: Date | null | undefined) {
+  return Boolean(savedAt && Date.now() - savedAt.getTime() < CORRECTION_WINDOW_MS);
+}
+
+function remainingMs(savedAt: Date | null | undefined) {
+  if (!savedAt) return null;
+  return Math.max(0, savedAt.getTime() + CORRECTION_WINDOW_MS - Date.now());
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
@@ -21,12 +32,17 @@ export async function GET(
   let assignmentPairs: { classId: string; subjectId: string }[] | null = null;
 
   if (user.membership.role === "TEACHER") {
-    const teacher = await db.teacher.findUnique({ where: { userId: user.id }, select: { id: true, approved: true } });
+    const teacher = await db.teacher.findUnique({
+      where: { userId: user.id },
+      select: { id: true, approved: true },
+    });
     if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
+
     assignmentPairs = await db.teacherAssignment.findMany({
       where: { schoolId, teacherId: teacher.id },
       select: { classId: true, subjectId: true },
     });
+
     if (classId && !assignmentPairs.some(item => item.classId === classId)) {
       return NextResponse.json({ error: "You are not assigned to this class" }, { status: 403 });
     }
@@ -65,7 +81,11 @@ export async function GET(
     orderBy: { student: { lastName: "asc" } },
   });
 
-  return NextResponse.json(assessments);
+  return NextResponse.json(assessments.map(item => ({
+    ...item,
+    caCorrectionRemainingMs: remainingMs(item.caSavedAt),
+    examCorrectionRemainingMs: remainingMs(item.examSavedAt),
+  })));
 }
 
 export async function POST(
@@ -78,7 +98,10 @@ export async function POST(
     return NextResponse.json({ error: "Teacher workspace required" }, { status: 403 });
   }
 
-  const teacher = await db.teacher.findUnique({ where: { userId: user.id }, select: { id: true, approved: true } });
+  const teacher = await db.teacher.findUnique({
+    where: { userId: user.id },
+    select: { id: true, approved: true },
+  });
   if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
@@ -86,14 +109,19 @@ export async function POST(
   const classId = String(body?.classId ?? "");
   const subjectId = String(body?.subjectId ?? "");
   const term = String(body?.term ?? "").trim();
-  const ca = Number(body?.ca);
-  const exam = Number(body?.exam);
+  const hasCa = body?.ca !== undefined && body?.ca !== null && String(body.ca).trim() !== "";
+  const hasExam = body?.exam !== undefined && body?.exam !== null && String(body.exam).trim() !== "";
+  const ca = hasCa ? Number(body.ca) : null;
+  const exam = hasExam ? Number(body.exam) : null;
 
-  if (!studentId || !classId || !subjectId || !term || !Number.isFinite(ca) || !Number.isFinite(exam)) {
-    return NextResponse.json({ error: "studentId, classId, subjectId, term, ca and exam are required" }, { status: 400 });
+  if (!studentId || !classId || !subjectId || !term || (!hasCa && !hasExam)) {
+    return NextResponse.json({ error: "Enter at least one CA or exam score before saving" }, { status: 400 });
   }
-  if (ca < 0 || ca > 30 || exam < 0 || exam > 70) {
-    return NextResponse.json({ error: "CA must be 0-30 and exam must be 0-70" }, { status: 400 });
+  if (hasCa && (!Number.isFinite(ca) || (ca as number) < 0 || (ca as number) > 30)) {
+    return NextResponse.json({ error: "CA must be 0-30" }, { status: 400 });
+  }
+  if (hasExam && (!Number.isFinite(exam) || (exam as number) < 0 || (exam as number) > 70)) {
+    return NextResponse.json({ error: "Exam must be 0-70" }, { status: 400 });
   }
 
   const [student, schoolClass, subject, assigned] = await Promise.all([
@@ -108,13 +136,59 @@ export async function POST(
   if (!subject) return NextResponse.json({ error: "Subject not found" }, { status: 404 });
   if (!assigned) return NextResponse.json({ error: "You are not assigned to this class and subject" }, { status: 403 });
 
-  const assessment = await db.assessment.upsert({
+  const existing = await db.assessment.findUnique({
     where: { studentId_subjectId_term: { studentId, subjectId, term } },
-    update: { classId, ca, exam },
-    create: { schoolId, studentId, classId, subjectId, term, ca, exam },
   });
 
-  await recordAudit({ schoolId, actorUserId: user.id, action: "UPSERT", entity: "ASSESSMENT", entityId: assessment.id, details: { studentId, classId, subjectId, term, ca, exam } });
+  const now = new Date();
 
-  return NextResponse.json({ ...assessment, total: percentage(ca, exam) }, { status: 201 });
+  if (existing?.caSavedAt && hasCa && !withinCorrectionWindow(existing.caSavedAt)) {
+    return NextResponse.json({ error: "CA correction window has expired for this student." }, { status: 409 });
+  }
+  if (existing?.examSavedAt && hasExam && !withinCorrectionWindow(existing.examSavedAt)) {
+    return NextResponse.json({ error: "Exam correction window has expired for this student." }, { status: 409 });
+  }
+
+  const assessment = existing
+    ? await db.assessment.update({
+        where: { id: existing.id },
+        data: {
+          classId,
+          ...(hasCa ? { ca, ...(existing.caSavedAt ? {} : { caSavedAt: now }) } : {}),
+          ...(hasExam ? { exam, ...(existing.examSavedAt ? {} : { examSavedAt: now }) } : {}),
+        },
+      })
+    : await db.assessment.create({
+        data: {
+          schoolId,
+          studentId,
+          classId,
+          subjectId,
+          term,
+          ca,
+          exam,
+          caSavedAt: hasCa ? now : null,
+          examSavedAt: hasExam ? now : null,
+        },
+      });
+
+  await recordAudit({
+    schoolId,
+    actorUserId: user.id,
+    action: existing ? "UPDATE" : "CREATE",
+    entity: "ASSESSMENT",
+    entityId: assessment.id,
+    details: { studentId, classId, subjectId, term, ca: hasCa ? ca : undefined, exam: hasExam ? exam : undefined },
+  });
+
+  const total = assessment.ca !== null && assessment.exam !== null
+    ? percentage(assessment.ca, assessment.exam)
+    : null;
+
+  return NextResponse.json({
+    ...assessment,
+    total,
+    caCorrectionRemainingMs: remainingMs(assessment.caSavedAt),
+    examCorrectionRemainingMs: remainingMs(assessment.examSavedAt),
+  }, { status: existing ? 200 : 201 });
 }

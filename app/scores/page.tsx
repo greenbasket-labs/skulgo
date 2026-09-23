@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cacheRecord, queueAction, queuedCount, readCachedRecord } from "@/lib/offline-queue";
+import { cacheRecord, queueAction, queuedCount, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
 
 type Student = {
   id: string;
@@ -22,8 +22,37 @@ type Data = {
   assignments: Assignment[];
 };
 
-type Score = { ca: string; exam: string };
+type Score = {
+  ca: string;
+  exam: string;
+  caSavedAt?: string | null;
+  examSavedAt?: string | null;
+};
+
 type ScoreMap = Record<string, Score>;
+
+type AssessmentRecord = {
+  studentId: string;
+  ca: number | null;
+  exam: number | null;
+  caSavedAt?: string | null;
+  examSavedAt?: string | null;
+};
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function remaining(savedAt?: string | null) {
+  if (!savedAt) return null;
+  return Math.max(0, new Date(savedAt).getTime() + WINDOW_MS - Date.now());
+}
+
+function formatRemaining(ms: number | null) {
+  if (ms === null) return "";
+  if (ms <= 0) return "Correction window expired";
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  return `${hours}h ${minutes}m remaining for correction`;
+}
 
 export default function ScoresPage() {
   const [data, setData] = useState<Data | null>(null);
@@ -36,6 +65,7 @@ export default function ScoresPage() {
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
   const [scopeKey, setScopeKey] = useState("");
+  const [now, setNow] = useState(Date.now());
 
   const assignment = useMemo(
     () => data?.assignments.find(item => item.id === selectedAssignmentId) ?? data?.assignments[0] ?? null,
@@ -51,49 +81,39 @@ export default function ScoresPage() {
       if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
     } catch { me = readCachedRecord<typeof me>(meKey); }
     if (!me) me = readCachedRecord<typeof me>(meKey);
+
     const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
     setScopeKey(currentScopeKey);
-    if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
-    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
+    if (!currentScopeKey) {
+      setMessage("This school workspace is not available on this device yet.");
+      return;
+    }
 
+    const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
     let body: Data | null = null;
     try {
-      const assignmentResponse = await fetch("/api/schools/current/my-assignments");
-      const next = await assignmentResponse.json().catch(() => ({}));
-      if (assignmentResponse.ok) {
-        body = next;
-        cacheRecord(assignmentsKey, next);
-      }
+      const response = await fetch("/api/schools/current/my-assignments");
+      const next = await response.json().catch(() => ({}));
+      if (response.ok) { body = next; cacheRecord(assignmentsKey, next); }
     } catch {
       body = readCachedRecord<Data>(assignmentsKey);
     }
-
     if (!body) body = readCachedRecord<Data>(assignmentsKey);
-
     if (!body) {
       setMessage("Teacher assignments are not available on this device yet.");
       return;
     }
 
     setData(body);
-
     const currentSchoolId = me?.user?.membership?.schoolId ?? "";
     setSchoolId(currentSchoolId);
-
-    if (!selectedAssignmentId && body.assignments?.length) {
-      setSelectedAssignmentId(body.assignments[0].id);
-    }
-
+    if (!selectedAssignmentId && body.assignments?.length) setSelectedAssignmentId(body.assignments[0].id);
     setMessage("");
-
-    if (currentSchoolId && body.assignments?.length) {
-      await loadStudents(currentSchoolId, body.assignments[0].class.id);
-    }
+    if (currentSchoolId && body.assignments?.length) await loadStudents(currentSchoolId, body.assignments[0].class.id);
   }
 
   async function loadStudents(currentSchoolId = schoolId, classId = assignment?.class.id ?? "") {
     if (!currentSchoolId || !classId) return;
-
     const key = `skulgo-scores-students-${currentSchoolId}-${classId}`;
     try {
       const response = await fetch(`/api/schools/${currentSchoolId}/students`);
@@ -104,37 +124,65 @@ export default function ScoresPage() {
         cacheRecord(key, filtered);
         return;
       }
-    } catch {
-      // Fall through to local cache.
-    }
-
+    } catch {}
     setStudents(readCachedRecord<Student[]>(key) ?? []);
   }
 
-  function setScore(studentId: string, field: keyof Score, value: string) {
-    const next = {
+  async function loadAssessments(currentSchoolId = schoolId, currentAssignment = assignment) {
+    if (!currentSchoolId || !currentAssignment) return;
+    const key = `skulgo:${scopeKey}:assessments-${currentAssignment.id}-${term}`;
+    try {
+      const response = await fetch(
+        `/api/schools/${currentSchoolId}/assessments?classId=${encodeURIComponent(currentAssignment.class.id)}&subjectId=${encodeURIComponent(currentAssignment.subject.id)}&term=${encodeURIComponent(term)}`
+      );
+      if (response.ok) {
+        const body = await response.json() as AssessmentRecord[];
+        const next: ScoreMap = {};
+        for (const item of body) {
+          next[item.studentId] = {
+            ca: item.ca === null ? "" : String(item.ca),
+            exam: item.exam === null ? "" : String(item.exam),
+            caSavedAt: item.caSavedAt ?? null,
+            examSavedAt: item.examSavedAt ?? null,
+          };
+        }
+        setScores(next);
+        cacheRecord(key, next);
+        return;
+      }
+    } catch {}
+    setScores(readCachedRecord<ScoreMap>(key) ?? {});
+  }
+
+  function setScore(studentId: string, field: "ca" | "exam", value: string) {
+    const current = scores[studentId] ?? { ca: "", exam: "" };
+    setScores({
       ...scores,
-      [studentId]: {
-        ca: scores[studentId]?.ca ?? "",
-        exam: scores[studentId]?.exam ?? "",
-        [field]: value,
-      },
-    };
-    setScores(next);
-    if (schoolId && assignment) {
-      cacheRecord(`skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`, next);
-    }
+      [studentId]: { ...current, [field]: value },
+    });
   }
 
   async function save(student: Student) {
     if (!schoolId || !assignment) return;
 
     const score = scores[student.id] ?? { ca: "", exam: "" };
-    const ca = Number(score.ca);
-    const exam = Number(score.exam);
+    const hasCa = score.ca.trim() !== "";
+    const hasExam = score.exam.trim() !== "";
 
-    if (!Number.isFinite(ca) || !Number.isFinite(exam) || ca < 0 || ca > 30 || exam < 0 || exam > 70) {
-      setMessage("Enter CA 0-30 and exam 0-70.");
+    if (!hasCa && !hasExam) {
+      setMessage("Enter a CA or exam score before saving.");
+      return;
+    }
+
+    const ca = hasCa ? Number(score.ca) : undefined;
+    const exam = hasExam ? Number(score.exam) : undefined;
+
+    if (hasCa && (!Number.isFinite(ca) || (ca as number) < 0 || (ca as number) > 30)) {
+      setMessage("CA must be 0-30.");
+      return;
+    }
+    if (hasExam && (!Number.isFinite(exam) || (exam as number) < 0 || (exam as number) > 70)) {
+      setMessage("Exam must be 0-70.");
       return;
     }
 
@@ -143,17 +191,12 @@ export default function ScoresPage() {
       classId: assignment.class.id,
       subjectId: assignment.subject.id,
       term,
-      ca,
-      exam,
+      ...(hasCa ? { ca } : {}),
+      ...(hasExam ? { exam } : {}),
     };
 
     if (!navigator.onLine) {
-      queueAction({
-        scopeKey,
-        url: `/api/schools/${schoolId}/assessments`,
-        method: "POST",
-        body,
-      });
+      queueAction({ scopeKey, url: `/api/schools/${schoolId}/assessments`, method: "POST", body });
       setPending(queuedCount(scopeKey));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
@@ -165,22 +208,26 @@ export default function ScoresPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const result = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        setMessage("Score saved.");
+        setScores(prev => ({
+          ...prev,
+          [student.id]: {
+            ...prev[student.id],
+            ca: result.ca === null ? "" : String(result.ca ?? prev[student.id]?.ca ?? ""),
+            exam: result.exam === null ? "" : String(result.exam ?? prev[student.id]?.exam ?? ""),
+            caSavedAt: result.caSavedAt ?? prev[student.id]?.caSavedAt ?? null,
+            examSavedAt: result.examSavedAt ?? prev[student.id]?.examSavedAt ?? null,
+          },
+        }));
+        setMessage("Saved. Only the score(s) entered now have a 24-hour correction window.");
         return;
       }
 
-      const result = await response.json().catch(() => ({}));
       setMessage(result.error || "Score could not be saved.");
-      return;
     } catch {
-      queueAction({
-        scopeKey,
-        url: `/api/schools/${schoolId}/assessments`,
-        method: "POST",
-        body,
-      });
+      queueAction({ scopeKey, url: `/api/schools/${schoolId}/assessments`, method: "POST", body });
       setPending(queuedCount(scopeKey));
       setMessage("Connection dropped. Saved on this device and queued for sync.");
     }
@@ -193,6 +240,7 @@ export default function ScoresPage() {
 
     const onOnline = () => {
       setOnline(true);
+      startOfflineSync(scopeKey, result => setPending(result.remaining));
       setPending(queuedCount(scopeKey));
     };
     const onOffline = () => setOnline(false);
@@ -208,14 +256,15 @@ export default function ScoresPage() {
   useEffect(() => {
     if (!schoolId || !assignment) return;
     void loadStudents(schoolId, assignment.class.id);
-
-    const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
-    setScores(readCachedRecord<ScoreMap>(key) ?? {});
+    void loadAssessments(schoolId, assignment);
   }, [schoolId, assignment?.id, term, scopeKey]);
 
-  if (!data) {
-    return <main className="workspace-main"><p className="muted">{message}</p></main>;
-  }
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (!data) return <main className="workspace-main"><p className="muted">{message}</p></main>;
 
   if (!assignment) {
     return (
@@ -269,21 +318,51 @@ export default function ScoresPage() {
         <div className="grid">
           {students.map(student => {
             const score = scores[student.id] ?? { ca: "", exam: "" };
+            const caLeft = remaining(score.caSavedAt);
+            const examLeft = remaining(score.examSavedAt);
+            const caLocked = caLeft === 0 && Boolean(score.caSavedAt);
+            const examLocked = examLeft === 0 && Boolean(score.examSavedAt);
+
             return (
               <div className="card" key={student.id}>
                 <strong>{student.firstName} {student.lastName}</strong>
                 <p className="muted">{student.admissionId}</p>
+
                 <div className="grid grid-2">
                   <label className="grid">
                     <span>CA / 30</span>
-                    <input inputMode="decimal" value={score.ca} onChange={event => setScore(student.id, "ca", event.target.value)} />
+                    <input
+                      inputMode="decimal"
+                      value={score.ca}
+                      disabled={caLocked}
+                      onChange={event => setScore(student.id, "ca", event.target.value)}
+                    />
+                    {score.caSavedAt && (
+                      <small className="muted">
+                        {caLocked ? "CA correction window expired." : formatRemaining(caLeft)}
+                      </small>
+                    )}
                   </label>
+
                   <label className="grid">
                     <span>Exam / 70</span>
-                    <input inputMode="decimal" value={score.exam} onChange={event => setScore(student.id, "exam", event.target.value)} />
+                    <input
+                      inputMode="decimal"
+                      value={score.exam}
+                      disabled={examLocked}
+                      onChange={event => setScore(student.id, "exam", event.target.value)}
+                    />
+                    {score.examSavedAt && (
+                      <small className="muted">
+                        {examLocked ? "Exam correction window expired." : formatRemaining(examLeft)}
+                      </small>
+                    )}
                   </label>
                 </div>
-                <button className="button" onClick={() => void save(student)}>Save score</button>
+
+                <button className="button" onClick={() => void save(student)}>
+                  Save entered score(s)
+                </button>
               </div>
             );
           })}
