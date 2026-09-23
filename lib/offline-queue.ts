@@ -165,32 +165,32 @@ export async function syncOfflineQueue(scopeKey?: string) {
   return { synced, remaining: remaining.filter(a => a.scopeKey === scopeKey).length };
 }
 
-let started = false;
-let syncing = false;
-let activeScopeKey = "";
-let activeCallback: ((result: { synced: number; remaining: number }) => void) | undefined;
+const activeSyncs = new Map<string, (result: { synced: number; remaining: number }) => void>();
+const runningScopes = new Set<string>();
 
 export function startOfflineSync(
   scopeKey?: string,
   onSync?: (result: { synced: number; remaining: number }) => void
 ) {
-  if (typeof window === "undefined") return;
-  activeScopeKey = scopeKey ?? "";
-  activeCallback = onSync;
+  if (typeof window === "undefined" || !scopeKey?.trim()) return;
 
   const run = async () => {
-    if (syncing || !activeScopeKey) return;
-    syncing = true;
+    if (runningScopes.has(scopeKey)) return;
+    runningScopes.add(scopeKey);
     try {
-      const result = await syncOfflineQueue(activeScopeKey);
-      activeCallback?.(result);
+      const result = await syncOfflineQueue(scopeKey);
+      activeSyncs.get(scopeKey)?.(result);
     } finally {
-      syncing = false;
+      runningScopes.delete(scopeKey);
     }
   };
 
-  if (!started) {
-    started = true;
+  activeSyncs.set(scopeKey, onSync ?? (() => undefined));
+
+  const existing = window.__skulgoOfflineScopes ?? new Set<string>();
+  if (!existing.has(scopeKey)) {
+    existing.add(scopeKey);
+    window.__skulgoOfflineScopes = existing;
     window.addEventListener("online", run);
   }
 
