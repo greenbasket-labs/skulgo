@@ -67,11 +67,11 @@ export async function POST(
     return NextResponse.json({ error: "Invalid date" }, { status: 400 });
   }
 
-  const assignment = await db.teacherAssignment.findFirst({
+  const classTeacher = await db.classTeacher.findFirst({
     where: { schoolId, teacherId: teacher.id, classId },
     select: { id: true },
   });
-  if (!assignment) return NextResponse.json({ error: "Teacher is not assigned to this class" }, { status: 403 });
+  if (!classTeacher) return NextResponse.json({ error: "Only the assigned class teacher can record attendance" }, { status: 403 });
 
   const student = await db.student.findFirst({
     where: { id: studentId, schoolId, classId },
