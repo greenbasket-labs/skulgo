@@ -329,10 +329,16 @@ model PaymentProvider {
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   provider String
   enabled Boolean @default(false)
+  status String @default("UNVERIFIED")
+  accountName String?
+  accountNumberLast4 String?
+  merchantReference String?
+  verifiedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([schoolId,provider])
   @@index([schoolId,enabled])
+  @@index([schoolId,status])
 }
 
 model Announcement {
