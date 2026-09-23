@@ -141,6 +141,7 @@ model SchoolClass {
   assessments Assessment[]
   requests SchoolRequest[]
   classSubjects ClassSubject[]
+  classTeacherAssignments ClassTeacher[]
   @@unique([schoolId,name,arm])
 }
 
