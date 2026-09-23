@@ -46,7 +46,6 @@ model School {
   subjects Subject[]
   students Student[]
   attendance Attendance[]
-  attendanceSessions AttendanceSession[]
   assessments Assessment[]
   results Result[]
   feeRecords FeeRecord[]
@@ -184,6 +183,7 @@ model Teacher {
   approved Boolean @default(false)
   assignments TeacherAssignment[]
   classTeacherAssignments ClassTeacher[]
+  attendanceSessions AttendanceSession[]
 }
 
 model Student {
