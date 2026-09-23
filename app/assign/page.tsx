@@ -45,12 +45,11 @@ export default function AssignPage() {
 
       setSchoolId(id);
 
-      const [teachersR, classesR, assignmentsR, classTeachersR, subjectsR] = await Promise.all([
+      const [teachersR, classesR, assignmentsR, classTeachersR] = await Promise.all([
         fetch(`/api/schools/${id}/teachers`),
         fetch(`/api/schools/${id}/classes`),
         fetch(`/api/schools/${id}/assignments`),
         fetch(`/api/schools/${id}/class-teachers`),
-        fetch(`/api/schools/${id}/subjects`),
       ]);
 
       const [teachersD, classesD, assignmentsD, classTeachersD] = await Promise.all([
@@ -58,7 +57,6 @@ export default function AssignPage() {
         classesR.json().catch(() => []),
         assignmentsR.json().catch(() => []),
         classTeachersR.json().catch(() => []),
-        // subjects endpoint needs classId, so loaded below only after a class is chosen
       ]);
 
       if (!teachersR.ok) throw new Error(teachersD?.error || "Unable to load teachers.");
