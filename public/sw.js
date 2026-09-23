@@ -1,5 +1,5 @@
 const CACHE_NAME = "skulgo-shell-v4";
-const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/attendance", "/scores", "/fees", "/offline"];
+const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/attendance", "/scores", "/fees", "/results", "/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
