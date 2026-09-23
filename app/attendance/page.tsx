@@ -8,9 +8,10 @@ type Student = {
   admissionId: string;
   firstName: string;
   lastName: string;
+  classId?: string | null;
 };
 
-type Assignment = {
+type ClassTeacherAssignment = {
   id: string;
   class: {
     id: string;
@@ -18,12 +19,12 @@ type Assignment = {
     arm?: string | null;
     section: { name: string };
   };
-  subject: { id: string; name: string };
 };
 
 type Data = {
   teacher: { teacherCode: string };
-  assignments: Assignment[];
+  assignments: unknown[];
+  classTeacherAssignments: ClassTeacherAssignment[];
 };
 
 type Mark = Record<string, boolean>;
@@ -45,7 +46,7 @@ export default function AttendancePage() {
   const [scopeKey, setScopeKey] = useState("");
   const date = useMemo(() => today(), []);
 
-  const assignments = data?.assignments ?? [];
+  const classTeacherAssignments = data?.classTeacherAssignments ?? [];
 
   async function load() {
     const meKey = "skulgo-current-me";
@@ -56,10 +57,12 @@ export default function AttendancePage() {
       if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
     } catch { me = readCachedRecord<typeof me>(meKey); }
     if (!me) me = readCachedRecord<typeof me>(meKey);
+
     const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
     setScopeKey(currentScopeKey);
     if (currentScopeKey) startOfflineSync(currentScopeKey, result => setPending(result.remaining));
     if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+
     const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
     let body: Data | null = null;
@@ -74,9 +77,7 @@ export default function AttendancePage() {
       body = readCachedRecord<Data>(assignmentsKey);
     }
 
-    if (!body) {
-      body = readCachedRecord<Data>(assignmentsKey);
-    }
+    if (!body) body = readCachedRecord<Data>(assignmentsKey);
 
     if (!body) {
       setMessage("Teacher assignments are not available on this device yet.");
@@ -84,22 +85,19 @@ export default function AttendancePage() {
     }
 
     setData(body);
-
     setSchoolId(me?.user?.membership?.schoolId ?? "");
 
-    if (!selectedClassId && body.assignments?.length) {
-      setSelectedClassId(body.assignments[0].class.id);
+    if (!selectedClassId && body.classTeacherAssignments?.length) {
+      setSelectedClassId(body.classTeacherAssignments[0].class.id);
     }
     setMessage("");
   }
 
   async function loadStudents(classId: string) {
-    if (!classId) {
+    if (!classId || !schoolId) {
       setStudents([]);
       return;
     }
-
-    if (!schoolId) return;
 
     const key = `skulgo:${scopeKey}:attendance-students-${schoolId}-${classId}`;
     try {
@@ -107,7 +105,7 @@ export default function AttendancePage() {
 
       if (response.ok) {
         const body = await response.json();
-        const filtered = body.filter((item: Student & { classId?: string }) => !item.classId || item.classId === classId);
+        const filtered = body.filter((item: Student) => item.classId === classId);
         setStudents(filtered);
         cacheRecord(key, filtered);
         return;
@@ -142,13 +140,11 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (data && selectedClassId) void loadStudents(selectedClassId);
-  }, [data, selectedClassId]);
+  }, [data, selectedClassId, schoolId]);
 
   useEffect(() => {
     const loadToday = async () => {
-      if (!data?.assignments.length || !selectedClassId) return;
-
-      if (!schoolId) return;
+      if (!classTeacherAssignments.length || !selectedClassId || !schoolId) return;
 
       const key = `skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`;
       try {
@@ -170,7 +166,7 @@ export default function AttendancePage() {
       setMarks(readCachedRecord<Mark>(key) ?? {});
     };
     void loadToday();
-  }, [data, selectedClassId, date]);
+  }, [classTeacherAssignments, selectedClassId, schoolId, date, scopeKey]);
 
   async function save(student: Student, present: boolean) {
     if (!schoolId || !selectedClassId) return;
@@ -224,8 +220,6 @@ export default function AttendancePage() {
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
 
-
-
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;
   }
@@ -240,58 +234,67 @@ export default function AttendancePage() {
         </p>
       </div>
 
-      <div className="card" style={{ marginBottom: 18 }}>
-        <label className="grid">
-          <span>Class</span>
-          <select
-            value={selectedClassId}
-            onChange={event => setSelectedClassId(event.target.value)}
-          >
-            {assignments.map(item => (
-              <option key={item.id} value={item.class.id}>
-                {item.class.section.name} · {item.class.name}{item.class.arm ? ` · ${item.class.arm}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {!students.length ? (
+      {!classTeacherAssignments.length ? (
         <div className="card">
-          <strong>No students available.</strong>
-          <p className="muted">Students in your assigned class will appear here.</p>
+          <strong>You are not assigned as class teacher.</strong>
+          <p className="muted">Attendance is available only for your class-master class.</p>
         </div>
       ) : (
-        <div className="grid">
-          {students.map(student => {
-            const present = marks[student.id];
-            return (
-              <div className="card" key={student.id}>
-                <strong>{student.firstName} {student.lastName}</strong>
-                <p className="muted">{student.admissionId}</p>
-                <div className="grid grid-2">
-                  <button
-                    className="button"
-                    aria-pressed={present === true}
-                    onClick={() => void save(student, true)}
-                  >
-                    Present
-                  </button>
-                  <button
-                    className="button"
-                    aria-pressed={present === false}
-                    onClick={() => void save(student, false)}
-                  >
-                    Absent
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        <>
+          <div className="card" style={{ marginBottom: 18 }}>
+            <label className="grid">
+              <span>My class</span>
+              <select
+                value={selectedClassId}
+                onChange={event => setSelectedClassId(event.target.value)}
+              >
+                {classTeacherAssignments.map(item => (
+                  <option key={item.id} value={item.class.id}>
+                    {item.class.section.name} · {item.class.name}{item.class.arm ? ` · ${item.class.arm}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-      {message && <p>{message}</p>}
+          {!students.length ? (
+            <div className="card">
+              <strong>No students available.</strong>
+              <p className="muted">All students enrolled in your class will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid">
+              {students.map(student => {
+                const present = marks[student.id];
+                return (
+                  <div className="card" key={student.id}>
+                    <strong>{student.firstName} {student.lastName}</strong>
+                    <p className="muted">{student.admissionId}</p>
+                    <div className="grid grid-2">
+                      <button
+                        className="button"
+                        aria-pressed={present === true}
+                        onClick={() => void save(student, true)}
+                      >
+                        Present
+                      </button>
+                      <button
+                        className="button"
+                        aria-pressed={present === false}
+                        onClick={() => void save(student, false)}
+                      >
+                        Absent
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {message && <p>{message}</p>}
+        </>
+      )}
     </main>
   );
 }
