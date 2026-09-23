@@ -39,6 +39,13 @@ test("SkulGo registers its offline app shell", async ({ browser }) => {
     });
     expect(feesPage).toBeTruthy();
 
+    const resultsPage = await page.evaluate(async () => {
+      const cache = await caches.open("skulgo-shell-v4");
+      const response = await cache.match("/results");
+      return Boolean(response && response.ok);
+    });
+    expect(resultsPage).toBeTruthy();
+
     await context.setOffline(true);
 
     await page.goto("/attendance");
