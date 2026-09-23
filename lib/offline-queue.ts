@@ -68,6 +68,10 @@ export function makeOfflineScope(userId: string, membershipId: string) {
 export function queueAction(
   action: Omit<OfflineAction, "id" | "createdAt" | "scopeKey"> & { scopeKey: string }
 ) {
+  if (!action.scopeKey.trim()) {
+    throw new Error("Offline actions require an active workspace scope");
+  }
+
   const body =
     action.method === "POST" &&
     action.body &&
@@ -122,12 +126,18 @@ export function readCachedRecord<T>(key: string): T | null {
 }
 
 export async function syncOfflineQueue(scopeKey?: string) {
+  // Never sync an unscoped queue: offline work belongs to a specific
+  // personal account + school membership workspace.
+  if (!scopeKey?.trim()) {
+    return { synced: 0, remaining: queuedCount() };
+  }
+
   if (!navigator.onLine) {
     return { synced: 0, remaining: queuedCount(scopeKey) };
   }
 
   const all = readActions();
-  const target = scopeKey ? all.filter(action => action.scopeKey === scopeKey) : all;
+  const target = all.filter(action => action.scopeKey === scopeKey);
   const targetIds = new Set(target.map(action => action.id));
   const remaining: OfflineAction[] = all.filter(action => !targetIds.has(action.id));
   let synced = 0;
@@ -152,7 +162,7 @@ export async function syncOfflineQueue(scopeKey?: string) {
   }
 
   writeActions(remaining);
-  return { synced, remaining: scopeKey ? remaining.filter(a => a.scopeKey === scopeKey).length : remaining.length };
+  return { synced, remaining: remaining.filter(a => a.scopeKey === scopeKey).length };
 }
 
 let started = false;
