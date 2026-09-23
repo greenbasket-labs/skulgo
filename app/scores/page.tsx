@@ -211,7 +211,7 @@ export default function ScoresPage() {
 
     const key = `skulgo:${scopeKey}:scores-${schoolId}-${assignment.id}-${term}`;
     setScores(readCachedRecord<ScoreMap>(key) ?? {});
-  }, [schoolId, assignment?.id, term]);
+  }, [schoolId, assignment?.id, term, scopeKey]);
 
   if (!data) {
     return <main className="workspace-main"><p className="muted">{message}</p></main>;
