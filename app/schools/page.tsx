@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type School = { id: string; name: string; abbr: string; address: string };
-type SchoolClass = { id: string; name: string; arm?: string | null; section?: { name: string } };
+type SchoolClass = { id: string; name: string; section?: { name: string } };
 type ApplyType = "STUDENT" | "TEACHER" | "CASHIER" | "PARENT";
 
 type FormData = Record<string, string>;
@@ -41,7 +41,7 @@ export default function Schools() {
 
   async function loadClasses(schoolId: string) {
     if (classes[schoolId]) return;
-    const response = await fetch("/api/schools/" + schoolId + "/classes");
+    const response = await fetch("/api/schools/" + schoolId + "/admission-classes");
     const data = await response.json().catch(() => []);
     if (response.ok) setClasses(current => ({ ...current, [schoolId]: data }));
   }
@@ -199,7 +199,7 @@ export default function Schools() {
                           {(classes[school.id] || []).map(schoolClass => (
                             <option key={schoolClass.id} value={schoolClass.id}>
                               {schoolClass.section?.name ? schoolClass.section.name + " · " : ""}
-                              {schoolClass.name}{schoolClass.arm ? " · " + schoolClass.arm : ""}
+                              {schoolClass.name}
                             </option>
                           ))}
                         </select>
