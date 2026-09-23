@@ -50,9 +50,10 @@ export default async function AccountPage() {
         ) : (
           <div className="grid">
             {user.memberships.map(membership => (
-              <div key={membership.id}>
+              <div className="card" key={membership.id}>
                 <strong>{membership.school.name}</strong>
                 <p className="muted">{membership.role}</p>
+                <p className="muted">School connection</p>
               </div>
             ))}
           </div>
