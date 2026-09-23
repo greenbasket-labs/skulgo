@@ -52,6 +52,9 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
 
         if (event.request.mode === "navigate") {
+          const cachedShell = await caches.match(url.pathname);
+          if (cachedShell) return cachedShell;
+
           const fallback = await caches.match("/offline");
           if (fallback) return fallback;
         }
