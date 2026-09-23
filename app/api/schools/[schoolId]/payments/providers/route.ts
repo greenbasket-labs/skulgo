@@ -53,16 +53,69 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
   const provider = String(body?.provider ?? "") as Provider;
   const enabled = body?.enabled === true;
+  const accountName = typeof body?.accountName === "string" ? body.accountName.trim() : "";
+  const accountNumberLast4 = typeof body?.accountNumberLast4 === "string" ? body.accountNumberLast4.replace(/\D/g, "").slice(-4) : "";
+  const merchantReference = typeof body?.merchantReference === "string" ? body.merchantReference.trim() : "";
 
   if (!PROVIDERS.includes(provider)) {
     return NextResponse.json({ error: "Invalid payment provider" }, { status: 400 });
   }
 
+  if (enabled) {
+    const school = await db.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true, email: true },
+    });
+    if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+
+    if (!accountName) {
+      return NextResponse.json({ error: "Verify the provider account before enabling payments" }, { status: 400 });
+    }
+
+    const normalizedSchool = school.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedAccount = accountName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!normalizedAccount.includes(normalizedSchool) && !normalizedSchool.includes(normalizedAccount)) {
+      return NextResponse.json({ error: "Provider account name does not match the school name" }, { status: 400 });
+    }
+
+    if (!accountNumberLast4 && !merchantReference) {
+      return NextResponse.json({ error: "A verified account reference is required" }, { status: 400 });
+    }
+  }
+
   const row = await db.paymentProvider.upsert({
     where: { schoolId_provider: { schoolId, provider } },
-    update: { enabled },
-    create: { schoolId, provider, enabled },
+    update: {
+      enabled,
+      ...(accountName ? {
+        accountName,
+        accountNumberLast4: accountNumberLast4 || null,
+        merchantReference: merchantReference || null,
+        status: "VERIFIED",
+        verifiedAt: new Date(),
+      } : {}),
+      ...(enabled ? {} : { status: "DISABLED" }),
+    },
+    create: {
+      schoolId,
+      provider,
+      enabled,
+      accountName: accountName || null,
+      accountNumberLast4: accountNumberLast4 || null,
+      merchantReference: merchantReference || null,
+      status: enabled ? "VERIFIED" : "DISABLED",
+      verifiedAt: enabled ? new Date() : null,
+    },
   });
 
-  return NextResponse.json(row);
+  return NextResponse.json({
+    id: row.id,
+    provider: row.provider,
+    enabled: row.enabled,
+    status: row.status,
+    accountName: row.accountName,
+    accountNumberLast4: row.accountNumberLast4,
+    merchantReference: row.merchantReference,
+    verifiedAt: row.verifiedAt,
+  });
 }
