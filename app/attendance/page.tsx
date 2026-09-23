@@ -100,7 +100,7 @@ export default function AttendancePage() {
 
     if (!schoolId) return;
 
-    const key = `skulgo-attendance-students-${schoolId}-${classId}`;
+    const key = `skulgo:${scopeKey}:attendance-students-${schoolId}-${classId}`;
     try {
       const response = await fetch(`/api/schools/${schoolId}/students`);
 
@@ -149,7 +149,7 @@ export default function AttendancePage() {
 
       if (!schoolId) return;
 
-      const key = `skulgo-attendance-${schoolId}-${selectedClassId}-${date}`;
+      const key = `skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`;
       try {
         const response = await fetch(
           `/api/schools/${schoolId}/attendance?classId=${selectedClassId}&date=${date}`
@@ -176,7 +176,7 @@ export default function AttendancePage() {
 
     const nextMarks = { ...marks, [student.id]: present };
     setMarks(nextMarks);
-    cacheRecord(`skulgo-attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
+    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`, nextMarks);
 
     const body = {
       studentId: student.id,
@@ -193,7 +193,7 @@ export default function AttendancePage() {
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(scopeKey));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
     }
@@ -214,12 +214,12 @@ export default function AttendancePage() {
     }
 
     queueAction({
-      scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
+      scopeKey,
       url: `/api/schools/${schoolId}/attendance`,
       method: "POST",
       body,
     });
-    setPending(queuedCount());
+    setPending(queuedCount(scopeKey));
     setMessage("Connection dropped. Saved on this device and queued for sync.");
   }
 
