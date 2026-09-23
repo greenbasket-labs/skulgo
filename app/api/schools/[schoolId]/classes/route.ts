@@ -17,8 +17,10 @@ export async function GET(
   const { schoolId } = await params;
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const school = await db.school.findUnique({ where: { id: schoolId }, select: { id: true } });
-  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+  const membership = await schoolAccess(user.id, schoolId);
+  if (!membership) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
+  }
 
   return NextResponse.json(await db.schoolClass.findMany({
     where: { schoolId },
