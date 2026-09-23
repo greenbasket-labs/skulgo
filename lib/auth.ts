@@ -12,7 +12,10 @@ type Session = {
 };
 
 function secret() {
-  return process.env.SESSION_SECRET || "skulgo-dev-session-secret-change-me";
+  const value = process.env.SESSION_SECRET;
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET is required in production");
+  return "skulgo-dev-session-secret-change-me";
 }
 
 export function hashPassword(password: string) {
