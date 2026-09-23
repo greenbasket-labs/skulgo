@@ -6,6 +6,7 @@ import { cacheRecord, readCachedRecord, startOfflineSync } from "@/lib/offline-q
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "CASHIER";
 
 type User = {
+  id: string;
   name: string;
   membership: {
     schoolId: string;
@@ -73,7 +74,6 @@ export default function ResultsPage() {
   async function loadResults(currentUser: User | null = user) {
     if (!currentUser?.membership) return;
 
-    const scopeKey = "id" in currentUser ? "" : "";
     const params = new URLSearchParams({ term });
     if (role === "STUDENT") params.set("published", "true");
     if (role === "PARENT") params.set("published", "true");
@@ -82,7 +82,7 @@ export default function ResultsPage() {
     }
 
     const schoolId = currentUser.membership.schoolId;
-    const userScope = `${schoolId}:${currentUser.name}`;
+    const userScope = `${currentUser.id}:${schoolId}`;
     const cacheKey = `skulgo:results:${userScope}:${term}:${role === "STUDENT" ? currentUser.student?.id ?? "self" : role ?? "workspace"}`;
 
     try {
@@ -118,8 +118,8 @@ export default function ResultsPage() {
       if (!current) return;
       if (current.membership) {
         const membershipId = "id" in current.membership ? (current.membership as { id?: string }).id : undefined;
-        if (membershipId && current.name) {
-          startOfflineSync(`${current.name}:${membershipId}`);
+        if (membershipId && current.id) {
+          startOfflineSync(`${current.id}:${membershipId}`);
         }
       }
       await loadResults(current);
