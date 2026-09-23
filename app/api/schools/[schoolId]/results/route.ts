@@ -104,12 +104,12 @@ export async function POST(
 
   const results = [];
   for (const assessment of assessments) {
-    const total = percentage(assessment.ca, assessment.exam);
+    const total = percentage(assessment.ca ?? 0, assessment.exam ?? 0);
     const classmates = await db.assessment.findMany({
       where: { schoolId, classId: student.classId, subjectId: assessment.subjectId, term },
       select: { ca: true, exam: true },
     });
-    const scores = classmates.map(item => percentage(item.ca, item.exam)).sort((a, b) => b - a);
+    const scores = classmates.map(item => percentage(item.ca ?? 0, item.exam ?? 0)).sort((a, b) => b - a);
     const position = scores.findIndex(score => score === total) + 1;
 
     results.push(await db.result.upsert({
