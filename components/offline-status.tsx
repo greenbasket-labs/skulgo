@@ -8,14 +8,32 @@ export default function OfflineStatus() {
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
-    setOnline(navigator.onLine);
-    setPending(queuedCount());
+    let scopeKey = "";
 
-    startOfflineSync(result => setPending(result.remaining));
+    const loadScope = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        const data = await response.json().catch(() => ({}));
+        const userId = data?.user?.id;
+        const membershipId = data?.user?.membership?.id;
+        scopeKey = userId && membershipId ? `${userId}:${membershipId}` : "";
+      } catch {
+        scopeKey = "";
+      }
+
+      setPending(scopeKey ? queuedCount(scopeKey) : 0);
+
+      if (scopeKey) {
+        startOfflineSync(scopeKey, result => setPending(result.remaining));
+      }
+    };
+
+    setOnline(navigator.onLine);
+    void loadScope();
 
     const onOnline = async () => {
       setOnline(true);
-      setPending(queuedCount());
+      if (scopeKey) setPending(queuedCount(scopeKey));
     };
     const onOffline = () => setOnline(false);
 
