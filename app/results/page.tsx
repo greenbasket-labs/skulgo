@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cacheRecord, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
+import { cacheRecord, readCachedRecord } from "@/lib/offline-queue";
 
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "CASHIER";
 
@@ -116,12 +116,6 @@ export default function ResultsPage() {
     void (async () => {
       const current = await loadMe();
       if (!current) return;
-      if (current.membership) {
-        const membershipId = "id" in current.membership ? (current.membership as { id?: string }).id : undefined;
-        if (membershipId && current.id) {
-          startOfflineSync(`${current.id}:${membershipId}`);
-        }
-      }
       await loadResults(current);
       await loadStudents(current);
     })();
