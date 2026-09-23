@@ -6,6 +6,7 @@ export type OfflineAction = {
   method: "POST" | "PATCH" | "PUT" | "DELETE";
   body: unknown;
   createdAt: number;
+  scopeKey: string;
 };
 
 export type OfflineRecord<T = unknown> = {
@@ -14,12 +15,13 @@ export type OfflineRecord<T = unknown> = {
   updatedAt: number;
 };
 
-const ACTIONS_KEY = "skulgo_offline_queue_v2";
-const RECORDS_KEY = "skulgo_offline_records_v1";
+const ACTIONS_KEY = "skulgo_offline_queue_v3";
+const RECORDS_KEY = "skulgo_offline_records_v2";
 
 function readActions(): OfflineAction[] {
   try {
-    return JSON.parse(localStorage.getItem(ACTIONS_KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(ACTIONS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter(item => item && typeof item.scopeKey === "string") : [];
   } catch {
     return [];
   }
@@ -31,7 +33,8 @@ function writeActions(queue: OfflineAction[]) {
 
 function readRecords(): OfflineRecord[] {
   try {
-    return JSON.parse(localStorage.getItem(RECORDS_KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(RECORDS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -42,10 +45,7 @@ function writeRecords(records: OfflineRecord[]) {
 }
 
 function actionDedupeKey(action: { url: string; method: string; body: unknown }) {
-  if (!action.body || typeof action.body !== "object" || Array.isArray(action.body)) {
-    return null;
-  }
-
+  if (!action.body || typeof action.body !== "object" || Array.isArray(action.body)) return null;
   const body = action.body as Record<string, unknown>;
 
   if (action.method === "POST" && action.url.endsWith("/attendance")) {
@@ -61,7 +61,13 @@ function actionDedupeKey(action: { url: string; method: string; body: unknown })
   return null;
 }
 
-export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
+export function makeOfflineScope(userId: string, membershipId: string) {
+  return `${userId}:${membershipId}`;
+}
+
+export function queueAction(
+  action: Omit<OfflineAction, "id" | "createdAt" | "scopeKey"> & { scopeKey: string }
+) {
   const body =
     action.method === "POST" &&
     action.body &&
@@ -78,11 +84,15 @@ export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
     body,
   };
 
-  const dedupeKey = actionDedupeKey(item);
   const current = readActions();
+  const dedupeKey = actionDedupeKey(item);
 
   if (dedupeKey) {
-    const next = current.filter(existing => actionDedupeKey(existing) !== dedupeKey);
+    const next = current.filter(
+      existing =>
+        existing.scopeKey !== item.scopeKey ||
+        actionDedupeKey(existing) !== dedupeKey
+    );
     writeActions([...next, item]);
   } else {
     writeActions([...current, item]);
@@ -91,12 +101,13 @@ export function queueAction(action: Omit<OfflineAction, "id" | "createdAt">) {
   return item;
 }
 
-export function queuedActions() {
-  return readActions();
+export function queuedActions(scopeKey?: string) {
+  const actions = readActions();
+  return scopeKey ? actions.filter(action => action.scopeKey === scopeKey) : actions;
 }
 
-export function queuedCount() {
-  return readActions().length;
+export function queuedCount(scopeKey?: string) {
+  return queuedActions(scopeKey).length;
 }
 
 export function cacheRecord<T>(key: string, value: T) {
@@ -110,16 +121,18 @@ export function readCachedRecord<T>(key: string): T | null {
   return record ? (record.value as T) : null;
 }
 
-export async function syncOfflineQueue() {
+export async function syncOfflineQueue(scopeKey?: string) {
   if (!navigator.onLine) {
-    return { synced: 0, remaining: readActions().length };
+    return { synced: 0, remaining: queuedCount(scopeKey) };
   }
 
-  const queue = readActions();
-  const remaining: OfflineAction[] = [];
+  const all = readActions();
+  const target = scopeKey ? all.filter(action => action.scopeKey === scopeKey) : all;
+  const targetIds = new Set(target.map(action => action.id));
+  const remaining: OfflineAction[] = all.filter(action => !targetIds.has(action.id));
   let synced = 0;
 
-  for (const action of queue) {
+  for (const action of target) {
     try {
       const response = await fetch(action.url, {
         method: action.method,
@@ -139,13 +152,16 @@ export async function syncOfflineQueue() {
   }
 
   writeActions(remaining);
-  return { synced, remaining: remaining.length };
+  return { synced, remaining: scopeKey ? remaining.filter(a => a.scopeKey === scopeKey).length : remaining.length };
 }
 
 let started = false;
 let syncing = false;
 
-export function startOfflineSync(onSync?: (result: { synced: number; remaining: number }) => void) {
+export function startOfflineSync(
+  scopeKey?: string,
+  onSync?: (result: { synced: number; remaining: number }) => void
+) {
   if (started || typeof window === "undefined") return;
   started = true;
 
@@ -153,7 +169,7 @@ export function startOfflineSync(onSync?: (result: { synced: number; remaining: 
     if (syncing) return;
     syncing = true;
     try {
-      const result = await syncOfflineQueue();
+      const result = await syncOfflineQueue(scopeKey);
       onSync?.(result);
     } finally {
       syncing = false;
