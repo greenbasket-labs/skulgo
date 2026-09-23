@@ -223,7 +223,9 @@ test("result is generated, hidden until published, then visible to student", asy
 
     await studentPage.context().setOffline(true);
     await expect.poll(() => studentPage.evaluate(() => navigator.onLine)).toBeFalsy();
-    await studentPage.reload();
+
+    const offlineResponse = await studentPage.goto("/results");
+    expect(offlineResponse?.status()).toBe(200);
     await expect(studentPage.getByRole("heading", { name: "Results" })).toBeVisible();
     await expect(studentPage.getByText("Mathematics")).toBeVisible();
     await expect(studentPage.getByText(/85\/100/)).toBeVisible();
