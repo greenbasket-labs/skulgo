@@ -95,30 +95,41 @@ export async function POST(
     if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
 
-  const definition = await db.feeDefinition.create({
-    data: {
+  try {
+    const definition = await db.feeDefinition.create({
+      data: {
+        schoolId,
+        title,
+        body: description || null,
+        amount,
+        targetType,
+        sectionId: targetType === "SECTION" ? sectionId : null,
+        classId: targetType === "CLASS" ? classId : null,
+        status: "DRAFT",
+        createdById: user.id,
+      },
+    });
+
+    await recordAudit({
       schoolId,
-      title,
-      body: description || null,
-      amount,
-      targetType,
-      sectionId: targetType === "SECTION" ? sectionId : null,
-      classId: targetType === "CLASS" ? classId : null,
-      status: "DRAFT",
-      createdById: user.id,
-    },
-  });
+      actorUserId: user.id,
+      action: "CREATE",
+      entity: "FEE_DEFINITION",
+      entityId: definition.id,
+      details: { title, amount, targetType, sectionId, classId },
+    });
 
-  await recordAudit({
-    schoolId,
-    actorUserId: user.id,
-    action: "CREATE",
-    entity: "FEE_DEFINITION",
-    entityId: definition.id,
-    details: { title, amount, targetType, sectionId, classId },
-  });
-
-  return NextResponse.json(definition, { status: 201 });
+    return NextResponse.json(definition, { status: 201 });
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+    console.error("FEE_DEFINITION_CREATE_FAILED", { code, error });
+    const message = code === "P2021"
+      ? "Fee definitions are not available in the production database yet. Run the production schema sync and try again."
+      : "Unable to create fee right now. Please try again."; 
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PATCH(
