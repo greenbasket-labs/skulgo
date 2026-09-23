@@ -211,6 +211,16 @@ test("result is generated, hidden until published, then visible to student", asy
     await expect(studentPage.getByText("Mathematics")).toBeVisible();
     await expect(studentPage.getByText(/85\/100/)).toBeVisible();
 
+    await expect.poll(async () => {
+      return studentPage.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+        if (!registration?.active) return false;
+        const cache = await caches.open("skulgo-shell-v4");
+        const response = await cache.match("/results");
+        return Boolean(response?.ok);
+      });
+    }, { timeout: 10000 }).toBeTruthy();
+
     await studentPage.context().setOffline(true);
     await expect.poll(() => studentPage.evaluate(() => navigator.onLine)).toBeFalsy();
     await studentPage.reload();
