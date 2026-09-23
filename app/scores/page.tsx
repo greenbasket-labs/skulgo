@@ -174,14 +174,26 @@ export default function ScoresPage() {
       return;
     }
 
-    const ca = hasCa ? Number(score.ca) : undefined;
-    const exam = hasExam ? Number(score.exam) : undefined;
+    const caLeft = remaining(score.caSavedAt);
+    const examLeft = remaining(score.examSavedAt);
+    const caLocked = caLeft === 0 && Boolean(score.caSavedAt);
+    const examLocked = examLeft === 0 && Boolean(score.examSavedAt);
+    const shouldSaveCa = hasCa && !caLocked;
+    const shouldSaveExam = hasExam && !examLocked;
 
-    if (hasCa && (!Number.isFinite(ca) || (ca as number) < 0 || (ca as number) > 30)) {
+    if (!shouldSaveCa && !shouldSaveExam) {
+      setMessage("There is no score still within its correction window to save.");
+      return;
+    }
+
+    const ca = shouldSaveCa ? Number(score.ca) : undefined;
+    const exam = shouldSaveExam ? Number(score.exam) : undefined;
+
+    if (shouldSaveCa && (!Number.isFinite(ca) || (ca as number) < 0 || (ca as number) > 30)) {
       setMessage("CA must be 0-30.");
       return;
     }
-    if (hasExam && (!Number.isFinite(exam) || (exam as number) < 0 || (exam as number) > 70)) {
+    if (shouldSaveExam && (!Number.isFinite(exam) || (exam as number) < 0 || (exam as number) > 70)) {
       setMessage("Exam must be 0-70.");
       return;
     }
@@ -191,8 +203,8 @@ export default function ScoresPage() {
       classId: assignment.class.id,
       subjectId: assignment.subject.id,
       term,
-      ...(hasCa ? { ca } : {}),
-      ...(hasExam ? { exam } : {}),
+      ...(shouldSaveCa ? { ca } : {}),
+      ...(shouldSaveExam ? { exam } : {}),
     };
 
     if (!navigator.onLine) {
