@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { recordAudit } from "@/lib/audit";
 import { getCurrentUser } from "@/lib/auth";
 
 async function schoolMembership(userId: string, schoolId: string) {
@@ -78,6 +79,7 @@ export async function POST(
     const assignment = await db.teacherAssignment.create({
       data: { schoolId, teacherId, classId, subjectId },
     });
+    await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "TEACHER_ASSIGNMENT", entityId: assignment.id, details: { teacherId, classId, subjectId } });
     return NextResponse.json(assignment, { status: 201 });
   } catch {
     return NextResponse.json({ error: "This teacher is already assigned to this class and subject" }, { status: 409 });
