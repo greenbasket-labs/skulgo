@@ -42,19 +42,44 @@ export default function ScoresPage() {
   );
 
   async function load() {
-    const assignmentResponse = await fetch("/api/schools/current/my-assignments");
-    const body = await assignmentResponse.json().catch(() => ({}));
+    const assignmentsKey = "skulgo-current-my-assignments";
+    const meKey = "skulgo-current-me";
 
-    if (!assignmentResponse.ok) {
-      setMessage(body.error || "Could not load teacher assignments");
+    let body: Data | null = null;
+    try {
+      const assignmentResponse = await fetch("/api/schools/current/my-assignments");
+      const next = await assignmentResponse.json().catch(() => ({}));
+      if (assignmentResponse.ok) {
+        body = next;
+        cacheRecord(assignmentsKey, next);
+      }
+    } catch {
+      body = readCachedRecord<Data>(assignmentsKey);
+    }
+
+    if (!body) body = readCachedRecord<Data>(assignmentsKey);
+
+    if (!body) {
+      setMessage("Teacher assignments are not available on this device yet.");
       return;
     }
 
     setData(body);
 
-    const meResponse = await fetch("/api/auth/me");
-    const me = await meResponse.json().catch(() => ({}));
-    const currentSchoolId = me.user?.membership?.schoolId ?? "";
+    let me: { user?: { membership?: { schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) {
+        me = next;
+        cacheRecord(meKey, next);
+      }
+    } catch {
+      me = readCachedRecord<typeof me>(meKey);
+    }
+
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    const currentSchoolId = me?.user?.membership?.schoolId ?? "";
     setSchoolId(currentSchoolId);
 
     if (!selectedAssignmentId && body.assignments?.length) {
