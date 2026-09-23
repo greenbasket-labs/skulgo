@@ -355,7 +355,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
     await expect(studentPage.getByText("₦50,000")).toHaveCount(2);
 
     await studentPage.context().setOffline(true);
-    await expect(studentPage.getByText(/^Offline$/)).toBeVisible();
+    await expect(studentPage.getByRole("main").getByText("Offline", { exact: true })).toBeVisible();
 
     await studentPage.locator('input[placeholder="Payment amount"]').fill("10000");
     await studentPage.getByRole("button", { name: "Record payment" }).click();
@@ -370,7 +370,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
     expect((await serverBefore.json())[0].balance).toBe(50000);
 
     await studentPage.context().setOffline(false);
-    await expect(studentPage.getByText(/^Online$/)).toBeVisible();
+    await expect(studentPage.getByRole("main").getByText("Online", { exact: true })).toBeVisible();
     await studentPage.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect.poll(async () => {
