@@ -166,6 +166,7 @@ export async function syncOfflineQueue(scopeKey?: string) {
 }
 
 const activeSyncs = new Map<string, (result: { synced: number; remaining: number }) => void>();
+const activeListeners = new Map<string, () => void>();
 const runningScopes = new Set<string>();
 
 export function startOfflineSync(
@@ -174,9 +175,12 @@ export function startOfflineSync(
 ) {
   if (typeof window === "undefined" || !scopeKey?.trim()) return;
 
+  activeSyncs.set(scopeKey, onSync ?? (() => undefined));
+
   const run = async () => {
     if (runningScopes.has(scopeKey)) return;
     runningScopes.add(scopeKey);
+
     try {
       const result = await syncOfflineQueue(scopeKey);
       activeSyncs.get(scopeKey)?.(result);
@@ -185,13 +189,9 @@ export function startOfflineSync(
     }
   };
 
-  activeSyncs.set(scopeKey, onSync ?? (() => undefined));
-
-  const existing = window.__skulgoOfflineScopes ?? new Set<string>();
-  if (!existing.has(scopeKey)) {
-    existing.add(scopeKey);
-    window.__skulgoOfflineScopes = existing;
+  if (!activeListeners.has(scopeKey)) {
     window.addEventListener("online", run);
+    activeListeners.set(scopeKey, () => window.removeEventListener("online", run));
   }
 
   void run();
