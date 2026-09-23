@@ -122,13 +122,16 @@ The shared layer currently provides:
 
 Proven offline workflows:
 - Attendance;
-- Scores.
+- Scores;
+- Payments;
+- Cached teacher/student/attendance/score workspace views;
+- Cached published results/read records for supported pilot views.
 
 Extend the shared layer. Do not make separate offline engines per module.
 
 The server remains authoritative and must re-check permissions when queued actions replay.
 
-Full service-worker/app-shell offline navigation is still unfinished.
+The lightweight service-worker/app-shell foundation is implemented and deployed; the remaining work is to harden reliable offline navigation/recovery across the exact pilot routes rather than expand offline coverage indiscriminately.
 
 ## Assessment and Results
 
@@ -243,17 +246,24 @@ They have not blocked the passing E2E workflows.
 
 Treat them as cleanup items unless they become functional problems.
 
-## Production blockers
+## Production status
 
-Before a real school uses the production deployment, complete:
+The production baseline is now live on Render from `main`.
 
-1. Full offline app-shell/navigation behavior.
-2. Production PostgreSQL.
-3. Production hosting + HTTPS + domain.
-4. API/auth/object-level security review.
-5. Subscription enforcement.
-6. Automatic backup + restore test.
-7. Live smoke tests.
+Verified deployment checkpoint:
+- `main` merge commit: `4814d22`;
+- Render deployment: **Live** for `4814d22`;
+- Custom domain: `https://skulgo.com`;
+- Render service: `skulgo`.
+
+The next work is therefore pilot hardening, not initial deployment.
+
+Remaining production-readiness items:
+1. Harden reliable offline navigation/recovery across pilot routes.
+2. Complete the production API/auth/object-level security review.
+3. Enforce the school subscription boundary.
+4. Verify automatic backup and restore.
+5. Run/expand live smoke tests against deployed infrastructure.
 
 ## Safe development workflow
 
@@ -286,8 +296,10 @@ Do not add payroll, inventory, hostel, transport, library, biometric systems, fu
 
 ## Handover point
 
-The core pilot record chain is implemented and has focused local E2E proof.
+The core pilot record chain is implemented and the offline-first core has passed the current focused local Playwright suite with **10/10 tests passing**.
 
-The next major engineering focus is production reliability, especially full offline-first behavior and deployment readiness—not adding many more features.
+The changes were promoted to `main` through PR #3, merge commit `4814d22`, and Render is confirmed **Live** on that same commit for `skulgo.com`.
+
+The next major engineering focus is **real-school pilot hardening**: observe real usage, repair actual gaps, wire existing records to the right roles, and add only small capabilities justified by evidence.
 
 **Continue from current main; do not restart the product or rebuild existing flows from scratch.**
