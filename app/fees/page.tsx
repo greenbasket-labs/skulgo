@@ -124,9 +124,10 @@ export default function FeesPage() {
 
   async function createFeeDefinition() {
     if (!schoolId || role !== "ADMIN") return;
-    const amountValue = Number(feeAmount);
+    const normalizedAmount = feeAmount.replace(/[,₦\s]/g, "");
+    const amountValue = Number(normalizedAmount);
     if (!feeTitle.trim()) return setMessage("Enter a fee title.");
-    if (!Number.isFinite(amountValue) || amountValue < 0) return setMessage("Enter a valid fee amount.");
+    if (!normalizedAmount || !Number.isFinite(amountValue) || amountValue <= 0) return setMessage("Enter a valid fee amount.");
     if (feeTarget === "SECTION" && !feeSectionId) return setMessage("Choose a section.");
     if (feeTarget === "CLASS" && !feeClassId) return setMessage("Choose a class.");
     setBusy(true); setMessage("");
