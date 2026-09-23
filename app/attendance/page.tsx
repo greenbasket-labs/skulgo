@@ -137,7 +137,7 @@ export default function AttendancePage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [scopeKey]);
 
   useEffect(() => {
     if (data && selectedClassId) void loadStudents(selectedClassId);
