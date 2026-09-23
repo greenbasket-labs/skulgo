@@ -69,7 +69,7 @@ export default function ChildrenPage() {
     <main className="shell">
       <div className="card" style={{ maxWidth: 800, margin: "0 auto" }}>
         <p className="muted">Parent workspace</p>
-        <h1>My Children</h1>
+        <h1>{children.length === 1 ? "My Child" : "My Children"}</h1>
 
         {!children.length && <p className="muted">{message}</p>}
 

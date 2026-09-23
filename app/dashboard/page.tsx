@@ -223,22 +223,69 @@ export default async function Dashboard() {
         })
       : [];
 
+    const childIds = children.map(link => link.student.id);
+    const todayAttendance = childIds.length
+      ? await db.attendance.findMany({
+          where: { schoolId, studentId: { in: childIds }, date: { gte: todayStart, lt: tomorrow } },
+          select: { studentId: true, present: true },
+        })
+      : [];
+    const todayPayments = childIds.length
+      ? await db.payment.findMany({
+          where: { schoolId, studentId: { in: childIds }, paidAt: { gte: todayStart, lt: tomorrow } },
+          select: { studentId: true, amount: true },
+        })
+      : [];
+    const todayAnnouncements = await db.announcement.findMany({
+      where: { schoolId, createdAt: { gte: todayStart, lt: tomorrow } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+    const publishedResultCount = childIds.length
+      ? await db.result.count({ where: { schoolId, studentId: { in: childIds }, published: true } })
+      : 0;
+
     content = (
-      <div className="card">
-        <p className="muted">My children</p>
-        {!children.length ? (
-          <strong>No approved child connection yet.</strong>
-        ) : (
-          <div className="grid">
-            {children.map(link => (
-              <div key={link.student.id}>
-                <strong>{link.student.firstName} {link.student.lastName}</strong>
-                <p className="muted">{link.student.class?.name ?? "No class"} · {link.student.admissionId}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <>
+        <div className="card">
+          <p className="muted">{children.length === 1 ? "My child" : "My children"}</p>
+          {!children.length ? (
+            <strong>No approved child connection yet.</strong>
+          ) : (
+            <div className="grid">
+              {children.map(link => (
+                <div key={link.student.id}>
+                  <strong>{link.student.firstName} {link.student.lastName}</strong>
+                  <p className="muted">{link.student.class?.name ?? "No class"} · {link.student.admissionId}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ marginTop: 18 }}>
+          <strong>Today</strong>
+          {!children.length ? (
+            <p className="muted">Connect an approved child to receive school updates.</p>
+          ) : (
+            <div className="grid" style={{ marginTop: 10 }}>
+              {todayAttendance.map(item => {
+                const child = children.find(link => link.student.id === item.studentId)?.student;
+                return <div key={item.studentId}><strong>{child?.firstName} {child?.lastName}</strong><p className="muted">{item.present ? "Present today." : "Absent today."}</p></div>;
+              })}
+              {todayPayments.map((item, index) => {
+                const child = children.find(link => link.student.id === item.studentId)?.student;
+                return <div key={item.studentId + "-payment-" + index}><strong>Payment received</strong><p className="muted">{child?.firstName} {child?.lastName}: {money(item.amount)} today.</p></div>;
+              })}
+              {todayAnnouncements.map(item => <div key={item.id}><strong>New school announcement</strong><p className="muted">{item.title} · <Link href="/announcements">View announcement →</Link></p></div>)}
+              {publishedResultCount > 0 && <div><strong>Published result available</strong><p className="muted"><Link href="/results">View result →</Link></p></div>}
+              {!todayAttendance.length && !todayPayments.length && !todayAnnouncements.length && publishedResultCount === 0 && (
+                <p className="muted">No new updates today.</p>
+              )}
+            </div>
+          )}
+        </div>
+      </>
     );
   } else {
     const payments = await db.payment.count({ where: { schoolId } });

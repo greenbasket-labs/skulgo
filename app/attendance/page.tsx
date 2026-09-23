@@ -51,6 +51,8 @@ export default function AttendancePage() {
   const [pending, setPending] = useState(0);
   const [message, setMessage] = useState("Loading...");
   const [schoolId, setSchoolId] = useState("");
+  const [role, setRole] = useState<"TEACHER" | "STUDENT" | "PARENT" | "ADMIN" | "CASHIER" | "">("");
+  const [parentHistory, setParentHistory] = useState<any[]>([]);
   const [scopeKey, setScopeKey] = useState("");
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -82,6 +84,7 @@ export default function AttendancePage() {
 
     const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
     setScopeKey(currentScopeKey);
+    setRole((me?.user as any)?.membership?.role ?? "");
     if (currentScopeKey) startOfflineSync(currentScopeKey, result => setPending(result.remaining));
     if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
 
@@ -107,6 +110,21 @@ export default function AttendancePage() {
 
     setData(body);
     setSchoolId(me?.user?.membership?.schoolId ?? "");
+
+    if ((me?.user as any)?.membership?.role === "PARENT") {
+      const historyKey = "skulgo:" + currentScopeKey + ":parent-attendance-" + (me?.user?.membership?.schoolId ?? "");
+      try {
+        const response = await fetch("/api/schools/" + me?.user?.membership?.schoolId + "/attendance");
+        const body = await response.json().catch(() => ({ records: [] }));
+        if (response.ok) {
+          setParentHistory(Array.isArray(body.records) ? body.records : []);
+          cacheRecord(historyKey, Array.isArray(body.records) ? body.records : []);
+        }
+      } catch {
+        setParentHistory(readCachedRecord<any[]>(historyKey) ?? []);
+      }
+      return;
+    }
 
     if (!selectedClassId && body.classTeacherAssignments?.length) {
       setSelectedClassId(body.classTeacherAssignments[0].class.id);
@@ -315,6 +333,31 @@ export default function AttendancePage() {
       setPending(queuedCount(scopeKey));
       setMessage(auto ? "Time ended. Submission is queued until internet returns." : "Connection dropped. Submission is queued for sync.");
     }
+  }
+
+  if (role === "PARENT") {
+    return (
+      <main className="workspace-main">
+        <div className="workspace-header">
+          <p className="muted">Parent workspace · {online ? "Online" : "Offline"}</p>
+          <h1>Attendance</h1>
+          <p className="muted">Attendance history for your approved child connection(s).</p>
+        </div>
+        {!parentHistory.length ? (
+          <div className="card"><strong>No attendance records yet.</strong><p className="muted">Attendance records will appear here after the school records them.</p></div>
+        ) : (
+          <div className="grid">
+            {parentHistory.map((item, index) => (
+              <div className="card" key={item.id ?? (item.studentId + "-" + item.date + "-" + index)}>
+                <strong>{item.student?.firstName} {item.student?.lastName}</strong>
+                <p className="muted">{item.student?.admissionId}</p>
+                <p>{new Date(item.date).toLocaleDateString()} · {item.present ? "Present" : "Absent"}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    );
   }
 
   if (!data) {

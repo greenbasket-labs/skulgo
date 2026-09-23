@@ -23,6 +23,19 @@ type Student = {
   lastName: string;
 };
 
+type Assessment = {
+  id: string;
+  studentId: string;
+  term: string;
+  ca1: number | null;
+  ca2: number | null;
+  ca3: number | null;
+  ca4: number | null;
+  ca: number | null;
+  exam: number | null;
+  subject: { name: string };
+};
+
 type Result = {
   id: string;
   studentId: string;
@@ -39,6 +52,7 @@ type Result = {
 export default function ResultsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [results, setResults] = useState<Result[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [term, setTerm] = useState("First Term");
   const [studentId, setStudentId] = useState("");
@@ -91,8 +105,13 @@ export default function ResultsPage() {
       );
       const data = await response.json().catch(() => []);
       if (response.ok) {
-        setResults(data);
-        cacheRecord(cacheKey, data);
+        setResults(Array.isArray(data) ? data : []);
+        cacheRecord(cacheKey, Array.isArray(data) ? data : []);
+        if (role === "PARENT" || role === "STUDENT") {
+          const assessmentResponse = await fetch(`/api/schools/${schoolId}/assessments?${params.toString()}`);
+          const assessmentData = await assessmentResponse.json().catch(() => []);
+          setAssessments(assessmentResponse.ok && Array.isArray(assessmentData) ? assessmentData : []);
+        }
         return;
       }
     } catch {
@@ -100,6 +119,7 @@ export default function ResultsPage() {
     }
 
     setResults(readCachedRecord<Result[]>(cacheKey) ?? []);
+    if (role === "PARENT" || role === "STUDENT") setAssessments([]);
   }
 
   async function loadStudents(currentUser: User | null) {
@@ -254,15 +274,46 @@ export default function ResultsPage() {
         <p className="muted">Only published results are shown.</p>
       )}
 
-      {!results.length ? (
+      {(role === "PARENT" || role === "STUDENT") ? (
+        <div className="grid">
+          {assessments.map(item => {
+            const published = results.find(result => result.studentId === item.studentId && result.subject.name === item.subject.name);
+            return (
+              <div className="card" key={item.id}>
+                <strong>{item.subject.name}</strong>
+                <p className="muted">{term}</p>
+                <div className="grid grid-2">
+                  <span>CA1 · {item.ca1 ?? "—"}/10</span>
+                  <span>CA2 · {item.ca2 ?? "—"}/10</span>
+                  <span>CA3 · {item.ca3 ?? "—"}/10</span>
+                  <span>CA4 · {item.ca4 ?? "—"}/10</span>
+                </div>
+                <p className="muted">CA total: {item.ca === null ? "—" : item.ca + "/40"}</p>
+                {published ? (
+                  <div>
+                    <strong>Published result</strong>
+                    <p>{published.total}/100 · Grade {published.grade} · Position {published.position}</p>
+                  </div>
+                ) : (
+                  <p className="muted">Final grade and position will appear after Admin publishes the result.</p>
+                )}
+              </div>
+            );
+          })}
+          {!assessments.length && (
+            <div className="card">
+              <strong>No assessment records yet.</strong>
+              <p className="muted">Saved CA records will appear here when your teacher records them.</p>
+            </div>
+          )}
+        </div>
+      ) : !results.length ? (
         <div className="card">
           <strong>No result available.</strong>
           <p className="muted">
             {role === "TEACHER"
               ? "Generate a result from saved assessments."
-              : role === "ADMIN"
-                ? "Publish generated results when the school is ready."
-                : "A published result will appear here."}
+              : "Publish generated results when the school is ready."}
           </p>
         </div>
       ) : (
