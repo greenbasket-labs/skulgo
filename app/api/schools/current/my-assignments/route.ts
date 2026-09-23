@@ -17,14 +17,25 @@ export async function GET() {
     return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
   }
 
-  const assignments = await db.teacherAssignment.findMany({
-    where: { schoolId: user.membership.schoolId, teacherId: teacher.id },
-    include: {
-      class: { include: { section: { select: { name: true } } } },
-      subject: { select: { id: true, name: true } },
-    },
-    orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }],
-  });
+  const schoolId = user.membership.schoolId;
 
-  return NextResponse.json({ teacher, assignments });
+  const [assignments, classTeacherAssignments] = await Promise.all([
+    db.teacherAssignment.findMany({
+      where: { schoolId, teacherId: teacher.id },
+      include: {
+        class: { include: { section: { select: { name: true } } } },
+        subject: { select: { id: true, name: true } },
+      },
+      orderBy: [{ class: { name: "asc" } }, { subject: { name: "asc" } }],
+    }),
+    db.classTeacher.findMany({
+      where: { schoolId, teacherId: teacher.id },
+      include: {
+        class: { include: { section: { select: { name: true } } } },
+      },
+      orderBy: [{ class: { name: "asc" } }],
+    }),
+  ]);
+
+  return NextResponse.json({ teacher, assignments, classTeacherAssignments });
 }
