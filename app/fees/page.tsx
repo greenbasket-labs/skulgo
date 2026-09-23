@@ -52,7 +52,10 @@ export default function FeesPage() {
   const [feeSectionId, setFeeSectionId] = useState("");
   const [feeClassId, setFeeClassId] = useState("");
   const [feeAmount, setFeeAmount] = useState("");
-  const [paymentProviders, setPaymentProviders] = useState<{ provider: string; enabled: boolean }[]>([]);
+  const [paymentProviders, setPaymentProviders] = useState<{ provider: string; enabled: boolean; status?: string; accountName?: string | null; accountNumberLast4?: string | null; merchantReference?: string | null }[]>([]);
+  const [providerAccountName, setProviderAccountName] = useState("");
+  const [providerAccountLast4, setProviderAccountLast4] = useState("");
+  const [providerMerchantReference, setProviderMerchantReference] = useState("");
 
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
@@ -158,15 +161,28 @@ export default function FeesPage() {
     const response = await fetch(`/api/schools/${schoolId}/payments/providers`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, enabled }),
+      body: JSON.stringify({
+        provider,
+        enabled,
+        accountName: providerAccountName,
+        accountNumberLast4: providerAccountLast4,
+        merchantReference: providerMerchantReference,
+      }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       setMessage(data?.error || "Unable to update payment provider.");
       return;
     }
-    setPaymentProviders(current => current.map(item => item.provider === provider ? { ...item, enabled } : item));
-    setMessage(`${provider} payment option ${enabled ? "enabled" : "disabled"}.`);
+    setPaymentProviders(current => current.map(item => item.provider === provider
+      ? { ...item, enabled, status: data.status, accountName: data.accountName, accountNumberLast4: data.accountNumberLast4, merchantReference: data.merchantReference }
+      : item));
+    setMessage(provider + " payment option " + (enabled ? "enabled" : "disabled") + ".");
+    if (enabled) {
+      setProviderAccountName("");
+      setProviderAccountLast4("");
+      setProviderMerchantReference("");
+    }
   }
 
   async function approveFeeDefinition(id: string) {
@@ -370,17 +386,29 @@ export default function FeesPage() {
             </div>
             <div className="card" style={{ marginBottom: 18 }}>
               <h2>Payment options</h2>
-              <p className="muted">Enable the payment providers this school accepts. Gateway credentials stay separate from the school records.</p>
+              <p className="muted">Only a verified school-owned payment account can be enabled. Never enter provider secret keys here.</p>
               <div className="grid">
+                <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="Verified account / business name" />
+                <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
+                <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Merchant ID / account reference (optional)" />
                 {paymentProviders.map(item => (
-                  <label key={item.provider} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <input
-                      type="checkbox"
-                      checked={item.enabled}
-                      onChange={event => void setPaymentProvider(item.provider, event.target.checked)}
-                    />
-                    <span>{item.provider === "PAYSTACK" ? "Paystack" : item.provider === "FLUTTERWAVE" ? "Flutterwave" : "Moniepoint"}</span>
-                  </label>
+                  <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div>
+                        <strong>{item.provider === "PAYSTACK" ? "Paystack" : item.provider === "FLUTTERWAVE" ? "Flutterwave" : "Moniepoint"}</strong>
+                        <p className="muted" style={{ margin: "4px 0 0" }}>
+                          {item.enabled ? ("Enabled" + (item.accountName ? " · " + item.accountName : "")) : item.status === "VERIFIED" ? "Verified · disabled" : "Not verified"}
+                        </p>
+                      </div>
+                      <button
+                        className="button"
+                        type="button"
+                        onClick={() => void setPaymentProvider(item.provider, !item.enabled)}
+                      >
+                        {item.enabled ? "Disable" : "Verify & enable"}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
