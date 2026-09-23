@@ -58,8 +58,8 @@ export default function FeesPage() {
   }
 
   async function refreshQueue() {
-    setWaiting(queuedActions().length);
-    const result = await syncOfflineQueue();
+    setWaiting(queuedActions(user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : undefined).length);
+    const result = await syncOfflineQueue(user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : undefined);
     setWaiting(result.remaining);
     if (result.synced) {
       setMessage(`${result.synced} pending payment(s) synced.`);
@@ -123,6 +123,7 @@ export default function FeesPage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey: user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "",
         url: `/api/schools/${schoolId}/payments`,
         method: "POST",
         body,
