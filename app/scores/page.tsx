@@ -42,8 +42,17 @@ export default function ScoresPage() {
   );
 
   async function load() {
-    const assignmentsKey = "skulgo-current-my-assignments";
     const meKey = "skulgo-current-me";
+    let me: { user?: { id?: string; membership?: { id?: string; schoolId?: string } | null } } | null = null;
+    try {
+      const meResponse = await fetch("/api/auth/me");
+      const next = await meResponse.json().catch(() => ({}));
+      if (meResponse.ok) { me = next; cacheRecord(meKey, next); }
+    } catch { me = readCachedRecord<typeof me>(meKey); }
+    if (!me) me = readCachedRecord<typeof me>(meKey);
+    const scopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
+    if (!scopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+    const assignmentsKey = `skulgo:${scopeKey}:my-assignments`;
 
     let body: Data | null = null;
     try {
@@ -66,19 +75,6 @@ export default function ScoresPage() {
 
     setData(body);
 
-    let me: { user?: { membership?: { schoolId?: string } | null } } | null = null;
-    try {
-      const meResponse = await fetch("/api/auth/me");
-      const next = await meResponse.json().catch(() => ({}));
-      if (meResponse.ok) {
-        me = next;
-        cacheRecord(meKey, next);
-      }
-    } catch {
-      me = readCachedRecord<typeof me>(meKey);
-    }
-
-    if (!me) me = readCachedRecord<typeof me>(meKey);
     const currentSchoolId = me?.user?.membership?.schoolId ?? "";
     setSchoolId(currentSchoolId);
 
@@ -151,11 +147,12 @@ export default function ScoresPage() {
 
     if (!navigator.onLine) {
       queueAction({
+        scopeKey: `${me?.user?.id ?? ""}:${me?.user?.membership?.id ?? ""}`,
         url: `/api/schools/${schoolId}/assessments`,
         method: "POST",
         body,
       });
-      setPending(queuedCount());
+      setPending(queuedCount(me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : undefined));
       setMessage("Saved on this device. It will sync automatically when internet returns.");
       return;
     }
