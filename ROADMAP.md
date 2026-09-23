@@ -83,7 +83,7 @@ Current hardening includes:
 - centralized Nigerian starter class catalog;
 - continued use of the lightweight PWA/service-worker approach.
 
-**Current status:** Offline-first core was merged through PR #2, then promoted to `main` through PR #3. The resulting `main` merge commit is `4814d22`, and Render is confirmed Live on that commit.
+**Current status:** Offline-first core was merged through PR #2, then promoted to `main` through PR #3. The resulting `main` merge commit is `4814d22`. Subsequent small Admin/account changes have been committed directly to `main`; each must be verified before the next role is started.
 
 ## Roadmap principle
 
@@ -212,7 +212,7 @@ Do not turn subscription work into a large billing platform until real commercia
 The first pilot should use a real school workflow, not a large feature list.
 
 ### Admin
-Create/finish school structure → approve people → assign duties → oversee attendance, results and fees.
+Finish school structure → approve people → assign duties → verify the complete Admin navigation/workflow before moving to the next role.
 
 ### Teacher
 Open assigned class/subject → record attendance → record CA/exam scores → continue during temporary internet loss.
@@ -225,6 +225,12 @@ See approved children and their attendance, published results and fees/payments.
 
 ### Cashier
 Record school payments and view outstanding balances.
+
+The pilot role sequence is deliberately:
+
+**Admin → Teacher → Student → Parent → Cashier**
+
+Each role is completed and tested before the next role begins.
 
 ### Pilot evidence to collect
 
@@ -317,14 +323,107 @@ Do not:
 
 When a requirement is unclear, inspect the code and existing workflow first. Do not silently invent a new product direction.
 
+## Current delivery sequence
+
+The immediate development sequence is **role-by-role**, with testing after each role.
+
+### Phase 1 — Finish and verify Admin
+
+Complete the Admin workspace and verify every Admin navigation item works against the existing APIs and records:
+
+**Dashboard → Applications → Staff → Sections → Classes → Subjects → Assign → Fees → Announcements → My Account**
+
+Do not move to the next role until the Admin flow is usable end-to-end.
+
+Verification should cover:
+- correct school workspace selection;
+- Admin-only actions;
+- approval of people;
+- class/subject setup;
+- teacher and class-master assignment;
+- attendance/results/fees visibility where Admin is expected to see them;
+- empty/loading/error states;
+- offline behavior for duties that already support offline operation;
+- no dead Admin navigation links.
+
+### Phase 2 — Teacher
+
+Build and verify the Teacher workspace one piece at a time using the existing records and assignment APIs.
+
+Target flow:
+
+**Personal account → school connection → approved Teacher membership → assigned classes/subjects → attendance/scores → results visibility**
+
+Verify real teacher duties, including class-master versus subject-teacher scope, final score submission behavior, and offline attendance/scores where supported.
+
+Do not add unrelated teacher features just to make the workspace look larger.
+
+### Phase 3 — Student
+
+Build and verify the Student workspace.
+
+Target flow:
+
+**Personal account → admission request → Admin approval → class/admission ID → own records**
+
+Verify:
+- own class and subjects;
+- attendance visibility;
+- published results visibility;
+- fees/payment visibility;
+- correct restriction from other students' records;
+- offline read restoration where supported.
+
+### Phase 4 — Parent
+
+Build and verify the Parent workspace.
+
+Target flow:
+
+**Personal account → child request using Admission ID → Admin approval → approved child connection → child records**
+
+Verify:
+- only approved children are visible;
+- attendance;
+- published results;
+- fees/payments;
+- cached/offline restoration where supported.
+
+### Phase 5 — Cashier
+
+Build and verify the Cashier workspace.
+
+Target flow:
+
+**Personal account → job request → Admin approval → school fees workspace → record payment → outstanding balance**
+
+Verify:
+- cashier-only payment actions;
+- correct school isolation;
+- shared payment records;
+- offline payment queue/reconciliation;
+- no access to unrelated Admin/teacher functions.
+
+### Role-by-role test rule
+
+For each role:
+
+**inspect → build smallest useful workspace → test → deploy → live smoke test → record result → then move to next role**
+
+No rush and no simultaneous expansion across all roles.
+
+If real testing reveals a genuine gap, fix that role first before moving forward.
+
 ## Current priority order
 
-**1. Observe and run the real-school pilot**  
-**2. Fix real gaps in the existing pilot flow**  
-**3. Harden production security, backups and subscription boundary**  
-**4. Improve remaining offline navigation/recovery for pilot routes**  
-**5. Use pilot evidence to choose the next small capability**  
-**6. Repeat: observe → fix → wire → extend → test**
+**1. Finish and verify Admin**  
+**2. Build and test Teacher**  
+**3. Build and test Student**  
+**4. Build and test Parent**  
+**5. Build and test Cashier**  
+**6. Run a cross-role pilot and fix evidence-backed gaps**  
+**7. Harden production security, backups and subscription boundary**  
+**8. Repeat: observe → fix → wire → extend → test**
 
 ## Handover principle
 
