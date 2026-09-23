@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { cacheRecord, queueAction, queuedCount, readCachedRecord } from "@/lib/offline-queue";
+import { cacheRecord, queueAction, queuedCount, readCachedRecord, startOfflineSync } from "@/lib/offline-queue";
 
 type Student = {
   id: string;
@@ -58,6 +58,7 @@ export default function AttendancePage() {
     if (!me) me = readCachedRecord<typeof me>(meKey);
     const currentScopeKey = me?.user?.id && me?.user?.membership?.id ? `${me.user.id}:${me.user.membership.id}` : "";
     setScopeKey(currentScopeKey);
+    if (currentScopeKey) startOfflineSync(currentScopeKey, result => setPending(result.remaining));
     if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
     const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
