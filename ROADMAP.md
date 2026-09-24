@@ -344,6 +344,40 @@ Do not:
 
 When a requirement is unclear, inspect the code and existing workflow first. Do not silently invent a new product direction.
 
+## Current execution checkpoint — September 24, 2026
+
+This checkpoint records the actual next work so development follows the roadmap instead of expanding sideways.
+
+### Completed / in progress
+
+- **Cashier workflow:** cashier identity, cashier dashboard/navigation, student Admission ID payment lookup, cash/manual bank-transfer recording and teller/receipt metadata are implemented in the development history.
+- **School result configuration:** school-owned grading bands, report-card settings/fields, term labels and configurable result-unlock price are implemented in the development history.
+- **Result Unlock:** the mechanism remains **SkulGo-owned**. The school controls only the price (default **₦200**).
+- **Subscription plans:** the initial subscription/payment work is on the separate branch `feat/subscription-plans-payments` and is **not merged into `main`**. It includes Basic ₦2,500, Starter ₦5,000, Pro ₦10,000 and Premium ₦18,000 monthly plans, with Custom handled separately.
+- **Paystack:** production integration is prepared in the subscription branch. The Live Secret Key must remain server-side in Render and must never be committed to GitHub.
+- **Moniepoint:** manual bank-transfer subscription payment flow is prepared, but the approval model must be reviewed before production use; a school Admin must not be allowed to approve their own subscription payment as the final verification authority.
+- **Capacity test:** the load-test runner exists for controlled testing, but no production capacity result has been claimed yet. Capacity must be measured against the actual Render web/database resources before publishing limits or promises.
+
+### Production checkpoint
+
+The Render production service is `skulgo` with custom domain `skulgo.com`.
+
+The latest confirmed **live** deployment is commit `5925045`. The later report-card-generator deployment attempts reached Render but failed during build, so the report-card changes and subsequent work must not be treated as live until a successful deployment is verified.
+
+### Immediate execution order
+
+1. **Restore a known-good production deployment** and identify/fix the build failure before adding new production payment behavior.
+2. **Verify the report-card/result-settings code locally and with a production-safe build.**
+3. **Complete the Result Unlock flow**: Admin publishes → Student/Parent sees result-ready state → result remains locked → user pays configured amount → SkulGo verifies payment → result/report card becomes viewable and printable/downloadable.
+4. **Finish subscription/payment integration safely** on `feat/subscription-plans-payments`: Paystack Live Secret Key only in Render environment variables; configure and verify Paystack webhook; verify successful transaction server-side; review Moniepoint verification authority; keep Custom outside fixed automatic pricing.
+5. **Run the controlled capacity test** against the actual deployed service after the production build is healthy. Record measured RPS, latency, error rate, web CPU/RAM and Postgres CPU/connections. Do not invent user limits from generic estimates.
+6. **Only after those checks**, continue the role sequence: **Admin → Teacher → Student → Parent → Cashier → cross-role pilot**.
+
+### Safety rule for this checkpoint
+
+Do not expose or commit payment secrets. Do not merge the subscription branch automatically. Do not declare a feature production-ready until the deployed commit and live behavior have been verified.
+
+
 ## Current delivery sequence
 
 The immediate development sequence is **role-by-role**, with testing after each role.
