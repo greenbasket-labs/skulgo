@@ -19,7 +19,7 @@ export async function PATCH(request: Request) {
 
   await db.user.update({
     where: { id: user.id },
-    data: { pinHash: hashPin(pin) },
+    data: { pinHash: hashPin(pin), pinFailedAttempts: 0, pinLockedUntil: null },
   });
 
   return NextResponse.json({ ok: true });
