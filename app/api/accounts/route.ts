@@ -29,6 +29,10 @@ export async function POST(request: Request) {
     { id: user.id, name: user.name, email: user.email },
     { status: 201 }
   );
-  const deviceId = await createOrReuseDevice(user.id, response);\n  if (!deviceId) {\n    return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });\n  }\n  setSession(response, user, null, deviceId);
+  const deviceId = await createOrReuseDevice(user.id, response);
+  if (!deviceId) {
+    return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });
+  }
+  setSession(response, user, null, deviceId);
   return response;
 }
