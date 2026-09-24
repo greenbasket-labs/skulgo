@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import WorkspaceUnlock from "@/components/workspace-unlock";
 
 type Workspace = {
   membershipId: string;
@@ -15,7 +16,7 @@ type Workspace = {
 export default function Login() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);\n  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);\n  const [pinConfigured, setPinConfigured] = useState(true);
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -59,14 +60,14 @@ export default function Login() {
     router.refresh();
   }
 
-  async function chooseWorkspace(membershipId: string) {
+  async function chooseWorkspace(membershipId: string, pin: string) {
     setBusy(true);
     setMessage("");
 
     const response = await fetch("/api/workspaces/select", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ membershipId }),
+      body: JSON.stringify({ membershipId, pin }),
     });
 
     setBusy(false);
@@ -106,6 +107,29 @@ export default function Login() {
               {busy ? "Signing in…" : "Sign in"}
             </button>
           </form>
+        ) : !pinConfigured ? (
+          <div className="grid">
+            <strong>Workspace PIN required</strong>
+            <p className="muted">Set your 4-6 digit PIN in My Account before entering a school workspace.</p>
+            <Link className="button" href="/account">Set workspace PIN →</Link>
+          </div>
+        ) : selectedWorkspace ? (
+          <WorkspaceUnlock
+            schoolName={selectedWorkspace.schoolName}
+            onCancel={() => setSelectedWorkspace(null)}
+            onUnlock={async pin => {
+              const response = await fetch("/api/workspaces/select", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ membershipId: selectedWorkspace.membershipId, pin }),
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) return { ok: false, error: data.error };
+              router.push("/dashboard");
+              router.refresh();
+              return { ok: true };
+            }}
+          />
         ) : (
           <div className="grid">
             <strong>Choose school workspace</strong>
@@ -114,7 +138,7 @@ export default function Login() {
                 key={workspace.membershipId}
                 className="button"
                 disabled={busy}
-                onClick={() => void chooseWorkspace(workspace.membershipId)}
+                onClick={() => setSelectedWorkspace(workspace)}
               >
                 {workspace.schoolName} · {workspace.role}
               </button>
