@@ -9,6 +9,7 @@ type Student = {
   firstName: string;
   lastName: string;
   classId?: string | null;
+  gender?: string | null;
 };
 
 type ClassTeacherAssignment = {
@@ -68,6 +69,10 @@ export default function AttendancePage() {
   const markedCount = students.filter(student => marks[student.id] !== undefined).length;
   const presentCount = students.filter(student => marks[student.id] === true).length;
   const absentCount = students.filter(student => marks[student.id] === false).length;
+  const maleCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "MALE").length;
+  const femaleCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "FEMALE").length;
+  const malePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "MALE" && marks[student.id] === true).length;
+  const femalePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "FEMALE" && marks[student.id] === true).length;
 
   const timeLeft = attendanceSession
     ? `${Math.floor(remainingMs / 60000).toString().padStart(2, "0")}:${Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, "0")}`
@@ -437,6 +442,7 @@ export default function AttendancePage() {
             <div className="card"><p className="muted">Students</p><div className="stat">{students.length}</div></div>
             <div className="card"><p className="muted">Marked</p><div className="stat">{markedCount}</div></div>
             <div className="card"><p className="muted">Present / Absent</p><div className="stat">{presentCount} / {absentCount}</div></div>
+            <div className="card"><p className="muted">Male / Female</p><div className="stat">{maleCount} / {femaleCount}</div><p className="muted">Present: {malePresentCount} / {femalePresentCount}</p></div>
           </div>
 
           <div className="card" style={{ marginBottom: 18 }}>
