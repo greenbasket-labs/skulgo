@@ -85,6 +85,27 @@ Current hardening includes:
 
 **Current status:** Offline-first core was merged through PR #2, then promoted to `main` through PR #3. The resulting `main` merge commit is `4814d22`. Subsequent small Admin/account changes have been committed directly to `main`; each must be verified before the next role is started.
 
+### Sidebar / navigation UX
+
+Preserve the clean workspace pattern already used in SkulGo:
+
+**compact left sidebar → role-scoped navigation → clean dashboard**
+
+Use the existing `lib/workspace-nav.ts` as the single role-navigation source. Future UI work should improve grouping, active states, responsive behavior and visual clarity without duplicating navigation definitions or moving every action onto the dashboard.
+
+A useful reference is the compact operational sidebar pattern seen in products such as Resend. This is a **design principle, not a request to copy Resend's branding or exact UI**.
+
+The sidebar should:
+- keep role navigation visible and predictable;
+- use short, familiar labels;
+- group links only when grouping improves scanning;
+- show only actions available to the current role;
+- keep Account/profile actions separate from daily school work;
+- remain lightweight on mobile;
+- avoid speculative links and unnecessary badges.
+
+**Guiding rule:** navigation carries complexity; the dashboard carries the work.
+
 ## Roadmap principle
 
 The roadmap is a **decision framework, not a feature-factory checklist**.
