@@ -93,6 +93,9 @@ export async function loginTestUser(
   }
 
   await page.waitForURL(/\/dashboard(?:\?.*)?$/);
+  // Workspace selection is performed through an API request above. Reload so
+  // the server-rendered dashboard observes the newly selected membership.
+  await page.reload();
 }
 
 export async function createAndLoginTestUser(
