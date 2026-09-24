@@ -32,6 +32,12 @@ export async function POST(request: Request) {
   const verificationToken = createRawToken();
   const verificationOtp = createOtp();
 
+  try {
+    await sendVerificationEmail(user.email, user.name, verificationToken, verificationOtp);
+  } catch {
+    return NextResponse.json({ error: "Verification email could not be sent. Please try again." }, { status: 502 });
+  }
+
   await db.user.update({
     where: { id: user.id },
     data: {
@@ -41,12 +47,6 @@ export async function POST(request: Request) {
       emailVerificationOtpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
     },
   });
-
-  try {
-    await sendVerificationEmail(user.email, user.name, verificationToken, verificationOtp);
-  } catch {
-    return NextResponse.json({ error: "Verification email could not be sent. Please try again." }, { status: 502 });
-  }
 
   return NextResponse.json({ ok: true });
 }
