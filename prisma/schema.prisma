@@ -80,10 +80,10 @@ model User {
   name String
   email String @unique
   emailVerifiedAt DateTime?
-  emailVerificationTokenHash String? @unique
+  emailVerificationTokenHash String?
   emailVerificationExpiresAt DateTime?
   passwordHash String
-  passwordResetTokenHash String? @unique
+  passwordResetTokenHash String?
   passwordResetExpiresAt DateTime?
   pinHash String?
   pinFailedAttempts Int @default(0)
