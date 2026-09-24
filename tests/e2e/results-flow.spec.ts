@@ -129,7 +129,8 @@ test("result is generated, hidden until published, then visible to student", asy
         classId: schoolClass.id,
         subjectId: subject.id,
         term: "First Term",
-        ca: 20,
+        ca1: 10,
+        ca2: 10,
         exam: 60,
       },
     });
