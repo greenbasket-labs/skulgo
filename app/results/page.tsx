@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { cacheRecord, readCachedRecord } from "@/lib/offline-queue";
+import { ReportCardGenerator } from "@/components/report-card-generator";
+import { DEFAULT_SCHOOL_SETTINGS, type SchoolSettings } from "@/lib/school-settings";
 
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "CASHIER";
 
@@ -57,6 +59,8 @@ export default function ResultsPage() {
   const [term, setTerm] = useState("First Term");
   const [studentId, setStudentId] = useState("");
   const [message, setMessage] = useState("Loading...");
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [reportCardStudentId, setReportCardStudentId] = useState<string | null>(null);
 
   const role = user?.membership?.role;
   const schoolId = user?.membership?.schoolId;
@@ -83,6 +87,17 @@ export default function ResultsPage() {
 
     setUser(cached.user);
     return cached.user;
+  }
+
+  async function loadSchoolSettings(currentUser: User | null) {
+    if (!currentUser?.membership) return;
+    try {
+      const response = await fetch(`/api/schools/${currentUser.membership.schoolId}/settings`);
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.settings) setSchoolSettings({ ...DEFAULT_SCHOOL_SETTINGS, ...data.settings });
+    } catch {
+      // Keep the local defaults when the settings endpoint is unavailable.
+    }
   }
 
   async function loadResults(currentUser: User | null = user) {
