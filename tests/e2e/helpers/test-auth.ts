@@ -17,6 +17,12 @@ export async function ensureTestUser(input: {
   const passwordHash = hashPassword(password);
   const pinHash = hashPin(pin);
 
+  const existing = await db.user.findUnique({ where: { email: input.email.toLowerCase() }, select: { id: true } });
+
+  if (existing) {
+    await db.deviceSession.updateMany({ where: { userId: existing.id, revokedAt: null }, data: { revokedAt: new Date() } });
+  }
+
   await db.user.upsert({
     where: { email: input.email.toLowerCase() },
     create: {
