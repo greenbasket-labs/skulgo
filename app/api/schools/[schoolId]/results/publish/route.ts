@@ -29,7 +29,7 @@ export async function PATCH(
     data: { published: true },
   });
 
-  await recordAudit({
+  void recordAudit({
     schoolId,
     actorUserId: user.id,
     action: "PUBLISH",
