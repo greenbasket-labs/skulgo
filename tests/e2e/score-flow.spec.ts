@@ -148,7 +148,7 @@ test("teacher can save a score offline and it syncs when online returns", async 
     const inputs = teacherPage.locator("input");
     await inputs.nth(0).fill("20");
     await inputs.nth(1).fill("60");
-    await teacherPage.getByRole("button", { name: "Save score" }).click();
+    await teacherPage.getByRole("button", { name: "Save entered score(s)" }).click();
 
     await expect(
       teacherPage.getByText("Saved on this device. It will sync automatically when internet returns.")
