@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { makeStudentId, makeTeacherId } from "@/lib/ids";
+import { makeNonAcademicStaffId, makeStudentId, makeTeacherId } from "@/lib/ids";
 import { recordAudit } from "@/lib/audit";
 
 export async function PATCH(
@@ -86,7 +86,27 @@ export async function PATCH(
         });
       }
     } else if (schoolRequest.requestedRole === "CASHIER") {
-      // Cashier needs only the approved school membership.
+      const existing = await tx.cashier.findUnique({ where: { userId: schoolRequest.userId } });
+
+      if (!existing) {
+        const ids = await tx.cashier.findMany({ select: { cashierCode: true } });
+        await tx.cashier.create({
+          data: {
+            userId: schoolRequest.userId,
+            cashierCode: makeNonAcademicStaffId(
+              school.abbr,
+              new Date().getFullYear(),
+              ids.map(item => item.cashierCode)
+            ),
+            approved: true,
+          },
+        });
+      } else if (!existing.approved) {
+        await tx.cashier.update({
+          where: { id: existing.id },
+          data: { approved: true },
+        });
+      }
     } else if (schoolRequest.requestedRole === "PARENT") {
       const admissionId = String(schoolRequest.studentAdmissionId ?? "").trim();
       const student = await tx.student.findFirst({
