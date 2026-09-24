@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createAndLoginTestUser, loginTestUser, selectTestWorkspace, TEST_PIN } from "./helpers/test-auth";
 
 test("teacher can mark attendance offline and it syncs when online returns", async ({ browser }) => {
   const runId = Date.now();
@@ -14,12 +15,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
   const teacherPage = await teacher.newPage();
 
   try {
-    await adminPage.goto("/signup");
-    await adminPage.locator('input[name="name"]').fill("Offline Test Owner");
-    await adminPage.locator('input[name="email"]').fill(ownerEmail);
-    await adminPage.locator('input[name="password"]').fill(password);
-    await adminPage.getByRole("button", { name: /create account/i }).click();
-    await expect(adminPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(adminPage, { name: "Offline Test Owner", email: ownerEmail, password: password });
 
     const schoolResponse = await adminPage.request.post("/api/schools", {
       data: {
@@ -33,9 +29,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     expect(schoolResponse.ok(), await schoolResponse.text()).toBeTruthy();
     const school = await schoolResponse.json();
 
-    const selectAdmin = await adminPage.request.post("/api/workspaces/select", {
-      data: { membershipId: school.membershipId },
-    });
+    const selectAdmin = await selectTestWorkspace(adminPage, school.membershipId);
     expect(selectAdmin.ok()).toBeTruthy();
 
     const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
@@ -54,12 +48,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
       data: { name: "English Language" },
     }).then(async response => expect(response.ok(), await response.text()).toBeTruthy());
 
-    await teacherPage.goto("/signup");
-    await teacherPage.locator('input[name="name"]').fill("Offline Test Teacher");
-    await teacherPage.locator('input[name="email"]').fill(teacherEmail);
-    await teacherPage.locator('input[name="password"]').fill(password);
-    await teacherPage.getByRole("button", { name: /create account/i }).click();
-    await expect(teacherPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(teacherPage, { name: "Offline Test Teacher", email: teacherEmail, password: password });
 
     const teacherApplication = await teacherPage.request.post("/api/school-requests", {
       data: { schoolId: school.id, type: "JOB", requestedRole: "TEACHER" },
@@ -112,18 +101,11 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
     );
     expect(workspace).toBeTruthy();
 
-    const selectTeacher = await teacherPage.request.post("/api/workspaces/select", {
-      data: { membershipId: workspace.membershipId },
-    });
+    const selectTeacher = await selectTestWorkspace(teacherPage, workspace.membershipId);
     expect(selectTeacher.ok()).toBeTruthy();
 
     const studentPage = await (await browser.newContext()).newPage();
-    await studentPage.goto("/signup");
-    await studentPage.locator('input[name="name"]').fill("Offline Test Student");
-    await studentPage.locator('input[name="email"]').fill(studentEmail);
-    await studentPage.locator('input[name="password"]').fill(password);
-    await studentPage.getByRole("button", { name: /create account/i }).click();
-    await expect(studentPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(studentPage, { name: "Offline Test Student", email: studentEmail, password: password });
 
     const studentApplication = await studentPage.request.post("/api/school-requests", {
       data: {
@@ -145,9 +127,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
       (item: { schoolId: string; membershipId: string }) => item.schoolId === school.id
     );
     expect(adminWorkspace).toBeTruthy();
-    const selectOwner = await adminPage.request.post("/api/workspaces/select", {
-      data: { membershipId: adminWorkspace.membershipId },
-    });
+    const selectOwner = await selectTestWorkspace(adminPage, adminWorkspace.membershipId);
     expect(selectOwner.ok()).toBeTruthy();
 
     const studentApproval = await adminPage.request.patch(
