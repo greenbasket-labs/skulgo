@@ -20,7 +20,6 @@ enum RequestType {
   ADMISSION
 }
 
-
 enum SubscriptionPlan {
   MONTHLY
   TERM
@@ -82,6 +81,8 @@ model User {
   emailVerifiedAt DateTime?
   emailVerificationTokenHash String?
   emailVerificationExpiresAt DateTime?
+  emailVerificationOtpHash String?
+  emailVerificationOtpExpiresAt DateTime?
   passwordHash String
   passwordResetTokenHash String?
   passwordResetExpiresAt DateTime?
