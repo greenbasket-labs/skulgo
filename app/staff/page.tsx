@@ -9,8 +9,18 @@ type Teacher = {
   user: { id: string; name: string; email: string };
 };
 
+type Cashier = {
+  id: string;
+  cashierCode: string | null;
+  approved: boolean;
+  user?: { id: string; name: string; email: string };
+  name?: string;
+  email?: string;
+};
+
 export default function StaffPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [message, setMessage] = useState("Loading...");
 
   async function load() {
@@ -23,11 +33,18 @@ export default function StaffPage() {
       }
 
       const schoolId = data.user.membership.schoolId;
-      const response = await fetch(`/api/schools/${schoolId}/teachers`);
-      const result = await response.json().catch(() => []);
+      const [teacherResponse, cashierResponse] = await Promise.all([
+        fetch(`/api/schools/${schoolId}/teachers`),
+        fetch(`/api/schools/${schoolId}/cashiers`),
+      ]);
+      const teacherResult = await teacherResponse.json().catch(() => []);
+      const cashierResult = await cashierResponse.json().catch(() => []);
 
-      if (!response.ok) throw new Error(result?.error || "Unable to load staff.");
-      setTeachers(Array.isArray(result) ? result : []);
+      if (!teacherResponse.ok) throw new Error(teacherResult?.error || "Unable to load teachers.");
+      if (!cashierResponse.ok) throw new Error(cashierResult?.error || "Unable to load cashiers.");
+
+      setTeachers(Array.isArray(teacherResult) ? teacherResult : []);
+      setCashiers(Array.isArray(cashierResult) ? cashierResult : []);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load staff.");
@@ -43,27 +60,46 @@ export default function StaffPage() {
       <div className="workspace-header">
         <p className="muted">Admin</p>
         <h1>Staff</h1>
-        <p>Approved teaching staff connected to this school.</p>
+        <p>Approved academic and non-academic staff connected to this school.</p>
       </div>
 
       {message && <p role="status" className="muted">{message}</p>}
 
-      {!teachers.length && !message.includes("Loading") ? (
+      {!teachers.length && !cashiers.length && !message.includes("Loading") ? (
         <div className="card">
-          <strong>No approved teachers yet.</strong>
-          <p className="muted">Approve teacher applications to see staff here.</p>
+          <strong>No approved staff yet.</strong>
+          <p className="muted">Approve staff applications to see them here.</p>
         </div>
       ) : (
         <div className="grid">
           {teachers.map(teacher => (
-            <article className="card" key={teacher.id}>
+            <article className="card" key={`teacher-${teacher.id}`}>
               <strong>{teacher.user.name}</strong>
               <p className="muted">{teacher.user.email}</p>
               <p className="muted">
                 Teacher ID: <strong>{teacher.teacherCode}</strong>
               </p>
               <p className="muted">
+                Type: Academic staff
+              </p>
+              <p className="muted">
                 Status: {teacher.approved ? "Approved" : "Pending"}
+              </p>
+            </article>
+          ))}
+
+          {cashiers.map(cashier => (
+            <article className="card" key={`cashier-${cashier.id}`}>
+              <strong>{cashier.user?.name ?? cashier.name}</strong>
+              <p className="muted">{cashier.user?.email ?? cashier.email}</p>
+              <p className="muted">
+                Cashier ID: <strong>{cashier.cashierCode ?? "Not assigned"}</strong>
+              </p>
+              <p className="muted">
+                Type: Non-academic staff
+              </p>
+              <p className="muted">
+                Status: {cashier.approved ? "Approved" : "Pending"}
               </p>
             </article>
           ))}
