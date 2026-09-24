@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createAndLoginTestUser, loginTestUser, selectTestWorkspace, TEST_PIN } from "./helpers/test-auth";
 
 test("personal account can create a school and student can join after admin approval", async ({ browser }) => {
   const runId = Date.now();
@@ -11,12 +12,7 @@ test("personal account can create a school and student can join after admin appr
   const adminPage = await owner.newPage();
   const studentPage = await student.newPage();
 
-  await adminPage.goto("/signup");
-  await adminPage.locator('input[name="name"]').fill("Pilot Owner");
-  await adminPage.locator('input[name="email"]').fill(ownerEmail);
-  await adminPage.locator('input[name="password"]').fill(password);
-  await adminPage.getByRole("button", { name: /create account/i }).click();
-  await expect(adminPage).toHaveURL(/\/dashboard/);
+  await createAndLoginTestUser(adminPage, { name: "Pilot Owner", email: ownerEmail, password: password });
 
   const schoolResponse = await adminPage.evaluate(async (payload) => {
     const response = await fetch("/api/schools", {
@@ -37,9 +33,7 @@ test("personal account can create a school and student can join after admin appr
   const school = schoolBody;
   expect(school.membershipId).toBeTruthy();
 
-  const selectWorkspace = await adminPage.request.post("/api/workspaces/select", {
-    data: { membershipId: school.membershipId },
-  });
+  const selectWorkspace = await selectTestWorkspace(adminPage, school.membershipId);
   expect(selectWorkspace.ok()).toBeTruthy();
 
   const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
@@ -54,12 +48,7 @@ test("personal account can create a school and student can join after admin appr
   expect(classResponse.ok()).toBeTruthy();
   const schoolClass = await classResponse.json();
 
-  await studentPage.goto("/signup");
-  await studentPage.locator('input[name="name"]').fill("Pilot Student");
-  await studentPage.locator('input[name="email"]').fill(studentEmail);
-  await studentPage.locator('input[name="password"]').fill(password);
-  await studentPage.getByRole("button", { name: /create account/i }).click();
-  await expect(studentPage).toHaveURL(/\/dashboard/);
+  await createAndLoginTestUser(studentPage, { name: "Pilot Student", email: studentEmail, password: password });
 
   const application = await studentPage.request.post("/api/school-requests", {
     data: {
@@ -103,12 +92,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   const adminPage = await owner.newPage();
   const teacherPage = await teacher.newPage();
 
-  await adminPage.goto("/signup");
-  await adminPage.locator('input[name="name"]').fill("Teacher School Owner");
-  await adminPage.locator('input[name="email"]').fill(ownerEmail);
-  await adminPage.locator('input[name="password"]').fill(password);
-  await adminPage.getByRole("button", { name: /create account/i }).click();
-  await expect(adminPage).toHaveURL(/\/dashboard/);
+  await createAndLoginTestUser(adminPage, { name: "Teacher School Owner", email: ownerEmail, password: password });
 
   const schoolResponse = await adminPage.evaluate(async payload => {
     const response = await fetch("/api/schools", {
@@ -129,9 +113,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   const school = schoolResponse.body;
   expect(school.membershipId).toBeTruthy();
 
-  const selected = await adminPage.request.post("/api/workspaces/select", {
-    data: { membershipId: school.membershipId },
-  });
+  const selected = await selectTestWorkspace(adminPage, school.membershipId);
   expect(selected.ok()).toBeTruthy();
 
   const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
@@ -152,12 +134,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   expect(subjectResponse.ok()).toBeTruthy();
   const subject = await subjectResponse.json();
 
-  await teacherPage.goto("/signup");
-  await teacherPage.locator('input[name="name"]').fill("Pilot Teacher");
-  await teacherPage.locator('input[name="email"]').fill(teacherEmail);
-  await teacherPage.locator('input[name="password"]').fill(password);
-  await teacherPage.getByRole("button", { name: /create account/i }).click();
-  await expect(teacherPage).toHaveURL(/\/dashboard/);
+  await createAndLoginTestUser(teacherPage, { name: "Pilot Teacher", email: teacherEmail, password: password });
 
   const application = await teacherPage.evaluate(async payload => {
     const response = await fetch("/api/school-requests", {
@@ -211,9 +188,7 @@ test("approved teacher receives only the assigned class and subject", async ({ b
   );
   expect(teacherWorkspace).toBeTruthy();
 
-  const selectTeacherWorkspace = await teacherPage.request.post("/api/workspaces/select", {
-    data: { membershipId: teacherWorkspace.membershipId },
-  });
+  const selectTeacherWorkspace = await selectTestWorkspace(teacherPage, teacherWorkspace.membershipId);
   expect(selectTeacherWorkspace.ok()).toBeTruthy();
 
   await teacherPage.goto("/my-subjects");
