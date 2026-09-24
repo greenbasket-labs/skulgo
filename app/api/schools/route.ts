@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const trialExpires = new Date();
     trialExpires.setDate(trialExpires.getDate() + 14);
     await tx.schoolSubscription.create({
-      data: { schoolId: s.id, plan: "BASIC", status: "TRIAL", startedAt: new Date(), expiresAt: trialExpires },
+      data: { schoolId: s.id, plan: "MONTHLY", productPlan: "BASIC", status: "TRIAL", startedAt: new Date(), expiresAt: trialExpires },
     });
 
     await tx.schoolMembership.create({
