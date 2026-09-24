@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { gradeFor, percentage } from "@/lib/grading";
+import { DEFAULT_GRADING_BANDS } from "@/lib/grading";
 
 export async function GET(
   request: NextRequest,
@@ -83,6 +84,14 @@ export async function POST(
   if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
+  const school = await db.school.findUnique({ where: { id: schoolId }, select: { gradingBands: true } });
+  let gradingBands = DEFAULT_GRADING_BANDS;
+  if (school?.gradingBands) {
+    try {
+      const parsed = JSON.parse(school.gradingBands) as unknown;
+      if (Array.isArray(parsed)) gradingBands = parsed as typeof DEFAULT_GRADING_BANDS;
+    } catch {}
+  }
   const studentId = String(body?.studentId ?? "");
   const term = String(body?.term ?? "").trim();
   if (!studentId || !term) return NextResponse.json({ error: "studentId and term are required" }, { status: 400 });
@@ -114,8 +123,8 @@ export async function POST(
 
     results.push(await db.result.upsert({
       where: { studentId_subjectId_term: { studentId, subjectId: assessment.subjectId, term } },
-      update: { schoolId, total, percentage: total, grade: gradeFor(total), position },
-      create: { schoolId, studentId, subjectId: assessment.subjectId, term, total, percentage: total, grade: gradeFor(total), position },
+      update: { schoolId, total, percentage: total, grade: gradeFor(total, gradingBands), position },
+      create: { schoolId, studentId, subjectId: assessment.subjectId, term, total, percentage: total, grade: gradeFor(total, gradingBands), position },
     }));
   }
 
