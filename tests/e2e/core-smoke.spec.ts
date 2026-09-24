@@ -24,11 +24,13 @@ async function loginAsAdmin(page: Page) {
     name: "SkulGo E2E Admin",
     email: adminEmail!,
     password: adminPassword!,
+    pin: adminPin!,
   });
 
   await loginTestUser(page, {
     email: adminEmail!,
     password: adminPassword!,
+    pin: adminPin!,
   });
 }
 
