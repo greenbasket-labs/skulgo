@@ -34,15 +34,15 @@ export async function POST(request: Request) {
     },
   });
 
-  const response = NextResponse.json(
-    { id: user.id, name: user.name, email: user.email },
+  try {
+    await sendVerificationEmail(user.email, user.name, verificationToken);
+  } catch {
+    await db.user.delete({ where: { id: user.id } }).catch(() => undefined);
+    return NextResponse.json({ error: "Account could not be created because the verification email could not be sent." }, { status: 502 });
+  }
+
+  return NextResponse.json(
+    { id: user.id, name: user.name, email: user.email, verificationSent: true },
     { status: 201 }
   );
-  const deviceId = await createOrReuseDevice(user.id, response);
-  if (!deviceId) {
-    return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });
-  }
-  await sendVerificationEmail(user.email, user.name, verificationToken);
-  setSession(response, user, null, deviceId);
-  return NextResponse.json({ id: user.id, name: user.name, email: user.email, verificationSent: true }, { status: 201, headers: response.headers });
 }
