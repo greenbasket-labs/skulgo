@@ -93,6 +93,7 @@ model User {
   teacher Teacher?
   student Student?
   parent Parent?
+  cashier Cashier?
   createdAt DateTime @default(now())
   requests SchoolRequest[]
   memberships SchoolMembership[]
@@ -196,6 +197,15 @@ model Teacher {
   assignments TeacherAssignment[]
   classTeacherAssignments ClassTeacher[]
   attendanceSessions AttendanceSession[]
+}
+
+model Cashier {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  cashierCode String @unique
+  approved Boolean @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Student {
