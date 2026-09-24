@@ -9,10 +9,13 @@ export async function ensureTestUser(input: {
   name: string;
   email: string;
   password?: string;
+  pin?: string;
 }) {
   const password = input.password ?? TEST_PASSWORD;
+  const pin = input.pin ?? TEST_PIN;
+  if (!/^\\d{4,6}$/.test(pin)) throw new Error("Test PIN must be 4-6 digits.");
   const passwordHash = hashPassword(password);
-  const pinHash = hashPin(TEST_PIN);
+  const pinHash = hashPin(pin);
 
   await db.user.upsert({
     where: { email: input.email.toLowerCase() },
@@ -35,14 +38,15 @@ export async function ensureTestUser(input: {
     },
   });
 
-  return { email: input.email.toLowerCase(), password, pin: TEST_PIN };
+  return { email: input.email.toLowerCase(), password, pin };
 }
 
 export async function loginTestUser(
   page: Page,
-  input: { email: string; password?: string; membershipId?: string },
+  input: { email: string; password?: string; membershipId?: string; pin?: string },
 ) {
   const password = input.password ?? TEST_PASSWORD;
+  const pin = input.pin ?? TEST_PIN;
 
   await page.goto("/login");
   await page.getByLabel("Email").fill(input.email);
@@ -51,7 +55,7 @@ export async function loginTestUser(
 
   const pinInput = page.locator('input[placeholder="Workspace PIN"]');
   if (await pinInput.isVisible().catch(() => false)) {
-    await pinInput.fill(TEST_PIN);
+    await pinInput.fill(pin);
     await page.getByRole("button", { name: "Unlock workspace" }).click();
   }
 
@@ -60,7 +64,7 @@ export async function loginTestUser(
 
 export async function createAndLoginTestUser(
   page: Page,
-  input: { name: string; email: string; password?: string },
+  input: { name: string; email: string; password?: string; pin?: string },
 ) {
   const account = await ensureTestUser(input);
   await loginTestUser(page, account);
