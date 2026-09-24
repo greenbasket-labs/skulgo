@@ -363,7 +363,7 @@ export default async function Dashboard() {
         </div>
       </>
     );
-  }  }
+  }
 
   return (
     <main className="workspace">
