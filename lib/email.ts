@@ -10,7 +10,12 @@ function fromAddress() {
   return process.env.RESEND_FROM || "SkulGo <onboarding@resend.dev>";
 }
 
-export async function sendVerificationEmail(email: string, name: string, token: string) {
+export async function sendVerificationEmail(
+  email: string,
+  name: string,
+  token: string,
+  otp: string
+) {
   const url = `${appUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   const { error } = await resend.emails.send({
     from: fromAddress(),
@@ -19,8 +24,12 @@ export async function sendVerificationEmail(email: string, name: string, token: 
     html: `
       <p>Hello ${escapeHtml(name)},</p>
       <p>Please verify your SkulGo email address to activate your account.</p>
+      <p>Your 6-digit verification code is:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:6px;"><strong>${escapeHtml(otp)}</strong></p>
+      <p>This code expires in 10 minutes.</p>
+      <p>You can also use the verification link below:</p>
       <p><a href="${url}">Verify my email</a></p>
-      <p>This link expires in 24 hours.</p>
+      <p>The verification link expires in 24 hours.</p>
     `,
   });
   if (error) throw new Error(error.message);
