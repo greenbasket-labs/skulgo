@@ -17,7 +17,11 @@ export async function POST(request: Request) {
   }
 
   if (!user.emailVerifiedAt) {
-    return NextResponse.json({ error: "Please verify your email before signing in.", emailVerificationRequired: true }, { status: 403 });
+    return NextResponse.json({
+      error: "Please verify your email before signing in.",
+      emailVerificationRequired: true,
+      email: user.email,
+    }, { status: 403 });
   }
 
   const memberships = await db.schoolMembership.findMany({
@@ -39,7 +43,6 @@ export async function POST(request: Request) {
     })),
   });
 
-  // Keep the session at the personal-account level until a school workspace is chosen.
   const deviceId = await createOrReuseDevice(user.id, response);
   if (!deviceId) {
     return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });
