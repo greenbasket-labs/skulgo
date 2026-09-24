@@ -13,7 +13,7 @@ function run(command,args,extra={}) {
   });
 }
 
-const e2e=await run("npx",["playwright","test"]);
+const db=await run("npx",["prisma","db","push","--schema","prisma/schema.prisma","--accept-data-loss"]);\nif(db!==0)process.exit(db);\n\nconst e2e=await run("npx",["playwright","test"]);
 if(e2e!==0)process.exit(e2e);
 
 const server=spawn("npm",["run","dev"],{stdio:"inherit",shell:process.platform==="win32",env});
