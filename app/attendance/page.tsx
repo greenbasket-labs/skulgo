@@ -57,6 +57,8 @@ export default function AttendancePage() {
   const [studentHistory, setStudentHistory] = useState<any[]>([]);
   const [scopeKey, setScopeKey] = useState("");
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
+  const [attendanceSessions, setAttendanceSessions] = useState<"MORNING" | "MORNING_AFTERNOON">("MORNING");
+  const [selectedSession, setSelectedSession] = useState<"morning" | "afternoon">("morning");
   const [now, setNow] = useState(Date.now());
   const date = useMemo(() => today(), []);
 
@@ -140,6 +142,16 @@ export default function AttendancePage() {
     setData(body);
     setSchoolId(me?.user?.membership?.schoolId ?? "");
 
+    try {
+      const settingsResponse = await fetch(`/api/schools/${me?.user?.membership?.schoolId}/settings`);
+      const settingsBody = await settingsResponse.json().catch(() => ({}));
+      if (settingsResponse.ok && settingsBody?.settings?.attendanceSessions) {
+        setAttendanceSessions(settingsBody.settings.attendanceSessions);
+      }
+    } catch {
+      // Keep the default morning-only behavior when settings cannot be loaded.
+    }
+
     if ((me?.user as any)?.membership?.role === "PARENT") {
       const historyKey = "skulgo:" + currentScopeKey + ":parent-attendance-" + (me?.user?.membership?.schoolId ?? "");
       try {
@@ -184,13 +196,13 @@ export default function AttendancePage() {
     setStudents(readCachedRecord<Student[]>(key) ?? []);
   }
 
-  async function loadAttendance(classId: string) {
+  async function loadAttendance(classId: string, sessionName = selectedSession) {
     if (!classId || !schoolId) return;
-    const key = `skulgo:${scopeKey}:attendance-${schoolId}-${classId}-${date}`;
+    const key = `skulgo:${scopeKey}:attendance-${schoolId}-${classId}-${date}-${sessionName}`;
 
     try {
       const response = await fetch(
-        `/api/schools/${schoolId}/attendance?classId=${classId}&date=${date}`
+        `/api/schools/${schoolId}/attendance?classId=${classId}&date=${date}&session=${sessionName}`
       );
       const body = await response.json().catch(() => ({}));
       if (response.ok) {
@@ -234,7 +246,7 @@ export default function AttendancePage() {
     if (!data || !selectedClassId) return;
     void loadStudents(selectedClassId);
     void loadAttendance(selectedClassId);
-  }, [data, selectedClassId, schoolId, date]);
+  }, [data, selectedClassId, schoolId, date, selectedSession]);
 
   useEffect(() => {
     if (!attendanceSession || submitted) return;
@@ -261,7 +273,7 @@ export default function AttendancePage() {
     const body = {
       studentId: student.id,
       classId: selectedClassId,
-      session: "morning",
+      session: selectedSession,
       date,
       present,
       action: "save",
@@ -321,7 +333,7 @@ export default function AttendancePage() {
 
     const body = {
       classId: selectedClassId,
-      session: "morning",
+      session: selectedSession,
       date,
       action: "submit",
     };
@@ -446,6 +458,15 @@ export default function AttendancePage() {
           </div>
 
           <div className="card" style={{ marginBottom: 18 }}>
+            {attendanceSessions === "MORNING_AFTERNOON" && (
+              <label className="grid" style={{ marginBottom: 14 }}>
+                <span>Attendance session</span>
+                <select value={selectedSession} onChange={event => setSelectedSession(event.target.value as "morning" | "afternoon")}>
+                  <option value="morning">Morning</option>
+                  <option value="afternoon">Afternoon</option>
+                </select>
+              </label>
+            )}
             <div className="grid grid-2">
               <div>
                 <p className="muted">Attendance window</p>
