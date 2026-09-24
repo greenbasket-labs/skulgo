@@ -11,7 +11,7 @@ export default async function PlanPage() {
 
   const subscription = await db.schoolSubscription.findUnique({
     where: { schoolId: user.membership.schoolId },
-    select: { plan: true, status: true, expiresAt: true },
+    select: { productPlan: true, status: true, expiresAt: true },
   });
 
   const moniepoint = process.env.MONIEPOINT_BANK_NAME && process.env.MONIEPOINT_ACCOUNT_NAME && process.env.MONIEPOINT_ACCOUNT_NUMBER
