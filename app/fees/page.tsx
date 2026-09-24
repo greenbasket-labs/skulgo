@@ -112,6 +112,10 @@ export default function FeesPage() {
       if (sectionResponse.ok) setSections(Array.isArray(sectionData) ? sectionData : []);
       if (definitionResponse.ok) setFeeDefinitions(Array.isArray(definitionData) ? definitionData : []);
       if (providerResponse.ok) setPaymentProviders(Array.isArray(providerData) ? providerData : []);
+    } else {
+      const providerResponse = await fetch(`/api/schools/${me.user.membership.schoolId}/payments/providers`);
+      const providerData = await providerResponse.json().catch(() => []);
+      if (providerResponse.ok) setPaymentProviders(Array.isArray(providerData) ? providerData : []);
     }
 
     try {
@@ -437,6 +441,7 @@ export default function FeesPage() {
           {fees.map(fee => (
             <div className="card" key={fee.id}>
               <strong>{fee.student.firstName} {fee.student.lastName}</strong>
+              {role === "PARENT" || role === "STUDENT" ? <p className="muted">Assigned school fee</p> : null}
               <p className="muted">{fee.student.admissionId}</p>
               <div className="grid grid-2">
                 <div>
@@ -444,10 +449,27 @@ export default function FeesPage() {
                   <div className="stat">{money(fee.totalFee)}</div>
                 </div>
                 <div>
-                  <p className="muted">Balance</p>
+                  <p className="muted">Current balance</p>
                   <div className="stat">{money(fee.balance)}</div>
                 </div>
               </div>
+              {(role === "PARENT" || role === "STUDENT") && (
+                <div style={{ marginTop: 14 }}>
+                  <p className="muted">Available payment methods</p>
+                  {paymentProviders.filter(item => item.enabled).length ? (
+                    <div className="grid grid-2">
+                      {paymentProviders.filter(item => item.enabled).map(item => (
+                        <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10 }}>
+                          <strong>{item.provider === "PAYSTACK" ? "Paystack" : item.provider === "FLUTTERWAVE" ? "Flutterwave" : "Moniepoint"}</strong>
+                          <p className="muted" style={{ margin: "4px 0 0" }}>School payment account</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">No online payment method has been enabled by the school yet.</p>
+                  )}
+                </div>
+              )}
 
               {fee.balance > 0 && (role === "STUDENT" || role === "PARENT" || role === "CASHIER" || role === "ADMIN") && (
                 <div className="grid" style={{ marginTop: 16 }}>
