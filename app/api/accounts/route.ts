@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword, setSession } from "@/lib/auth";
+import { createOrReuseDevice, hashPassword, setSession } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const b = await request.json().catch(() => null);
@@ -29,6 +29,6 @@ export async function POST(request: Request) {
     { id: user.id, name: user.name, email: user.email },
     { status: 201 }
   );
-  setSession(response, user, null);
+  const deviceId = await createOrReuseDevice(user.id, response);\n  if (!deviceId) {\n    return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });\n  }\n  setSession(response, user, null, deviceId);
   return response;
 }
