@@ -58,6 +58,7 @@ model School {
   requests SchoolRequest[]
   memberships SchoolMembership[]
   subscription SchoolSubscription?
+  subscriptionPayments SubscriptionPayment[]
   manualPaymentsEnabled Boolean @default(true)
   schoolSettings String?
   gradingBands String?
