@@ -56,7 +56,6 @@ model School {
   classTeacherAssignments ClassTeacher[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
-  deviceSessions DeviceSession[]
   subscription SchoolSubscription?
   manualPaymentsEnabled Boolean @default(true)
   announcements Announcement[]
@@ -91,6 +90,7 @@ model User {
   requests SchoolRequest[]
   memberships SchoolMembership[]
   auditLogs AuditLog[] @relation("AuditActor")
+  deviceSessions DeviceSession[]
 }
 
 model SchoolMembership {
