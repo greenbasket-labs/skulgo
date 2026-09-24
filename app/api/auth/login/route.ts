@@ -36,6 +36,10 @@ export async function POST(request: Request) {
   });
 
   // Keep the session at the personal-account level until a school workspace is chosen.
-  setSession(response, { id: user.id }, null);
+  const deviceId = await createOrReuseDevice(user.id, response);
+  if (!deviceId) {
+    return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });
+  }
+  setSession(response, { id: user.id }, null, deviceId);
   return response;
 }
