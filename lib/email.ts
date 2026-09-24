@@ -1,13 +1,19 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  const key = process.env.RESEND_API_KEY?.trim();
+  if (!key) {
+    throw new Error("RESEND_API_KEY is not configured.");
+  }
+  return new Resend(key);
+}
 
 function appUrl() {
   return (process.env.APP_URL || "https://skulgo.com").replace(/\/$/, "");
 }
 
 function fromAddress() {
-  return process.env.RESEND_FROM || "SkulGo <onboarding@resend.dev>";
+  return process.env.RESEND_FROM?.trim() || "SkulGo <onboarding@resend.dev>";
 }
 
 export async function sendVerificationEmail(
@@ -16,6 +22,7 @@ export async function sendVerificationEmail(
   token: string,
   otp: string
 ) {
+  const resend = getResend();
   const url = `${appUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   const { error } = await resend.emails.send({
     from: fromAddress(),
@@ -36,6 +43,7 @@ export async function sendVerificationEmail(
 }
 
 export async function sendPasswordResetEmail(email: string, name: string, token: string) {
+  const resend = getResend();
   const url = `${appUrl()}/reset-password?token=${encodeURIComponent(token)}`;
   const { error } = await resend.emails.send({
     from: fromAddress(),
