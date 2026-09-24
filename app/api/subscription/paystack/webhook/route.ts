@@ -15,7 +15,7 @@ async function fulfill(reference: string, transaction: { status: string; amount:
   await db.$transaction(async tx => {
     const subscription = await tx.schoolSubscription.upsert({
       where: { schoolId: payment.schoolId },
-      update: { plan: payment.plan, status: "ACTIVE", startedAt: new Date(), expiresAt },
+      update: { plan: "MONTHLY", productPlan: payment.plan, status: "ACTIVE", startedAt: new Date(), expiresAt },
       create: { schoolId: payment.schoolId, plan: payment.plan, status: "ACTIVE", startedAt: new Date(), expiresAt },
     });
 
