@@ -39,7 +39,7 @@ test.describe("SkulGo authenticated admin smoke", () => {
     await loginAsAdmin(page);
 
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByText(/Students/i).first()).toBeVisible();
+    await expect(page.getByText(/Daily attendance record/i)).toBeVisible();
 
     await page.goto("/applications");
     await expect(page.getByRole("heading", { name: "Applications" })).toBeVisible();
