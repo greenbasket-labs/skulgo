@@ -12,6 +12,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Subjects", "/subjects"],
         ["Assign", "/assign"],
         ["Fees", "/fees"],
+        ["Attendance", "/admin/attendance"],
         ["Announcements", "/announcements"],
         ["My Account", "/account"],
       ];
