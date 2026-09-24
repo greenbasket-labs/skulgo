@@ -49,6 +49,7 @@ export function navForRole(role: WorkspaceRole) {
       return [
         ["Dashboard", "/dashboard"],
         ["Fees", "/fees"],
+        ["Payments", "/payments"],
         ["My Account", "/account"],
       ];
   }
