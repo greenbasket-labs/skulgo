@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const params = useSearchParams();
   const router = useRouter();
   const token = params.get("token") || "";
@@ -54,5 +54,20 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <main className="shell">
+        <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
+          <p className="muted">SkulGo</p>
+          <p>Loading…</p>
+        </div>
+      </main>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
