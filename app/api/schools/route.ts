@@ -28,6 +28,12 @@ export async function POST(request: Request) {
   const school = await db.$transaction(async tx => {
     const s = await tx.school.create({ data: { name, abbr, address, phone, email } });
 
+    const trialExpires = new Date();
+    trialExpires.setDate(trialExpires.getDate() + 14);
+    await tx.schoolSubscription.create({
+      data: { schoolId: s.id, plan: "BASIC", status: "TRIAL", startedAt: new Date(), expiresAt: trialExpires },
+    });
+
     await tx.schoolMembership.create({
       data: { schoolId: s.id, userId: user.id, role: "ADMIN" },
     });
