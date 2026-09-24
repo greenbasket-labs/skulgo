@@ -16,6 +16,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid login details" }, { status: 401 });
   }
 
+  if (!user.emailVerifiedAt) {
+    return NextResponse.json({ error: "Please verify your email before signing in.", emailVerificationRequired: true }, { status: 403 });
+  }
+
   const memberships = await db.schoolMembership.findMany({
     where: { userId: user.id, active: true },
     include: { school: { select: { id: true, name: true, abbr: true } } },
