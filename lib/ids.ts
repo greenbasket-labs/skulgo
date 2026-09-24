@@ -44,3 +44,10 @@ export function makeTeacherId(abbr:string, year:number, used:string[]=[]){
   do { id=prefix+randomInt(0,10000).toString().padStart(4,"0"); } while(used.includes(id));
   return id;
 }
+
+export function makeNonAcademicStaffId(abbr:string, year:number, used:string[]=[]){
+  const prefix=abbr.toUpperCase()+"/NA/"+year+"/";
+  let id="";
+  do { id=prefix+randomInt(0,10000).toString().padStart(4,"0"); } while(used.includes(id));
+  return id;
+}
