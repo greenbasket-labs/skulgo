@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import SchoolConnections from "@/components/school-connections";
+import WorkspacePin from "@/components/workspace-pin";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -44,7 +45,7 @@ export default async function AccountPage() {
         </div>
       </section>
 
-      <SchoolConnections
+      <WorkspacePin configured={Boolean(user.pinHash)} />\n\n      <SchoolConnections
         memberships={user.memberships.map(membership => ({
           id: membership.id,
           role: membership.role,
