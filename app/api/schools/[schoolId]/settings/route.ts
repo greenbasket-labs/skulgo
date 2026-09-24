@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 
 const DEFAULT_SETTINGS = {
+  attendanceSessions: "MORNING",
   resultHeading: "Student Report Card",
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
@@ -118,6 +119,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Result unlock price must be 0 or more" }, { status: 400 });
     }
     nextSettings.resultUnlockPrice = Math.round(price * 100) / 100;
+  }
+
+  if (body?.settings?.attendanceSessions !== undefined) {
+    const value = String(body.settings.attendanceSessions);
+    if (value !== "MORNING" && value !== "MORNING_AFTERNOON") {
+      return NextResponse.json({ error: "Invalid attendance session setting" }, { status: 400 });
+    }
+    nextSettings.attendanceSessions = value;
   }
 
   for (const field of [
