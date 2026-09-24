@@ -195,7 +195,7 @@ export async function POST(
     create: { schoolId, studentId, classId, date, session, present },
   });
 
-  await recordAudit({
+  void recordAudit({
     schoolId,
     actorUserId: user.id,
     action: "UPSERT",
