@@ -19,7 +19,7 @@ export async function GET(
 
   const cashiers = await db.schoolMembership.findMany({
     where: { schoolId, active: true, role: "CASHIER" },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    include: { user: { select: { id: true, name: true, email: true, cashier: { select: { cashierCode: true, approved: true } } } } },
     orderBy: { user: { name: "asc" } },
   });
 
@@ -28,6 +28,8 @@ export async function GET(
     name: item.user.name,
     email: item.user.email,
     role: item.role,
+    cashierCode: item.user.cashier?.cashierCode ?? null,
+    approved: item.user.cashier?.approved ?? false,
   })));
 }
 
