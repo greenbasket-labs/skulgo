@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 
 export function createRawToken() {
   return randomBytes(32).toString("hex");
@@ -9,5 +9,5 @@ export function hashToken(token: string) {
 }
 
 export function createOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(randomInt(100000, 1000000));
 }
