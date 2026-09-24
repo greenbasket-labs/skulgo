@@ -16,7 +16,9 @@ type Workspace = {
 export default function Login() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);\n  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);\n  const [pinConfigured, setPinConfigured] = useState(true);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
+  const [pinConfigured, setPinConfigured] = useState(true);
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
