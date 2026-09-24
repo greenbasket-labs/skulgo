@@ -150,6 +150,12 @@ export default function Login() {
 
         {message && <p>{message}</p>}
 
+        {!workspaces.length && (
+          <p className="muted" style={{ marginTop: 16 }}>
+            <Link href="/forgot-password">Forgot password?</Link>
+          </p>
+        )}
+
         <div style={{ marginTop: 20 }} className="grid">
           <p className="muted">
             Need a personal account? <Link href="/signup">Create one</Link>
