@@ -65,6 +65,33 @@ export async function loginTestUser(
     await page.getByRole("button", { name: "Unlock workspace" }).click();
   }
 
+  // Deterministically select a school workspace when the account has multiple
+  // memberships and the login page has not selected one.
+  const meResponse = await page.request.get("/api/auth/me");
+  if (meResponse.ok()) {
+    const me = await meResponse.json().catch(() => ({}));
+    if (!me?.user?.membership) {
+      const loginResponse = await page.request.post("/api/auth/login", {
+        data: { email: input.email, password },
+      });
+      if (loginResponse.ok()) {
+        const body = await loginResponse.json().catch(() => ({}));
+        const workspaces = Array.isArray(body.workspaces) ? body.workspaces : [];
+        const workspace = input.membershipId
+          ? workspaces.find((item: { membershipId: string }) => item.membershipId === input.membershipId)
+          : workspaces[0];
+        if (workspace) {
+          const selected = await page.request.post("/api/workspaces/select", {
+            data: { membershipId: workspace.membershipId, pin },
+          });
+          if (!selected.ok()) {
+            throw new Error("Workspace selection failed: " + selected.status() + " " + await selected.text());
+          }
+        }
+      }
+    }
+  }
+
   await page.waitForURL(/\/dashboard(?:\?.*)?$/);
 }
 
