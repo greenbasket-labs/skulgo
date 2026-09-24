@@ -163,7 +163,9 @@ export async function getCurrentUser() {
       id: true,
       name: true,
       email: true,
-      pinHash: true,\n      pinFailedAttempts: true,\n      pinLockedUntil: true,
+      pinHash: true,
+      pinFailedAttempts: true,
+      pinLockedUntil: true,
       memberships: {
         where: { active: true },
         include: { school: { select: { id: true, name: true, abbr: true } } },
