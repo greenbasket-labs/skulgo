@@ -122,7 +122,7 @@ export default function ResultsPage() {
       if (response.ok) {
         setResults(Array.isArray(data) ? data : []);
         cacheRecord(cacheKey, Array.isArray(data) ? data : []);
-        if (role === "PARENT" || role === "STUDENT") {
+        if (currentRole === "PARENT" || currentRole === "STUDENT") {
           const assessmentResponse = await fetch(`/api/schools/${schoolId}/assessments?${params.toString()}`);
           const assessmentData = await assessmentResponse.json().catch(() => []);
           setAssessments(assessmentResponse.ok && Array.isArray(assessmentData) ? assessmentData : []);
