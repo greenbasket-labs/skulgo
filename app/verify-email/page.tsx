@@ -9,7 +9,7 @@ function VerifyEmailContent() {
   const token = params.get("token") || "";
   const pending = params.get("pending") === "1";
   const email = params.get("email") || "";
-  const [message, setMessage] = useState(pending ? "Enter the OTP sent to your email, or use the verification link from the email." : "Verifying…");
+  const [message, setMessage] = useState(pending ? "Enter the 6-digit code sent to your email." : "Verifying…");
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(!pending);
 
@@ -33,7 +33,7 @@ function VerifyEmailContent() {
 
   async function verifyOtp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!otp.trim()) return;
+    if (otp.length !== 6 || !email) return;
 
     setBusy(true);
     setMessage("");
@@ -41,24 +41,24 @@ function VerifyEmailContent() {
     const response = await fetch("/api/auth/verify-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp: otp.trim() }),
+      body: JSON.stringify({ email, otp }),
     });
     const data = await response.json().catch(() => ({}));
 
     setBusy(false);
     if (!response.ok) {
-      setMessage(data.error || "Invalid or expired OTP.");
+      setMessage(data.error || "This OTP is invalid or expired.");
       return;
     }
 
-    setMessage("Email verified. You can now sign in.");
+    setMessage("Email verified successfully. You can now sign in.");
   }
 
   return (
     <main className="shell">
       <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
         <p className="muted">SkulGo</p>
-        <h1>{pending ? "Verify your email" : "Verify your email"}</h1>
+        <h1>Verify your email</h1>
 
         {email && <p className="muted">{email}</p>}
         <p>{message}</p>
@@ -66,23 +66,31 @@ function VerifyEmailContent() {
         {pending && (
           <form onSubmit={verifyOtp} className="grid" style={{ marginTop: 16 }}>
             <label className="grid">
-              <span>Email OTP</span>
+              <span>Enter 6-digit OTP</span>
               <input
                 required
+                autoFocus
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="[0-9]{6}"
                 maxLength={6}
                 value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\\D/g, "").slice(0, 6))}
-                placeholder="6-digit OTP"
+                onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+                aria-label="6-digit email verification code"
               />
             </label>
 
             <button className="button" disabled={busy || otp.length !== 6}>
-              {busy ? "Verifying…" : "Verify OTP"}
+              {busy ? "Verifying…" : "Verify email"}
             </button>
           </form>
+        )}
+
+        {pending && (
+          <p className="muted" style={{ marginTop: 14 }}>
+            Didn’t receive it? Check spam/junk. The email also contains a verification link.
+          </p>
         )}
 
         {!busy && !pending && (
