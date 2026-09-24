@@ -166,9 +166,13 @@ When a result is published, the parent sees that the **result is ready**. Viewin
 
 Works with the school's fee records:
 
-- assigned fees
-- payments received
-- outstanding balances
+- search a student by Admission ID;
+- verify the student's fee and outstanding balance;
+- record cash received at the school using the school's teller/receipt number;
+- optionally record a manual bank transfer received by the school;
+- see payments received and outstanding balances.
+
+Online payment is optional. A school can continue using its normal cash/teller process without requiring students or parents to make online payments.
 
 ### Announcements and messages
 
