@@ -12,7 +12,8 @@ type Membership = {
 
 export default function SchoolConnections({ memberships }: { memberships: Membership[] }) {
   const router = useRouter();
-  const [busy, setBusy] = useState("");\n  const [selected, setSelected] = useState<Membership | null>(null);
+  const [busy, setBusy] = useState("");
+  const [selected, setSelected] = useState<Membership | null>(null);
 
   async function openSchool(membershipId: string, pin: string) {
     setBusy(membershipId);
