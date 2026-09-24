@@ -24,16 +24,16 @@ async function loginAsAdmin(page: Page) {
   await page.getByLabel("Password").fill(adminPassword!);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  const workspaceUnlock = page.getByRole("heading", { name: /workspace/i });
-  const dashboard = page.getByRole("heading", { name: /dashboard/i });
+  await expect(
+    page.getByText(/Enter your 4-6 digit workspace PIN/i)
+      .or(page.getByRole("link", { name: /Set workspace PIN/i }))
+      .or(page.getByText(/Students/i).first())
+  ).toBeVisible({ timeout: 10000 });
 
-  await expect(workspaceUnlock.or(dashboard)).toBeVisible({ timeout: 10000 });
-
-  if (await page.getByText(/Enter your 4-6 digit PIN/i).isVisible().catch(() => false)) {
-    const pinInput = page.locator('input[inputmode="numeric"], input[type="password"]').last();
+  const pinInput = page.locator('input[placeholder="Workspace PIN"]');
+  if (await pinInput.isVisible().catch(() => false)) {
     await pinInput.fill(adminPin!);
-    const unlock = page.getByRole("button", { name: /unlock|continue/i });
-    await unlock.click();
+    await page.getByRole("button", { name: "Unlock workspace" }).click();
   }
 
   await page.waitForURL(/\/dashboard(?:\?.*)?$/);
