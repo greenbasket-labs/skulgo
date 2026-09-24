@@ -44,10 +44,12 @@ export async function POST(request: Request) {
 
   try {
     await sendVerificationEmail(user.email, user.name, verificationToken, verificationOtp);
-  } catch {
+  } catch (error) {
     await db.user.delete({ where: { id: user.id } }).catch(() => undefined);
+    const detail = error instanceof Error ? error.message : "";
+    const safeDetail = /RESEND_API_KEY|domain|sender|from|recipient|email/i.test(detail) ? detail : "";
     return NextResponse.json(
-      { error: "Account could not be created because the verification email could not be sent." },
+      { error: safeDetail ? "Verification email could not be sent: " + safeDetail : "Account could not be created because the verification email could not be sent." },
       { status: 502 }
     );
   }
