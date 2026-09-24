@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { setSession, verifyPassword } from "@/lib/auth";
+import { createOrReuseDevice, setSession, verifyPassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const b = await request.json().catch(() => null);
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     ok: true,
     name: user.name,
+    pinConfigured: Boolean(user.pinHash),
     workspaces: memberships.map(m => ({
       membershipId: m.id,
       schoolId: m.schoolId,
