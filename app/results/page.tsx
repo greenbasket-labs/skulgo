@@ -104,8 +104,8 @@ export default function ResultsPage() {
     if (!currentUser?.membership) return;
 
     const params = new URLSearchParams({ term });
-    if (role === "STUDENT") params.set("published", "true");
-    if (role === "PARENT") params.set("published", "true");
+    const currentRole = currentUser.membership.role;
+    if (currentRole === "STUDENT" || currentRole === "PARENT") params.set("published", "true");
     if (role === "STUDENT" && currentUser.student?.id) {
       params.set("studentId", currentUser.student.id);
     }
