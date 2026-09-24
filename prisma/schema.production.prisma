@@ -22,10 +22,9 @@ enum RequestType {
 
 
 enum SubscriptionPlan {
-  BASIC
-  STARTER
-  PRO
-  PREMIUM
+  MONTHLY
+  TERM
+  YEARLY
 }
 
 enum SubscriptionStatus {
@@ -74,6 +73,7 @@ model SchoolSubscription {
   schoolId String @unique
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   plan SubscriptionPlan
+  productPlan String @default("BASIC")
   status SubscriptionStatus @default(TRIAL)
   startedAt DateTime @default(now())
   expiresAt DateTime?
@@ -88,7 +88,7 @@ model SubscriptionPayment {
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   subscriptionId String?
   subscription SchoolSubscription? @relation(fields:[subscriptionId],references:[id],onDelete:SetNull)
-  plan SubscriptionPlan
+  plan String
   amount Float
   provider String
   reference String @unique
