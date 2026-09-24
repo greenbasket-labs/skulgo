@@ -24,6 +24,8 @@ export async function GET(
 
   const classId = request.nextUrl.searchParams.get("classId");
   const date = request.nextUrl.searchParams.get("date");
+  const requestedSession = request.nextUrl.searchParams.get("session");
+  const session = requestedSession === "afternoon" ? "afternoon" : "morning";
   let allowedStudentIds: string[] | null = null;
   let allowedClassIds: string[] | null = null;
 
@@ -60,7 +62,7 @@ export async function GET(
   let sessionRecord = null;
   if (classId && date) {
     sessionRecord = await db.attendanceSession.findUnique({
-      where: { classId_date_session: { classId, date: new Date(date), session: "morning" } },
+      where: { classId_date_session: { classId, date: new Date(date), session } },
     });
     if (sessionRecord?.status === "DRAFT" && new Date() >= sessionRecord.deadlineAt) {
       sessionRecord = await expireSession(sessionRecord.id);
@@ -74,6 +76,7 @@ export async function GET(
       ...(allowedClassIds ? { classId: { in: allowedClassIds } } : {}),
       ...(allowedStudentIds ? { studentId: { in: allowedStudentIds } } : {}),
       ...(date ? { date: new Date(date) } : {}),
+      ...(classId && date ? { session } : {}),
     },
     include: {
       student: { select: { id: true, admissionId: true, firstName: true, lastName: true, gender: true } },

@@ -265,7 +265,7 @@ export default function AttendancePage() {
 
     const nextMarks = { ...marks, [student.id]: present };
     setMarks(nextMarks);
-    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}`, {
+    cacheRecord(`skulgo:${scopeKey}:attendance-${schoolId}-${selectedClassId}-${date}-${selectedSession}`, {
       marks: nextMarks,
       session: attendanceSession,
     });

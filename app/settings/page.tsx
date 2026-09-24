@@ -22,6 +22,7 @@ type Settings = {
   showStudentName: boolean;
   showAdmissionId: boolean;
   showClass: boolean;
+  attendanceSessions: "MORNING" | "MORNING_AFTERNOON";
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: Settings = {
   showStudentName: true,
   showAdmissionId: true,
   showClass: true,
+  attendanceSessions: "MORNING",
 };
 
 const DEFAULT_BANDS: Band[] = [
@@ -142,6 +144,18 @@ export default function SettingsPage() {
       {message && <p className="muted" role="status">{message}</p>}
 
       <section className="card">
+        <h2>Attendance settings</h2>
+        <p className="muted">Choose whether the school records attendance once in the morning or twice each day.</p>
+        <label className="grid">
+          <span>Attendance sessions</span>
+          <select value={settings.attendanceSessions} onChange={e => setSettings(s => ({ ...s, attendanceSessions: e.target.value as Settings["attendanceSessions"] }))}>
+            <option value="MORNING">Morning only</option>
+            <option value="MORNING_AFTERNOON">Morning + Afternoon</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="card" style={{ marginTop: 18 }}>
         <h2>Report-card settings</h2>
         <div className="grid">
           <input value={settings.resultHeading} onChange={e => setSettings(s => ({ ...s, resultHeading: e.target.value }))} placeholder="Report-card heading" />
