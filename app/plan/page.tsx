@@ -22,7 +22,7 @@ export default async function PlanPage() {
       }
     : null;
 
-  const currentPlan = subscription?.plan && isPlanCode(subscription.plan)
+  const currentPlan = subscription?.productPlan && isPlanCode(subscription.productPlan)
     ? (subscription.plan as SubscriptionPlanCode)
     : null;
 
