@@ -18,7 +18,26 @@ SkulGo is an **internal school operating record tool**, not a large all-in-one s
 
 ### School subscription
 
-SkulGo is a paid school service, but the pilot stays focused on usefulness first. Schools can subscribe **monthly, per term (3 months), or yearly**. The yearly subscription is planned to receive a **30% discount** from the normal yearly-equivalent price. Exact prices will be set later. Subscription status should be visible to the school owner/admin without becoming part of the school's daily work.
+SkulGo school plans are currently monthly:
+
+| Plan | Price |
+|---|---:|
+| Free Trial | ₦0 for 14 days |
+| Basic | ₦2,500/month |
+| Starter | ₦5,000/month |
+| Pro | ₦10,000/month |
+| Premium | ₦18,000/month |
+| Custom | Contact SkulGo |
+
+The plan page is available to the school Admin. Capacity limits are intentionally configurable while real infrastructure/load testing is completed; the public pricing should not promise invented student limits.
+
+**Subscription payment providers:**
+- **Paystack** — online checkout with server-side verification and webhook confirmation.
+- **Moniepoint** — school transfers to the configured SkulGo Moniepoint account, then submits the transfer reference for verification.
+
+Provider secrets and bank details must stay in environment variables and must never be committed to GitHub.
+
+The **₦200 result unlock** is separate from the school subscription.
 
 SkulGo is built in small modules. Each module should solve one real school task and fit into the connected record flow.
 
@@ -673,3 +692,17 @@ The default Result Unlock price is **₦200 per result**. The school may change 
 Defaults are stored separately from school records so a school can use its own settings without creating a second grading/result system.
 
 
+
+
+### Subscription environment
+
+Production billing uses these environment variables:
+
+```text
+PAYSTACK_SECRET_KEY=...
+MONIEPOINT_BANK_NAME=...
+MONIEPOINT_ACCOUNT_NAME=...
+MONIEPOINT_ACCOUNT_NUMBER=...
+```
+
+Paystack checkout is initialized server-side. The server verifies the transaction amount and status before activating the school plan, and the Paystack webhook is signature-checked.
