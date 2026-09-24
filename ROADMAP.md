@@ -1,7 +1,7 @@
 # SkulGo Roadmap
 
 **Current production branch:** `main`  
-**Latest deployed commit:** `4814d22`  
+**Latest deployed commit:** `854c0ed`  
 **Production:** Render Live at `https://skulgo.com`  
 **Purpose:** lightweight, connected school operating record tool for Nigerian schools.
 
@@ -362,16 +362,16 @@ This checkpoint records the actual next work so development follows the roadmap 
 
 The Render production service is `skulgo` with custom domain `skulgo.com`.
 
-The latest confirmed **live** deployment is commit `5925045`. The later report-card-generator deployment attempts reached Render but failed during build, so the report-card changes and subsequent work must not be treated as live until a successful deployment is verified.
+The latest confirmed **live** deployment is commit `854c0ed`. The dashboard syntax failure that blocked the recent deployment was fixed in `854c0ed`, and Render now reports the service **LIVE** with Next.js starting successfully. The earlier report-card deployment attempts failed during build, so those changes must still be verified on `main` and in production before being treated as complete.
 
 ### Immediate execution order
 
-1. **Restore a known-good production deployment** and identify/fix the build failure before adding new production payment behavior.
-2. **Verify the report-card/result-settings code locally and with a production-safe build.**
-3. **Complete the Result Unlock flow**: Admin publishes → Student/Parent sees result-ready state → result remains locked → user pays configured amount → SkulGo verifies payment → result/report card becomes viewable and printable/downloadable.
+1. **Verify the current live deployment** `854c0ed` with production smoke checks and keep the production branch build healthy.
+2. **Verify the report-card/result-settings code on `main`** with a production-safe build and live smoke test before treating it as complete.
+3. **Finish the Result Unlock flow**: Admin publishes → Student/Parent sees result-ready state → result remains locked → user pays configured amount → SkulGo verifies payment → result/report card becomes viewable and printable/downloadable.
 4. **Finish subscription/payment integration safely** on `feat/subscription-plans-payments`: Paystack Live Secret Key only in Render environment variables; configure and verify Paystack webhook; verify successful transaction server-side; review Moniepoint verification authority; keep Custom outside fixed automatic pricing.
-5. **Run the controlled capacity test** against the actual deployed service after the production build is healthy. Record measured RPS, latency, error rate, web CPU/RAM and Postgres CPU/connections. Do not invent user limits from generic estimates.
-6. **Only after those checks**, continue the role sequence: **Admin → Teacher → Student → Parent → Cashier → cross-role pilot**.
+5. **Run the controlled capacity test** against the actual deployed service. Record measured RPS, latency, error rate, web CPU/RAM and Postgres CPU/connections. Do not publish capacity limits from generic estimates.
+6. **Complete Admin verification, then continue the role sequence**: **Admin → Teacher → Student → Parent → Cashier → cross-role pilot**.
 
 ### Safety rule for this checkpoint
 
