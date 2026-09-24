@@ -130,7 +130,7 @@ test("result is generated, hidden until published, then visible to student", asy
         subjectId: subject.id,
         term: "First Term",
         ca: 20,
-        exam: 65,
+        exam: 60,
       },
     });
     expect(assessment.status()).toBe(201);
@@ -140,7 +140,7 @@ test("result is generated, hidden until published, then visible to student", asy
     });
     expect(generated.status()).toBe(201);
     const generatedResults = await generated.json();
-    expect(generatedResults[0].total).toBe(85);
+    expect(generatedResults[0].total).toBe(80);
     expect(generatedResults[0].grade).toBe("A");
     expect(generatedResults[0].published).toBeFalsy();
 
@@ -183,13 +183,13 @@ test("result is generated, hidden until published, then visible to student", asy
     expect(afterPublish.ok()).toBeTruthy();
     const visibleResults = await afterPublish.json();
     expect(visibleResults).toHaveLength(1);
-    expect(visibleResults[0].total).toBe(85);
+    expect(visibleResults[0].total).toBe(80);
     expect(visibleResults[0].grade).toBe("A");
 
     await studentPage.goto("/results");
     await expect(studentPage.getByRole("heading", { name: "Results" })).toBeVisible();
     await expect(studentPage.getByText("Mathematics")).toBeVisible();
-    await expect(studentPage.getByText(/85\/100/)).toBeVisible();
+    await expect(studentPage.getByText(/80\/100/)).toBeVisible();
 
     await expect.poll(async () => {
       return studentPage.evaluate(async () => {
