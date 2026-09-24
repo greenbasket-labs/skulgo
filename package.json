@@ -13,7 +13,9 @@
     "e2e": "playwright test",
     "db:push:prod": "prisma db push --schema prisma/schema.production.prisma",
     "build:prod": "npm install --include=dev && npm run postinstall && npm run db:push:prod && next build",
-    "postinstall": "prisma generate --schema prisma/schema.production.prisma"
+    "postinstall": "prisma generate --schema prisma/schema.production.prisma",
+    "capacity:test": "node scripts/skulgo-capacity-test.mjs",
+    "test:full-flow": "node scripts/skulgo-full-test.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
