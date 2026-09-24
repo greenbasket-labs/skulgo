@@ -168,7 +168,7 @@ test("teacher can mark attendance offline and it syncs when online returns", asy
       );
       if (!response.ok()) return null;
       const records = await response.json();
-      const record = records.find((item: { studentId: string }) => item.studentId === studentRecord.id);
+      const record = records.records?.find((item: { studentId: string }) => item.studentId === studentRecord.id);
       return record?.present ?? null;
     }).toBe(true);
   } finally {
