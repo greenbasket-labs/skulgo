@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createAndLoginTestUser, loginTestUser, selectTestWorkspace, TEST_PIN } from "./helpers/test-auth";
 
 test("result is generated, hidden until published, then visible to student", async ({ browser }) => {
   const runId = Date.now();
@@ -16,12 +17,7 @@ test("result is generated, hidden until published, then visible to student", asy
   const studentPage = await student.newPage();
 
   try {
-    await adminPage.goto("/signup");
-    await adminPage.locator('input[name="name"]').fill("Result Test Owner");
-    await adminPage.locator('input[name="email"]').fill(ownerEmail);
-    await adminPage.locator('input[name="password"]').fill(password);
-    await adminPage.getByRole("button", { name: /create account/i }).click();
-    await expect(adminPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(adminPage, { name: "Result Test Owner", email: ownerEmail, password: password });
 
     const schoolResponse = await adminPage.request.post("/api/schools", {
       data: {
@@ -35,9 +31,7 @@ test("result is generated, hidden until published, then visible to student", asy
     expect(schoolResponse.ok()).toBeTruthy();
     const school = await schoolResponse.json();
 
-    const selected = await adminPage.request.post("/api/workspaces/select", {
-      data: { membershipId: school.membershipId },
-    });
+    const selected = await selectTestWorkspace(adminPage, school.membershipId);
     expect(selected.ok()).toBeTruthy();
 
     const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
@@ -58,12 +52,7 @@ test("result is generated, hidden until published, then visible to student", asy
     expect(subjectResponse.ok()).toBeTruthy();
     const subject = await subjectResponse.json();
 
-    await teacherPage.goto("/signup");
-    await teacherPage.locator('input[name="name"]').fill("Result Test Teacher");
-    await teacherPage.locator('input[name="email"]').fill(teacherEmail);
-    await teacherPage.locator('input[name="password"]').fill(password);
-    await teacherPage.getByRole("button", { name: /create account/i }).click();
-    await expect(teacherPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(teacherPage, { name: "Result Test Teacher", email: teacherEmail, password: password });
 
     const teacherApplication = await teacherPage.request.post("/api/school-requests", {
       data: { schoolId: school.id, type: "JOB", requestedRole: "TEACHER" },
@@ -94,12 +83,7 @@ test("result is generated, hidden until published, then visible to student", asy
     });
     expect(assignment.status()).toBe(201);
 
-    await studentPage.goto("/signup");
-    await studentPage.locator('input[name="name"]').fill("Result Test Student");
-    await studentPage.locator('input[name="email"]').fill(studentEmail);
-    await studentPage.locator('input[name="password"]').fill(password);
-    await studentPage.getByRole("button", { name: /create account/i }).click();
-    await expect(studentPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(studentPage, { name: "Result Test Student", email: studentEmail, password: password });
 
     const studentApplication = await studentPage.request.post("/api/school-requests", {
       data: {
@@ -136,9 +120,7 @@ test("result is generated, hidden until published, then visible to student", asy
     );
     expect(teacherWorkspace).toBeTruthy();
 
-    const selectTeacher = await teacherPage.request.post("/api/workspaces/select", {
-      data: { membershipId: teacherWorkspace.membershipId },
-    });
+    const selectTeacher = await selectTestWorkspace(teacherPage, teacherWorkspace.membershipId);
     expect(selectTeacher.ok()).toBeTruthy();
 
     const assessment = await teacherPage.request.post(`/api/schools/${school.id}/assessments`, {
@@ -173,9 +155,7 @@ test("result is generated, hidden until published, then visible to student", asy
     );
     expect(studentWorkspace).toBeTruthy();
 
-    const selectStudent = await studentPage.request.post("/api/workspaces/select", {
-      data: { membershipId: studentWorkspace.membershipId },
-    });
+    const selectStudent = await selectTestWorkspace(studentPage, studentWorkspace.membershipId);
     expect(selectStudent.ok()).toBeTruthy();
 
     const beforePublish = await studentPage.request.get(
