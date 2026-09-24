@@ -107,7 +107,7 @@ export async function POST(
     data: { schoolId, studentId, amount, reference, paymentMethod, tellerNumber, recordedById },
   });
 
-  await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "PAYMENT", entityId: payment.id, details: { studentId, amount, reference, paymentMethod, tellerNumber, payerRole } });
+  void recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "PAYMENT", entityId: payment.id, details: { studentId, amount, reference, paymentMethod, tellerNumber, payerRole } });
 
   return NextResponse.json({
     payment,
