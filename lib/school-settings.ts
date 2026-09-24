@@ -2,6 +2,7 @@ import type { GradingBand } from "@/lib/grading";
 
 export type SchoolSettings = {
   manualPaymentsEnabled: boolean;
+  attendanceSessions: "MORNING" | "MORNING_AFTERNOON";
   resultHeading: string;
   firstTermLabel: string;
   secondTermLabel: string;
@@ -23,6 +24,7 @@ export type SchoolSettings = {
 
 export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   manualPaymentsEnabled: true,
+  attendanceSessions: "MORNING",
   resultHeading: "Student Report Card",
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
