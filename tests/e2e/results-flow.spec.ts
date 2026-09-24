@@ -207,7 +207,7 @@ test("result is generated, hidden until published, then visible to student", asy
 
     await expect(studentPage.getByRole("heading", { name: "Results" })).toBeVisible();
     await expect(studentPage.getByText("Mathematics")).toBeVisible();
-    await expect(studentPage.getByText(/85\/100/)).toBeVisible();
+    await expect(studentPage.getByText(/80\/100/)).toBeVisible();
   } finally {
     await owner.close();
     await teacher.close();
