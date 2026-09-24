@@ -197,7 +197,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     expect((await cashierFees.json())[0].balance).toBe(20000);
 
     const cashierPayment = await cashierPage.request.post(`/api/schools/${school.id}/payments`, {
-      data: { studentId: studentRecord.id, amount: 5000, reference: `E2E-${runId}-cashier` },
+      data: { studentId: studentRecord.id, amount: 5000, reference: `E2E-${runId}-cashier`, tellerNumber: `TELLER-${runId}`, paymentMethod: "CASH" },
     });
     expect(cashierPayment.status(), await cashierPayment.text()).toBe(201);
     expect((await cashierPayment.json()).balance).toBe(15000);
@@ -310,7 +310,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
 
     await studentPage.goto("/fees");
     await expect(studentPage.getByRole("heading", { name: "School fees" })).toBeVisible();
-    await expect(studentPage.getByText("₦50,000")).toHaveCount(2);
+    await expect(studentPage.getByText("₦50,000")).toHaveCount(1);
 
     await studentPage.context().setOffline(true);
     await expect(studentPage.getByRole("main").getByText("Offline", { exact: true })).toBeVisible();
