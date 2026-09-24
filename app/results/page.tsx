@@ -106,13 +106,13 @@ export default function ResultsPage() {
     const params = new URLSearchParams({ term });
     const currentRole = currentUser.membership.role;
     if (currentRole === "STUDENT" || currentRole === "PARENT") params.set("published", "true");
-    if (role === "STUDENT" && currentUser.student?.id) {
+    if (currentRole === "STUDENT" && currentUser.student?.id) {
       params.set("studentId", currentUser.student.id);
     }
 
     const schoolId = currentUser.membership.schoolId;
     const userScope = `${currentUser.id}:${schoolId}`;
-    const cacheKey = `skulgo:results:${userScope}:${term}:${role === "STUDENT" ? currentUser.student?.id ?? "self" : role ?? "workspace"}`;
+    const cacheKey = `skulgo:results:${userScope}:${term}:${currentRole === "STUDENT" ? currentUser.student?.id ?? "self" : currentRole}`;
 
     try {
       const response = await fetch(
@@ -134,7 +134,7 @@ export default function ResultsPage() {
     }
 
     setResults(readCachedRecord<Result[]>(cacheKey) ?? []);
-    if (role === "PARENT" || role === "STUDENT") setAssessments([]);
+    if (currentRole === "PARENT" || currentRole === "STUDENT") setAssessments([]);
   }
 
   async function loadStudents(currentUser: User | null) {
