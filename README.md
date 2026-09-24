@@ -576,3 +576,80 @@ Custom sections use a compact uppercase code derived from the section name (for 
 Examples: `ACA/2026/SS/5087`, `ACA/2026/JS/1204`, `ACA/2026/PRI/3411`, `ACA/2026/NUR/7820`.
 
 Never generate new IDs with the full human-readable section name such as `SENIOR SECONDARY`.
+
+
+## School-specific configuration design
+
+SkulGo uses one lightweight common engine, while each school controls its own school-owned configuration.
+
+### What every school enters
+
+**School identity**
+- school name
+- abbreviation
+- address
+- phone
+- school email
+
+**School structure**
+- sections actually used by the school
+- classes under each section
+- optional class arms
+- subjects offered by each class
+
+**People and duties**
+- approve student admissions
+- approve teachers/staff
+- approve cashiers
+- approve parent/child connections
+- assign teachers to classes and subjects
+- designate class masters
+
+**School fees**
+- fee name
+- amount
+- who the fee applies to: whole school, section, or class
+- approval of the fee
+- payment options the school chooses to enable
+- result-view/unlock amount
+
+**School records**
+- attendance through class teachers
+- CA/exam scores through assigned teachers
+- result generation and Admin publishing
+- school announcements
+- school payment records
+
+### What SkulGo generates
+
+SkulGo generates the connected operational records automatically from the school's setup:
+- Student Admission ID
+- Teacher ID
+- non-academic staff/Cashier ID
+- fee records from approved fee definitions
+- payment balances from fee records and recorded payments
+- result records from saved assessments
+- audit history for important school actions
+
+### School-specific result settings
+
+Different schools do not need to share the same report-card presentation or result rules.
+
+The first lightweight configuration should allow Admin to define:
+- school result heading/name;
+- term names used by the school;
+- grading bands;
+- result-view/unlock amount;
+- whether the result is available digitally after payment;
+- the basic report-card fields the school wants to display.
+
+The underlying student, assessment, result, fee and payment records remain the same. School configuration changes the way the common engine operates for that school; it does not create a second data system.
+
+### Configuration principle
+
+**One SkulGo engine → each school has its own configuration → every person sees the records allowed by their role.**
+
+Do not hardcode one school's name, sections, subjects, fees, grading settings or report-card wording into shared application logic.
+
+Keep the configuration small and school-owned. Add a new setting only when a real school needs a persistent difference.
+
