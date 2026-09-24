@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser, setSession } from "@/lib/auth";
+import { getCurrentUser, setSession, verifyPin } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
