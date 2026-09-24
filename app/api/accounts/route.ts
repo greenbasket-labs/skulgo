@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createOrReuseDevice, hashPassword, setSession } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
-import { createRawToken, hashToken } from "@/lib/email-tokens";
+import { createOtp, createRawToken, hashToken } from "@/lib/email-tokens";
 
 export async function POST(request: Request) {
   const b = await request.json().catch(() => null);
@@ -15,8 +15,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "name, email and password are required" }, { status: 400 });
   }
 
-  if (confirmPassword && password !== confirmPassword) {
+  if (password !== confirmPassword) {
     return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
+  }
+
+  if (password.length < 8) {
+    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
 
   if (await db.user.findUnique({ where: { email } })) {
@@ -24,6 +28,8 @@ export async function POST(request: Request) {
   }
 
   const verificationToken = createRawToken();
+  const verificationOtp = createOtp();
+
   const user = await db.user.create({
     data: {
       name,
@@ -31,14 +37,19 @@ export async function POST(request: Request) {
       passwordHash: hashPassword(password),
       emailVerificationTokenHash: hashToken(verificationToken),
       emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      emailVerificationOtpHash: hashToken(verificationOtp),
+      emailVerificationOtpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
     },
   });
 
   try {
-    await sendVerificationEmail(user.email, user.name, verificationToken);
+    await sendVerificationEmail(user.email, user.name, verificationToken, verificationOtp);
   } catch {
     await db.user.delete({ where: { id: user.id } }).catch(() => undefined);
-    return NextResponse.json({ error: "Account could not be created because the verification email could not be sent." }, { status: 502 });
+    return NextResponse.json(
+      { error: "Account could not be created because the verification email could not be sent." },
+      { status: 502 }
+    );
   }
 
   return NextResponse.json(
