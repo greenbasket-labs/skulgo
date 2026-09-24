@@ -37,7 +37,7 @@ export default function Register() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/verify-email?pending=1&email=" + encodeURIComponent(data.email));
     router.refresh();
   }
 
@@ -47,7 +47,7 @@ export default function Register() {
         <p className="muted">SkulGo</p>
         <h1>Create your personal account</h1>
         <p className="muted">
-          Use one personal account for your school connections.
+          Use one personal account for your school connections. We’ll send a verification link to your email.
         </p>
 
         <form onSubmit={submit} className="grid">
@@ -83,6 +83,9 @@ export default function Register() {
         </form>
 
         {message && <p>{message}</p>}
+        <p className="muted" style={{ marginTop: 16 }}>
+          Already have an account? <a href="/login">Sign in</a>
+        </p>
       </div>
     </main>
   );
