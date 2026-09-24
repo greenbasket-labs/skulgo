@@ -1,3 +1,5 @@
+import type { GradingBand } from "@/lib/grading";
+
 export type SchoolSettings = {
   manualPaymentsEnabled: boolean;
   resultHeading: string;
@@ -39,3 +41,12 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   showAdmissionId: true,
   showClass: true,
 };
+
+export const DEFAULT_GRADING_BANDS: GradingBand[] = [
+  { min: 70, grade: "A" },
+  { min: 60, grade: "B" },
+  { min: 50, grade: "C" },
+  { min: 45, grade: "D" },
+  { min: 40, grade: "E" },
+  { min: 0, grade: "F" },
+];
