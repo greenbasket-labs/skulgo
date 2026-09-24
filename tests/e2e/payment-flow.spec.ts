@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createAndLoginTestUser, loginTestUser, selectTestWorkspace, TEST_PIN } from "./helpers/test-auth";
 
 test("student payment is visible to parent and cashier", async ({ browser }) => {
   const runId = Date.now();
@@ -20,12 +21,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
   const cashierPage = await cashier.newPage();
 
   try {
-    await adminPage.goto("/signup");
-    await adminPage.locator('input[name="name"]').fill("Payment Test Owner");
-    await adminPage.locator('input[name="email"]').fill(ownerEmail);
-    await adminPage.locator('input[name="password"]').fill(password);
-    await adminPage.getByRole("button", { name: /create account/i }).click();
-    await expect(adminPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(adminPage, { name: "Payment Test Owner", email: ownerEmail, password: password });
 
     const schoolResponse = await adminPage.request.post("/api/schools", {
       data: {
@@ -39,9 +35,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     expect(schoolResponse.ok(), await schoolResponse.text()).toBeTruthy();
     const school = await schoolResponse.json();
 
-    const workspace = await adminPage.request.post("/api/workspaces/select", {
-      data: { membershipId: school.membershipId },
-    });
+    const workspace = await selectTestWorkspace(adminPage, school.membershipId);
     expect(workspace.ok(), await workspace.text()).toBeTruthy();
 
     const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
@@ -56,12 +50,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     expect(classResponse.status(), await classResponse.text()).toBe(201);
     const schoolClass = await classResponse.json();
 
-    await studentPage.goto("/signup");
-    await studentPage.locator('input[name="name"]').fill("Payment Test Student");
-    await studentPage.locator('input[name="email"]').fill(studentEmail);
-    await studentPage.locator('input[name="password"]').fill(password);
-    await studentPage.getByRole("button", { name: /create account/i }).click();
-    await expect(studentPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(studentPage, { name: "Payment Test Student", email: studentEmail, password: password });
 
     const studentApplication = await studentPage.request.post("/api/school-requests", {
       data: {
@@ -105,9 +94,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     );
     expect(studentWorkspace).toBeTruthy();
 
-    const selectStudent = await studentPage.request.post("/api/workspaces/select", {
-      data: { membershipId: studentWorkspace.membershipId },
-    });
+    const selectStudent = await selectTestWorkspace(studentPage, studentWorkspace.membershipId);
     expect(selectStudent.ok()).toBeTruthy();
 
     const studentFeesBefore = await studentPage.request.get(
@@ -130,12 +117,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     expect(studentFeesAfter.ok()).toBeTruthy();
     expect((await studentFeesAfter.json())[0].balance).toBe(30000);
 
-    await parentPage.goto("/signup");
-    await parentPage.locator('input[name="name"]').fill("Payment Test Parent");
-    await parentPage.locator('input[name="email"]').fill(parentEmail);
-    await parentPage.locator('input[name="password"]').fill(password);
-    await parentPage.getByRole("button", { name: /create account/i }).click();
-    await expect(parentPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(parentPage, { name: "Payment Test Parent", email: parentEmail, password: password });
 
     const parentApplication = await parentPage.request.post("/api/school-requests", {
       data: {
@@ -165,9 +147,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     );
     expect(parentWorkspace).toBeTruthy();
 
-    const selectParent = await parentPage.request.post("/api/workspaces/select", {
-      data: { membershipId: parentWorkspace.membershipId },
-    });
+    const selectParent = await selectTestWorkspace(parentPage, parentWorkspace.membershipId);
     expect(selectParent.ok()).toBeTruthy();
 
     const parentFees = await parentPage.request.get(
@@ -182,13 +162,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     expect(parentPayment.status(), await parentPayment.text()).toBe(201);
     expect((await parentPayment.json()).balance).toBe(20000);
 
-    const cashierPageSignup = await cashierPage.goto("/signup");
-    expect(cashierPageSignup?.ok()).toBeTruthy();
-    await cashierPage.locator('input[name="name"]').fill("Payment Test Cashier");
-    await cashierPage.locator('input[name="email"]').fill(cashierEmail);
-    await cashierPage.locator('input[name="password"]').fill(password);
-    await cashierPage.getByRole("button", { name: /create account/i }).click();
-    await expect(cashierPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(cashierPage, { name: "Payment Test Cashier", email: cashierEmail, password });
 
     const cashierApplication = await cashierPage.request.post("/api/school-requests", {
       data: { schoolId: school.id, type: "JOB", requestedRole: "CASHIER" },
@@ -213,9 +187,7 @@ test("student payment is visible to parent and cashier", async ({ browser }) => 
     );
     expect(cashierWorkspace).toBeTruthy();
 
-    const selectCashier = await cashierPage.request.post("/api/workspaces/select", {
-      data: { membershipId: cashierWorkspace.membershipId },
-    });
+    const selectCashier = await selectTestWorkspace(cashierPage, cashierWorkspace.membershipId);
     expect(selectCashier.ok()).toBeTruthy();
 
     const cashierFees = await cashierPage.request.get(
@@ -263,12 +235,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
   const studentPage = await student.newPage();
 
   try {
-    await adminPage.goto("/signup");
-    await adminPage.locator('input[name="name"]').fill("Offline Payment Owner");
-    await adminPage.locator('input[name="email"]').fill(ownerEmail);
-    await adminPage.locator('input[name="password"]').fill(password);
-    await adminPage.getByRole("button", { name: /create account/i }).click();
-    await expect(adminPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(adminPage, { name: "Offline Payment Owner", email: ownerEmail, password: password });
 
     const schoolResponse = await adminPage.request.post("/api/schools", {
       data: {
@@ -282,9 +249,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
     expect(schoolResponse.ok(), await schoolResponse.text()).toBeTruthy();
     const school = await schoolResponse.json();
 
-    await adminPage.request.post("/api/workspaces/select", {
-      data: { membershipId: school.membershipId },
-    });
+    await selectTestWorkspace(adminPage, school.membershipId);
 
     const sectionsResponse = await adminPage.request.get(`/api/schools/${school.id}/sections`);
     expect(sectionsResponse.ok()).toBeTruthy();
@@ -298,12 +263,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
     expect(classResponse.status()).toBe(201);
     const schoolClass = await classResponse.json();
 
-    await studentPage.goto("/signup");
-    await studentPage.locator('input[name="name"]').fill("Offline Payment Student");
-    await studentPage.locator('input[name="email"]').fill(studentEmail);
-    await studentPage.locator('input[name="password"]').fill(password);
-    await studentPage.getByRole("button", { name: /create account/i }).click();
-    await expect(studentPage).toHaveURL(/\/dashboard/);
+    await createAndLoginTestUser(studentPage, { name: "Offline Payment Student", email: studentEmail, password: password });
 
     const application = await studentPage.request.post("/api/school-requests", {
       data: {
@@ -345,9 +305,7 @@ test("student can queue a payment offline and it syncs when online returns", asy
     );
     expect(workspace).toBeTruthy();
 
-    const selected = await studentPage.request.post("/api/workspaces/select", {
-      data: { membershipId: workspace.membershipId },
-    });
+    const selected = await selectTestWorkspace(studentPage, workspace.membershipId);
     expect(selected.ok()).toBeTruthy();
 
     await studentPage.goto("/fees");
