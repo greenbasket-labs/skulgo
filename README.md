@@ -22,6 +22,31 @@ SkulGo is a paid school service, but the pilot stays focused on usefulness first
 
 SkulGo is built in small modules. Each module should solve one real school task and fit into the connected record flow.
 
+### Sidebar and dashboard design
+
+SkulGo uses a compact, persistent workspace sidebar so the main dashboard stays clean and focused.
+
+The visual reference is the simple navigation pattern used by modern operational tools: **clear sections, short labels, consistent spacing, and the smallest useful number of visible links**.
+
+Design principles:
+
+- Keep the **dashboard for current activity and important information**, not for holding every navigation action.
+- Keep workspace navigation in the **left sidebar** on desktop.
+- Group related links into small logical areas when grouping improves scanning (for example, School, Academics, Finance, Communication, Account).
+- Show **only the links the current role can use**.
+- Use short, familiar labels.
+- Do not add a sidebar item merely to expose a future or speculative feature.
+- Keep the sidebar visually quiet: clear active state, compact spacing, minimal decoration, and no unnecessary badges/cards.
+- Keep school identity and the current user's role visible without competing with navigation.
+- On small screens, stack or collapse navigation cleanly so it does not dominate the page.
+- Reuse the existing role navigation source in `lib/workspace-nav.ts`; do not create separate navigation lists in individual pages.
+
+The goal is:
+
+> **Navigation carries complexity; the dashboard carries the work.**
+
+Do not copy another product's branding or exact interface. Use the reference only for information hierarchy and usability.
+
 ### Principal / School owner
 
 Sidebar stays small:
