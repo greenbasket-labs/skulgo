@@ -43,14 +43,37 @@ export async function POST(
   if (!membership?.active) return NextResponse.json({ error: "School access required" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
-  const studentId = String(body?.studentId ?? "");
+  let studentId = String(body?.studentId ?? "");
+  const admissionId = String(body?.admissionId ?? "").trim();
   const amount = Number(body?.amount);
   const reference = body?.reference ? String(body.reference).trim() : null;
+  const paymentMethod = String(body?.paymentMethod ?? (membership.role === "CASHIER" ? "CASH" : "ONLINE")).trim().toUpperCase();
+  const tellerNumber = body?.tellerNumber ? String(body.tellerNumber).trim() : null;
   const payerRole = membership.role;
   const recordedById = user.id;
 
+  if (!studentId && admissionId) {
+    const studentByAdmission = await db.student.findFirst({
+      where: { schoolId, admissionId },
+      select: { id: true },
+    });
+    studentId = studentByAdmission?.id ?? "";
+  }
+
   if (!studentId || !Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ error: "studentId and a positive amount are required" }, { status: 400 });
+    return NextResponse.json({ error: "student or Admission ID and a positive amount are required" }, { status: 400 });
+  }
+
+  if (!["ONLINE", "CASH", "BANK_TRANSFER"].includes(paymentMethod)) {
+    return NextResponse.json({ error: "Unsupported payment method" }, { status: 400 });
+  }
+
+  if (membership.role === "CASHIER" && paymentMethod === "ONLINE") {
+    return NextResponse.json({ error: "Cashiers record cash or manual bank-transfer payments" }, { status: 400 });
+  }
+
+  if (membership.role === "CASHIER" && paymentMethod === "CASH" && !tellerNumber) {
+    return NextResponse.json({ error: "Teller number is required for a cashier cash payment" }, { status: 400 });
   }
 
   const visible = await visibleStudentIds(schoolId, user.id, membership.role, studentId);
@@ -81,10 +104,10 @@ export async function POST(
   }
 
   const payment = await db.payment.create({
-    data: { schoolId, studentId, amount, reference, recordedById },
+    data: { schoolId, studentId, amount, reference, paymentMethod, tellerNumber, recordedById },
   });
 
-  await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "PAYMENT", entityId: payment.id, details: { studentId, amount, reference, payerRole } });
+  await recordAudit({ schoolId, actorUserId: user.id, action: "CREATE", entity: "PAYMENT", entityId: payment.id, details: { studentId, amount, reference, paymentMethod, tellerNumber, payerRole } });
 
   return NextResponse.json({
     payment,
