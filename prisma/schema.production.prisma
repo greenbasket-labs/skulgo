@@ -56,6 +56,7 @@ model School {
   classTeacherAssignments ClassTeacher[]
   requests SchoolRequest[]
   memberships SchoolMembership[]
+  deviceSessions DeviceSession[]
   subscription SchoolSubscription?
   manualPaymentsEnabled Boolean @default(true)
   announcements Announcement[]
@@ -80,6 +81,7 @@ model User {
   name String
   email String @unique
   passwordHash String
+  pinHash String?
   teacher Teacher?
   student Student?
   parent Parent?
@@ -409,4 +411,15 @@ model ClassTeacher {
   teacherId String
   teacher Teacher @relation(fields:[teacherId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
+}
+
+model DeviceSession {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  deviceHash String @unique
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  revokedAt DateTime?
+  @@index([userId,revokedAt])
 }
