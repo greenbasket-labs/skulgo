@@ -53,6 +53,7 @@ export default function AttendancePage() {
   const [schoolId, setSchoolId] = useState("");
   const [role, setRole] = useState<"TEACHER" | "STUDENT" | "PARENT" | "ADMIN" | "CASHIER" | "">("");
   const [parentHistory, setParentHistory] = useState<any[]>([]);
+  const [studentHistory, setStudentHistory] = useState<any[]>([]);
   const [scopeKey, setScopeKey] = useState("");
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -87,6 +88,29 @@ export default function AttendancePage() {
     setRole((me?.user as any)?.membership?.role ?? "");
     if (currentScopeKey) startOfflineSync(currentScopeKey, result => setPending(result.remaining));
     if (!currentScopeKey) { setMessage("This school workspace is not available on this device yet."); return; }
+
+    const membershipRole = (me?.user as any)?.membership?.role;
+    const currentSchoolId = me?.user?.membership?.schoolId ?? "";
+
+    if (membershipRole === "STUDENT" || membershipRole === "PARENT") {
+      const historyKey = `skulgo:${currentScopeKey}:${membershipRole.toLowerCase()}-attendance-${currentSchoolId}`;
+      try {
+        const response = await fetch(`/api/schools/${currentSchoolId}/attendance`);
+        const result = await response.json().catch(() => ({ records: [] }));
+        if (response.ok) {
+          const records = Array.isArray(result.records) ? result.records : [];
+          if (membershipRole === "STUDENT") setStudentHistory(records);
+          else setParentHistory(records);
+          cacheRecord(historyKey, records);
+        }
+      } catch {
+        const cached = readCachedRecord<any[]>(historyKey) ?? [];
+        if (membershipRole === "STUDENT") setStudentHistory(cached);
+        else setParentHistory(cached);
+      }
+      setMessage("");
+      return;
+    }
 
     const assignmentsKey = `skulgo:${currentScopeKey}:my-assignments`;
 
@@ -335,22 +359,34 @@ export default function AttendancePage() {
     }
   }
 
-  if (role === "PARENT") {
+  if (role === "PARENT" || role === "STUDENT") {
+    const history = role === "PARENT" ? parentHistory : studentHistory;
     return (
       <main className="workspace-main">
         <div className="workspace-header">
-          <p className="muted">Parent workspace · {online ? "Online" : "Offline"}</p>
-          <h1>Attendance</h1>
-          <p className="muted">Attendance history for your approved child connection(s).</p>
+          <p className="muted">{role === "PARENT" ? "Parent" : "Student"} workspace · {online ? "Online" : "Offline"}</p>
+          <h1>Attendance History</h1>
+          <p className="muted">
+            {role === "PARENT"
+              ? "Attendance history for your approved child connection(s)."
+              : "Your attendance history."}
+          </p>
         </div>
-        {!parentHistory.length ? (
-          <div className="card"><strong>No attendance records yet.</strong><p className="muted">Attendance records will appear here after the school records them.</p></div>
+        {!history.length ? (
+          <div className="card">
+            <strong>No attendance records yet.</strong>
+            <p className="muted">Records will appear here after the school records them.</p>
+          </div>
         ) : (
           <div className="grid">
-            {parentHistory.map((item, index) => (
+            {history.map((item, index) => (
               <div className="card" key={item.id ?? (item.studentId + "-" + item.date + "-" + index)}>
-                <strong>{item.student?.firstName} {item.student?.lastName}</strong>
-                <p className="muted">{item.student?.admissionId}</p>
+                {role === "PARENT" && (
+                  <>
+                    <strong>{item.student?.firstName} {item.student?.lastName}</strong>
+                    <p className="muted">{item.student?.admissionId}</p>
+                  </>
+                )}
                 <p>{new Date(item.date).toLocaleDateString()} · {item.present ? "Present" : "Absent"}</p>
               </div>
             ))}
