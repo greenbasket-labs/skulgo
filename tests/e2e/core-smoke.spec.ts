@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ensureTestUser, loginTestUser } from "./helpers/test-auth";
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
@@ -19,24 +20,16 @@ async function loginAsAdmin(page: Page) {
   test.skip(!adminEmail || !adminPassword || !adminPin,
     "Set E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD and E2E_ADMIN_PIN for authenticated E2E tests.");
 
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(adminEmail!);
-  await page.getByLabel("Password").fill(adminPassword!);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await ensureTestUser({
+    name: "SkulGo E2E Admin",
+    email: adminEmail!,
+    password: adminPassword!,
+  });
 
-  await expect(
-    page.getByText(/Enter your 4-6 digit workspace PIN/i)
-      .or(page.getByRole("link", { name: /Set workspace PIN/i }))
-      .or(page.getByText(/Students/i).first())
-  ).toBeVisible({ timeout: 10000 });
-
-  const pinInput = page.locator('input[placeholder="Workspace PIN"]');
-  if (await pinInput.isVisible().catch(() => false)) {
-    await pinInput.fill(adminPin!);
-    await page.getByRole("button", { name: "Unlock workspace" }).click();
-  }
-
-  await page.waitForURL(/\/dashboard(?:\?.*)?$/);
+  await loginTestUser(page, {
+    email: adminEmail!,
+    password: adminPassword!,
+  });
 }
 
 test.describe("SkulGo authenticated admin smoke", () => {
