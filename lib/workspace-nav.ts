@@ -14,6 +14,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Fees", "/fees"],
         ["Attendance", "/admin/attendance"],
         ["Announcements", "/announcements"],
+        ["Result Settings", "/settings"],
         ["My Account", "/account"],
       ];
     case "TEACHER":
