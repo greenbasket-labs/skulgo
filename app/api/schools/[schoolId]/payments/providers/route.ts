@@ -19,9 +19,11 @@ export async function GET(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const member = await adminMember(user.id, schoolId);
-  if (!member?.active || member.role !== "ADMIN") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  const member = await db.schoolMembership.findUnique({
+    where: { schoolId_userId: { schoolId, userId: user.id } },
+  });
+  if (!member?.active) {
+    return NextResponse.json({ error: "School access required" }, { status: 403 });
   }
 
   const rows = await db.paymentProvider.findMany({
