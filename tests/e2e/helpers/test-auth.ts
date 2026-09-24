@@ -79,7 +79,7 @@ export async function loginTestUser(
         const workspaces = Array.isArray(body.workspaces) ? body.workspaces : [];
         const workspace = input.membershipId
           ? workspaces.find((item: { membershipId: string }) => item.membershipId === input.membershipId)
-          : workspaces[0];
+          : workspaces.find((item: { role?: string }) => item.role === "ADMIN") ?? workspaces[0];
         if (workspace) {
           const selected = await page.request.post("/api/workspaces/select", {
             data: { membershipId: workspace.membershipId, pin },
