@@ -20,6 +20,8 @@ export async function GET(
   const allowedIds = await visibleStudentIds(schoolId, user.id, membership.role, studentId);
   if (!allowedIds.length) return NextResponse.json([]);
 
+  await syncApprovedFeeRecords(schoolId);
+
   const records = await db.feeRecord.findMany({
     where: { schoolId, studentId: { in: allowedIds } },
     include: {
@@ -117,4 +119,55 @@ async function visibleStudentIds(
     return links.map(link => link.studentId);
   }
   return [];
+}
+
+
+async function syncApprovedFeeRecords(schoolId: string) {
+  const definitions = await db.feeDefinition.findMany({
+    where: { schoolId, status: "APPROVED" },
+    select: {
+      amount: true,
+      targetType: true,
+      sectionId: true,
+      classId: true,
+    },
+  });
+
+  if (!definitions.length) return;
+
+  const students = await db.student.findMany({
+    where: { schoolId },
+    select: { id: true, classId: true, class: { select: { sectionId: true } } },
+  });
+
+  await db.$transaction(async tx => {
+    for (const student of students) {
+      const assignedTotal = definitions.reduce((total, definition) => {
+        const applies =
+          definition.targetType === "SCHOOL" ||
+          (definition.targetType === "SECTION" && definition.sectionId === student.class?.sectionId) ||
+          (definition.targetType === "CLASS" && definition.classId === student.classId);
+
+        return applies ? total + definition.amount : total;
+      }, 0);
+
+      if (assignedTotal <= 0) continue;
+
+      const existing = await tx.feeRecord.findUnique({
+        where: { studentId: student.id },
+        select: { id: true, totalFee: true },
+      });
+
+      if (!existing) {
+        await tx.feeRecord.create({
+          data: { schoolId, studentId: student.id, totalFee: assignedTotal },
+        });
+      } else if (existing.totalFee < assignedTotal) {
+        await tx.feeRecord.update({
+          where: { id: existing.id },
+          data: { totalFee: assignedTotal },
+        });
+      }
+    }
+  });
 }
