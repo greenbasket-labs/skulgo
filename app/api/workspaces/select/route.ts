@@ -18,6 +18,6 @@ export async function POST(request: Request) {
   if (!membership) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
   const response = NextResponse.json({ ok: true, schoolId: membership.schoolId, role: membership.role });
-  setSession(response, { id: user.id }, membership.id);
+  setSession(response, { id: user.id }, membership.id, user.session.deviceId);
   return response;
 }
