@@ -207,6 +207,12 @@ export default async function Dashboard() {
     const attendance = student
       ? await db.attendance.count({ where: { schoolId, studentId: student.id, present: true } })
       : 0;
+    const todayAttendance = student
+      ? await db.attendance.findFirst({
+          where: { schoolId, studentId: student.id, date: { gte: todayStart, lt: tomorrow } },
+          select: { present: true },
+        })
+      : null;
 
     content = (
       <>
@@ -214,6 +220,12 @@ export default async function Dashboard() {
           <p className="muted">My class</p>
           <h2>{student?.class?.name ?? "No class assigned"}</h2>
           <p className="muted">{student?.admissionId ?? ""}</p>
+        </div>
+        <div className="card" style={{ marginTop: 18 }}>
+          <strong>Daily Record</strong>
+          <p className="muted">Today's attendance</p>
+          <h2>{todayAttendance ? (todayAttendance.present ? "Present" : "Absent") : "Not recorded yet"}</h2>
+          <Link className="button" href="/attendance">Attendance history →</Link>
         </div>
         <div className="grid grid-2" style={{ marginTop: 18 }}>
           <div className="card"><p className="muted">Subjects</p><div className="stat">{subjects.length}</div></div>
@@ -270,7 +282,7 @@ export default async function Dashboard() {
         </div>
 
         <div className="card" style={{ marginTop: 18 }}>
-          <strong>Today</strong>
+          <strong>Daily Record</strong>
           {!children.length ? (
             <p className="muted">Connect an approved child to receive school updates.</p>
           ) : (
