@@ -129,7 +129,8 @@ test("teacher can save a score offline and it syncs when online returns", async 
         classId: schoolClass.id,
         subjectId: subject.id,
         term: "First Term",
-        ca: 18,
+        ca1: 9,
+        ca2: 9,
         exam: 60,
       },
     });
