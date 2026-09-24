@@ -147,7 +147,7 @@ test("teacher can save a score offline and it syncs when online returns", async 
 
     const inputs = teacherPage.locator("input");
     await inputs.nth(0).fill("20");
-    await inputs.nth(1).fill("65");
+    await inputs.nth(1).fill("60");
     await teacherPage.getByRole("button", { name: "Save score" }).click();
 
     await expect(
@@ -164,7 +164,7 @@ test("teacher can save a score offline and it syncs when online returns", async 
       const records = await response.json();
       const record = records.find((item: { studentId: string }) => item.studentId === studentId);
       return record ? { ca: record.ca, exam: record.exam } : null;
-    }, { timeout: 10000 }).toEqual({ ca: 20, exam: 65 });
+    }, { timeout: 10000 }).toEqual({ ca: 20, exam: 60 });
   } finally {
     await owner.close();
     await teacher.close();
