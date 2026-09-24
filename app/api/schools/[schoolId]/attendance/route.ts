@@ -143,7 +143,7 @@ export async function POST(
       data: { status: "SUBMITTED", submittedAt: new Date() },
     });
 
-    await recordAudit({
+    void recordAudit({
       schoolId,
       actorUserId: user.id,
       action: "SUBMIT",
