@@ -79,7 +79,12 @@ model User {
   id String @id @default(cuid())
   name String
   email String @unique
+  emailVerifiedAt DateTime?
+  emailVerificationTokenHash String? @unique
+  emailVerificationExpiresAt DateTime?
   passwordHash String
+  passwordResetTokenHash String? @unique
+  passwordResetExpiresAt DateTime?
   pinHash String?
   pinFailedAttempts Int @default(0)
   pinLockedUntil DateTime?
