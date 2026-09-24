@@ -81,7 +81,9 @@ model User {
   name String
   email String @unique
   passwordHash String
-  pinHash String?\n  pinFailedAttempts Int @default(0)\n  pinLockedUntil DateTime?
+  pinHash String?
+  pinFailedAttempts Int @default(0)
+  pinLockedUntil DateTime?
   teacher Teacher?
   student Student?
   parent Parent?
