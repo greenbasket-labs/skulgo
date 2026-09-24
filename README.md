@@ -652,4 +652,24 @@ The underlying student, assessment, result, fee and payment records remain the s
 Do not hardcode one school's name, sections, subjects, fees, grading settings or report-card wording into shared application logic.
 
 Keep the configuration small and school-owned. Add a new setting only when a real school needs a persistent difference.
+### Result configuration and SkulGo Result Unlock
+
+The school has a default result configuration that can be adjusted for its own report cards.
+
+**School-controlled:**
+- grading bands;
+- report-card heading and term labels;
+- report-card fields such as student name, Admission ID, class, subject breakdown, total, percentage, grade, position, attendance and remarks;
+- result unlock price.
+
+**SkulGo-controlled:**
+- the Result Unlock feature itself;
+- the published-result access gate;
+- payment verification before unlocking;
+- digital result/report-card access after a successful unlock.
+
+The default Result Unlock price is **₦200 per result**. The school may change the price for its own workspace, but it does not own or replace the SkulGo unlock mechanism.
+
+Defaults are stored separately from school records so a school can use its own settings without creating a second grading/result system.
+
 
