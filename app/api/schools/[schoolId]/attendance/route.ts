@@ -76,7 +76,7 @@ export async function GET(
       ...(date ? { date: new Date(date) } : {}),
     },
     include: {
-      student: { select: { id: true, admissionId: true, firstName: true, lastName: true } },
+      student: { select: { id: true, admissionId: true, firstName: true, lastName: true, gender: true } },
       class: { select: { id: true, name: true, arm: true } },
     },
     orderBy: [{ date: "desc" }, { student: { lastName: "asc" } }],
