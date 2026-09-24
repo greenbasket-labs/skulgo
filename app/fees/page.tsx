@@ -222,15 +222,19 @@ export default function FeesPage() {
   useEffect(() => {
     void load();
     setOnline(navigator.onLine);
+  }, []);
 
+  useEffect(() => {
     const scopeKey = user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "";
-    if (scopeKey) {
-      startOfflineSync(scopeKey, result => setWaiting(result.remaining));
-    }
+    if (!scopeKey) return;
 
+    startOfflineSync(scopeKey, result => setWaiting(result.remaining));
     void refreshQueue();
 
-    const onOnline = () => { setOnline(true); refreshQueue(); };
+    const onOnline = () => {
+      setOnline(true);
+      void refreshQueue();
+    };
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -238,7 +242,7 @@ export default function FeesPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [user?.id, user?.membership?.id]);
 
   const payOptions = useMemo(() => {
     if (role === "STUDENT") return fees.slice(0, 1);
