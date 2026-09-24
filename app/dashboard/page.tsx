@@ -305,17 +305,65 @@ export default async function Dashboard() {
         </div>
       </>
     );
-  } else {
-    const payments = await db.payment.count({ where: { schoolId } });
-    const fees = await db.feeRecord.count({ where: { schoolId } });
+  } else if (role === "CASHIER") {
+    const [cashier, todayPayments, totalPayments, feeRecords] = await Promise.all([
+      db.cashier.findUnique({
+        where: { userId: u.id },
+        select: { cashierCode: true, approved: true },
+      }),
+      db.payment.findMany({
+        where: { schoolId, paidAt: { gte: todayStart, lt: tomorrow } },
+        select: { amount: true },
+      }),
+      db.payment.count({ where: { schoolId } }),
+      db.feeRecord.findMany({
+        where: { schoolId },
+        select: { totalFee: true },
+      }),
+    ]);
+
+    const todayTotal = todayPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
     content = (
-      <div className="grid grid-2">
-        <div className="card"><p className="muted">Fee records</p><div className="stat">{fees}</div></div>
-        <div className="card"><p className="muted">Payments recorded</p><div className="stat">{payments}</div></div>
-      </div>
+      <>
+        <div className="card">
+          <p className="muted">Cashier workspace</p>
+          <h2>{u.name}</h2>
+          <p className="muted">
+            Cashier ID: <strong>{cashier?.cashierCode ?? "Not assigned"}</strong>
+          </p>
+          <p className="muted">
+            Status: {cashier?.approved ? "Approved" : "Pending"}
+          </p>
+        </div>
+
+        <div className="grid grid-2" style={{ marginTop: 18 }}>
+          <div className="card">
+            <p className="muted">Today's collection</p>
+            <div className="stat">{money(todayTotal)}</div>
+          </div>
+          <div className="card">
+            <p className="muted">Payments today</p>
+            <div className="stat">{todayPayments.length}</div>
+          </div>
+          <div className="card">
+            <p className="muted">All payment records</p>
+            <div className="stat">{totalPayments}</div>
+          </div>
+          <div className="card">
+            <p className="muted">Fee records</p>
+            <div className="stat">{feeRecords.length}</div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 18 }}>
+          <strong>Cashier desk</strong>
+          <p className="muted">Record a payment received from a student or parent.</p>
+          <Link className="button" href="/fees">Open fees & record payment →</Link>
+        </div>
+      </>
     );
-  }
+  }  }
 
   return (
     <main className="workspace">
