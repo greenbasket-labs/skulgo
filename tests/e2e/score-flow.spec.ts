@@ -130,12 +130,12 @@ test("teacher can save a score offline and it syncs when online returns", async 
         subjectId: subject.id,
         term: "First Term",
         ca: 18,
-        exam: 62,
+        exam: 60,
       },
     });
     expect(onlineAssessment.status(), await onlineAssessment.text()).toBe(201);
     const onlineBody = await onlineAssessment.json();
-    expect(onlineBody.total).toBe(80);
+    expect(onlineBody.total).toBe(78);
 
     await teacherPage.goto("/scores");
     await expect(teacherPage.getByRole("heading", { name: "Scores" })).toBeVisible();
