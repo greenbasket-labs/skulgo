@@ -13,7 +13,7 @@ export async function ensureTestUser(input: {
 }) {
   const password = input.password ?? TEST_PASSWORD;
   const pin = input.pin ?? TEST_PIN;
-  if (!/^\\d{4,6}$/.test(pin)) throw new Error("Test PIN must be 4-6 digits.");
+  if (!/^\d{4,6}$/.test(pin)) throw new Error("Test PIN must be 4-6 digits.");
   const passwordHash = hashPassword(password);
   const pinHash = hashPin(pin);
 
