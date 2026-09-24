@@ -213,6 +213,7 @@ export default function AttendancePage() {
     const onOnline = () => {
       setOnline(true);
       setPending(queuedCount(scopeKey));
+      startOfflineSync(scopeKey, result => setPending(result.remaining));
       void load();
     };
     const onOffline = () => setOnline(false);
