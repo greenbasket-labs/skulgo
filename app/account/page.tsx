@@ -45,7 +45,9 @@ export default async function AccountPage() {
         </div>
       </section>
 
-      <WorkspacePin configured={Boolean(user.pinHash)} />\n\n      <SchoolConnections
+      <WorkspacePin configured={Boolean(user.pinHash)} />
+
+      <SchoolConnections
         memberships={user.memberships.map(membership => ({
           id: membership.id,
           role: membership.role,
