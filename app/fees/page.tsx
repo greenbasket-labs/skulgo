@@ -59,6 +59,10 @@ export default function FeesPage() {
 
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
+  const [cashierStudentCode, setCashierStudentCode] = useState("");
+  const [cashierTeller, setCashierTeller] = useState("");
+  const [cashierMethod, setCashierMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
+  const [cashierFee, setCashierFee] = useState<Fee | null>(null);
   const [online, setOnline] = useState(true);
   const [waiting, setWaiting] = useState(0);
   const [message, setMessage] = useState("");
@@ -241,6 +245,97 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
+  async function findCashierStudent() {
+    if (!schoolId || role !== "CASHIER") return;
+    const admissionId = cashierStudentCode.trim();
+    if (!admissionId) {
+      setCashierFee(null);
+      setMessage("Enter the student's Admission ID.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/fees?studentId=${encodeURIComponent(admissionId)}`);
+      const data = await response.json().catch(() => []);
+      if (!response.ok) throw new Error(data?.error || "Unable to find student.");
+      const match = Array.isArray(data) ? data[0] : null;
+      if (!match) throw new Error("No fee record found with that Admission ID.");
+      setCashierFee(match);
+      setSelectedStudentId(match.studentId);
+      setAmount("");
+      setMessage("Student found. Verify the name and balance before accepting payment.");
+    } catch (error) {
+      setCashierFee(null);
+      setSelectedStudentId("");
+      setMessage(error instanceof Error ? error.message : "Unable to find student.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function recordCashierPayment() {
+    if (!schoolId || role !== "CASHIER" || !cashierFee) return;
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setMessage("Enter a valid payment amount.");
+      return;
+    }
+    if (value > cashierFee.balance) {
+      setMessage(`Maximum payment is ${money(cashierFee.balance)}.`);
+      return;
+    }
+    if (cashierMethod === "CASH" && !cashierTeller.trim()) {
+      setMessage("Enter the school teller / receipt number.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+    const body = {
+      admissionId: cashierFee.student.admissionId,
+      amount: value,
+      paymentMethod: cashierMethod,
+      tellerNumber: cashierTeller.trim() || null,
+    };
+
+    try {
+      if (!navigator.onLine) {
+        queueAction({
+          scopeKey: user?.id && user?.membership?.id ? `${user.id}:${user.membership.id}` : "",
+          url: `/api/schools/${schoolId}/payments`,
+          method: "POST",
+          body,
+        });
+        setWaiting(queuedActions(user?.id && user?.membership?.id ? `${user.id}:${user.membership.id}` : undefined).length);
+        setCashierFee(current => current ? { ...current, totalPaid: current.totalPaid + value, balance: current.balance - value } : current);
+        setAmount("");
+        setCashierTeller("");
+        setMessage("Payment saved on this device. It will sync when internet returns.");
+        return;
+      }
+
+      const response = await fetch(`/api/schools/${schoolId}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Payment could not be recorded.");
+
+      setCashierFee(current => current ? { ...current, totalPaid: data.totalPaid ?? current.totalPaid + value, balance: data.balance ?? current.balance - value } : current);
+      setAmount("");
+      setCashierTeller("");
+      setMessage(`Payment recorded. Remaining balance: ${money(data.balance ?? cashierFee.balance - value)}.`);
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Payment could not be recorded.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pay(studentId = selectedStudentId) {
     if (!schoolId || !studentId) {
       setMessage("Choose the student first.");
@@ -353,6 +448,44 @@ export default function FeesPage() {
           </div>
         </div>
 
+        {role === "CASHIER" && (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <h2>Receive payment</h2>
+            <p className="muted">Student gives the cashier the Admission ID and school teller. Verify the student before accepting cash.</p>
+            <div className="grid">
+              <input
+                value={cashierStudentCode}
+                onChange={event => setCashierStudentCode(event.target.value.trimStart())}
+                onKeyDown={event => { if (event.key === "Enter") void findCashierStudent(); }}
+                placeholder="Student Admission ID"
+              />
+              <button className="button" type="button" onClick={() => void findCashierStudent()} disabled={busy}>Find student</button>
+              {cashierFee && (
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
+                  <strong>{cashierFee.student.firstName} {cashierFee.student.lastName}</strong>
+                  <p className="muted" style={{ margin: "4px 0 0" }}>{cashierFee.student.admissionId}</p>
+                  <div className="grid grid-2" style={{ marginTop: 12 }}>
+                    <div><p className="muted">Total fee</p><div className="stat">{money(cashierFee.totalFee)}</div></div>
+                    <div><p className="muted">Outstanding</p><div className="stat">{money(cashierFee.balance)}</div></div>
+                  </div>
+                </div>
+              )}
+              {cashierFee && cashierFee.balance > 0 && (
+                <>
+                  <select value={cashierMethod} onChange={event => setCashierMethod(event.target.value as "CASH" | "BANK_TRANSFER")}>
+                    <option value="CASH">Cash</option>
+                    <option value="BANK_TRANSFER">Bank transfer / manual</option>
+                  </select>
+                  <input value={cashierTeller} onChange={event => setCashierTeller(event.target.value)} placeholder="School teller / receipt number" />
+                  <input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} placeholder="Amount received" />
+                  <button className="button" type="button" onClick={() => void recordCashierPayment()} disabled={busy}>{busy ? "Recording…" : "Record payment"}</button>
+                </>
+              )}
+              {cashierFee && cashierFee.balance <= 0 && <p className="muted">This student has no outstanding balance.</p>}
+            </div>
+          </div>
+        )}
+
         {role === "ADMIN" && (
           <>
             <div className="card" style={{ marginBottom: 18 }}>
@@ -437,7 +570,7 @@ export default function FeesPage() {
           </>
         )}
 
-        <div className="grid">
+        {role !== "CASHIER" && <div className="grid">
           {fees.map(fee => (
             <div className="card" key={fee.id}>
               <strong>{fee.student.firstName} {fee.student.lastName}</strong>
@@ -518,7 +651,7 @@ export default function FeesPage() {
               <p className="muted">No fee record is available for this workspace yet.</p>
             </div>
           )}
-        </div>
+        </div>}
 
         {message && <p>{message}</p>}
       </section>
