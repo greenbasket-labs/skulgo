@@ -58,6 +58,26 @@ export default function SectionsPage() {
     void load();
   }, []);
 
+  async function removeSection(section: Section) {
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/sections/${section.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Unable to remove section.");
+      }
+
+      setSections(current => current.filter(item => item.id !== section.id));
+      setMessage(`${section.name} removed.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove section.");
+    }
+  }
+
   async function addSection(event: FormEvent) {
     event.preventDefault();
 
@@ -179,9 +199,19 @@ export default function SectionsPage() {
                   padding: 12,
                   border: "1px solid #e5e7eb",
                   borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
                 }}
               >
                 <strong>{section.name}</strong>
+                <button
+                  type="button"
+                  onClick={() => void removeSection(section)}
+                >
+                  Remove
+                </button>
               </div>
             ))}
           </div>
