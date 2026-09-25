@@ -67,6 +67,11 @@ export default function Register() {
           </label>
 
           <label className="grid">
+            <span>Referral ID <span className="muted">(optional)</span></span>
+            <input name="referralCode" placeholder="e.g. SKG100-001" />
+          </label>
+
+          <label className="grid">
             <span>Confirm password</span>
             <input
               required
