@@ -61,6 +61,63 @@ export default function ClassesPage() {
   const selected = sections.find(section => section.id === selectedId);
   const starterNames = selected ? starterClassNames(selected.name) : [];
 
+  async function updateArm(schoolClass: SchoolClass, arm: string) {
+    if (!schoolId) return;
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/classes/${schoolClass.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ arm }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data?.error ?? "Unable to update class arm.");
+
+      setSections(current =>
+        current.map(section =>
+          section.id !== selectedId
+            ? section
+            : {
+                ...section,
+                classes: section.classes.map(item =>
+                  item.id === schoolClass.id ? { ...item, arm: data.arm } : item
+                ),
+              }
+        )
+      );
+      setMessage(`${schoolClass.name} updated.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update class arm.");
+    }
+  }
+
+  async function removeClass(schoolClass: SchoolClass) {
+    if (!schoolId) return;
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/classes/${schoolClass.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data?.error ?? "Unable to remove class.");
+
+      setSections(current =>
+        current.map(section =>
+          section.id !== selectedId
+            ? section
+            : { ...section, classes: section.classes.filter(item => item.id !== schoolClass.id) }
+        )
+      );
+      setMessage(`${schoolClass.name} removed.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove class.");
+    }
+  }
+
   async function saveStarterClasses() {
     if (!schoolId || !selected || starterNames.length === 0) return;
 
@@ -168,10 +225,32 @@ export default function ClassesPage() {
                         padding: 12,
                         border: "1px solid #e5e7eb",
                         borderRadius: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        flexWrap: "wrap",
                       }}
                     >
-                      <strong>{schoolClass.name}</strong>
-                      {schoolClass.arm ? <span> — Arm {schoolClass.arm}</span> : null}
+                      <div>
+                        <strong>{schoolClass.name}</strong>
+                        {schoolClass.arm ? <span> — Arm {schoolClass.arm}</span> : null}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <select
+                          value={schoolClass.arm ?? ""}
+                          onChange={event => void updateArm(schoolClass, event.target.value)}
+                          aria-label={`Arm for ${schoolClass.name}`}
+                        >
+                          <option value="">No arm</option>
+                          <option value="A">Arm A</option>
+                          <option value="B">Arm B</option>
+                          <option value="C">Arm C</option>
+                        </select>
+                        <button type="button" onClick={() => void removeClass(schoolClass)}>
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
