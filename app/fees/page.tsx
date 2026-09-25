@@ -36,6 +36,22 @@ type Fee = {
   student: { id: string; admissionId: string; firstName: string; lastName: string };
 };
 
+type ClassStudent = {
+  id: string;
+  admissionId: string;
+  firstName: string;
+  lastName: string;
+};
+
+type PaymentHistory = {
+  id: string;
+  amount: number;
+  reference: string | null;
+  paymentMethod: string;
+  tellerNumber: string | null;
+  paidAt: string;
+};
+
 function money(value: number) {
   return "₦" + value.toLocaleString("en-NG", { maximumFractionDigits: 2 });
 }
@@ -70,6 +86,46 @@ export default function FeesPage() {
 
   const role = user?.membership?.role;
   const schoolId = user?.membership?.schoolId;
+
+  const filteredFeeClasses = classes.filter(item => {
+    const label = `${item.section.name} · ${item.name}${item.arm ? ` · Arm ${item.arm}` : ""}`;
+    return label.toLowerCase().includes(classSearch.trim().toLowerCase());
+  });
+
+  const selectedFeeClass = classes.find(item => item.id === selectedFeeClassId);
+  const selectedClassStudents = (selectedFeeClass?.students ?? []) as ClassStudent[];
+  const classFeeRows = selectedClassStudents.map(student => {
+    const fee = fees.find(item => item.studentId === student.id);
+    return {
+      student,
+      totalFee: fee?.totalFee ?? 0,
+      totalPaid: fee?.totalPaid ?? 0,
+      balance: fee?.balance ?? 0,
+    };
+  });
+  const classTotalFee = classFeeRows.reduce((sum, row) => sum + row.totalFee, 0);
+  const classTotalPaid = classFeeRows.reduce((sum, row) => sum + row.totalPaid, 0);
+  const classBalance = classFeeRows.reduce((sum, row) => sum + row.balance, 0);
+  const classPaymentPercentage = classTotalFee > 0
+    ? Math.round((classTotalPaid / classTotalFee) * 100)
+    : 0;
+
+  async function openPaymentHistory(student: ClassStudent) {
+    if (!schoolId) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/payments?studentId=${encodeURIComponent(student.id)}`);
+      const data = await response.json().catch(() => []);
+      if (!response.ok) throw new Error(data?.error || "Unable to load payment history.");
+      setPaymentHistory(Array.isArray(data) ? data : []);
+      setPaymentHistoryStudent(student);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to load payment history.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function load() {
     const meKey = "skulgo-current-me";
@@ -521,6 +577,122 @@ export default function FeesPage() {
                 </button>
               </div>
             </div>
+            <div className="card" style={{ marginBottom: 18 }}>
+              <h2>Class payment overview</h2>
+              <p className="muted">Search or choose a class to see payment progress and student balances.</p>
+              <div className="grid grid-2">
+                <input
+                  value={classSearch}
+                  onChange={event => setClassSearch(event.target.value)}
+                  placeholder="Search class"
+                  aria-label="Search class"
+                />
+                <select
+                  value={selectedFeeClassId}
+                  onChange={event => {
+                    setSelectedFeeClassId(event.target.value);
+                    setPaymentHistoryStudent(null);
+                    setPaymentHistory([]);
+                  }}
+                  aria-label="Choose class"
+                >
+                  <option value="">Choose class</option>
+                  {filteredFeeClasses.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.section.name} · {item.name}{item.arm ? ` · Arm ${item.arm}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedFeeClass && (
+                <div style={{ marginTop: 16 }}>
+                  <div className="grid grid-2">
+                    <div className="card">
+                      <p className="muted">Students</p>
+                      <div className="stat">{classFeeRows.length}</div>
+                    </div>
+                    <div className="card">
+                      <p className="muted">Payment</p>
+                      <div className="stat">{classPaymentPercentage}%</div>
+                    </div>
+                    <div className="card">
+                      <p className="muted">Paid</p>
+                      <div className="stat">{money(classTotalPaid)}</div>
+                    </div>
+                    <div className="card">
+                      <p className="muted">Outstanding</p>
+                      <div className="stat">{money(classBalance)}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16 }}>
+                    <strong>{selectedFeeClass.section.name} · {selectedFeeClass.name}{selectedFeeClass.arm ? ` · Arm ${selectedFeeClass.arm}` : ""}</strong>
+                    {!classFeeRows.length ? (
+                      <p className="muted">No students are saved in this class yet.</p>
+                    ) : (
+                      <div className="grid" style={{ marginTop: 10 }}>
+                        {classFeeRows.map(row => (
+                          <button
+                            key={row.student.id}
+                            type="button"
+                            className="card"
+                            style={{ textAlign: "left", cursor: "pointer" }}
+                            onClick={() => void openPaymentHistory(row.student)}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                              <div>
+                                <strong>{row.student.firstName} {row.student.lastName}</strong>
+                                <p className="muted" style={{ margin: "4px 0 0" }}>{row.student.admissionId}</p>
+                              </div>
+                              <div>
+                                <strong>{row.balance <= 0 && row.totalFee > 0 ? "Paid" : row.totalPaid > 0 ? "Partial" : "Not paid"}</strong>
+                                <p className="muted" style={{ margin: "4px 0 0" }}>
+                                  Paid {money(row.totalPaid)} · Balance {money(row.balance)}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {paymentHistoryStudent && (
+                    <div className="card" style={{ marginTop: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                        <div>
+                          <strong>Payment history · {paymentHistoryStudent.firstName} {paymentHistoryStudent.lastName}</strong>
+                          <p className="muted" style={{ margin: "4px 0 0" }}>{paymentHistoryStudent.admissionId}</p>
+                        </div>
+                        <button className="button" type="button" onClick={() => {
+                          setPaymentHistoryStudent(null);
+                          setPaymentHistory([]);
+                        }}>Close</button>
+                      </div>
+                      {!paymentHistory.length ? (
+                        <p className="muted" style={{ marginTop: 12 }}>No payment history found.</p>
+                      ) : (
+                        <div className="grid" style={{ marginTop: 12 }}>
+                          {paymentHistory.map(payment => (
+                            <div key={payment.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+                              <strong>{money(payment.amount)}</strong>
+                              <p className="muted" style={{ margin: "4px 0 0" }}>
+                                {new Date(payment.paidAt).toLocaleString("en-NG")}
+                              </p>
+                              <p className="muted" style={{ margin: "4px 0 0" }}>
+                                {payment.paymentMethod}{payment.tellerNumber ? ` · Teller ${payment.tellerNumber}` : ""}{payment.reference ? ` · Ref ${payment.reference}` : ""}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="card" style={{ marginBottom: 18 }}>
               <h2>Payment options</h2>
               <p className="muted">Only a verified school-owned payment account can be enabled. Never enter provider secret keys here.</p>
