@@ -60,7 +60,7 @@ export default function FeesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [fees, setFees] = useState<Fee[]>([]);
   const [feeDefinitions, setFeeDefinitions] = useState<FeeDefinition[]>([]);
-  const [classes, setClasses] = useState<{ id: string; name: string; arm: string | null; section: { name: string } }[]>([]);
+  const [classes, setClasses] = useState<{ id: string; name: string; arm: string | null; section: { name: string }; students: ClassStudent[] }[]>([]);
   const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
   const [feeTitle, setFeeTitle] = useState("");
   const [feeBody, setFeeBody] = useState("");
@@ -72,6 +72,11 @@ export default function FeesPage() {
   const [providerAccountName, setProviderAccountName] = useState("");
   const [providerAccountLast4, setProviderAccountLast4] = useState("");
   const [providerMerchantReference, setProviderMerchantReference] = useState("");
+
+  const [classSearch, setClassSearch] = useState("");
+  const [selectedFeeClassId, setSelectedFeeClassId] = useState("");
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
+  const [paymentHistoryStudent, setPaymentHistoryStudent] = useState<ClassStudent | null>(null);
 
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
