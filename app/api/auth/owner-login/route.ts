@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { createOrReuseDevice, setSession, verifyPassword } from "@/lib/auth";
+import { createOrReuseDevice, setOwnerSession, setSession, verifyPassword } from "@/lib/auth";
 
 function isMobile(request: Request) {
   const userAgent = request.headers.get("user-agent")?.toLowerCase() ?? "";
@@ -31,12 +31,18 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true });
-  const deviceId = await createOrReuseDevice(user.id, response, 1);
+  const deviceId = await createOrReuseDevice(user.id, response, 2, 7);
 
   if (!deviceId) {
-    return NextResponse.json({ error: "The SkulGo Owner account already has an active device." }, { status: 429 });
+    return NextResponse.json(
+      { error: "The SkulGo Owner account already has 2 active devices." },
+      { status: 429 }
+    );
   }
 
-  setSession(response, { id: user.id }, null, deviceId);
+  const ownerSessionMaxAge = 60 * 60 * 24 * 30;
+  setSession(response, { id: user.id }, null, deviceId, ownerSessionMaxAge);
+  setOwnerSession(response, { id: user.id }, deviceId);
+
   return response;
 }
