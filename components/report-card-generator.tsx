@@ -56,6 +56,15 @@ function remarkForGrade(grade: string) {
   }
 }
 
+function overallGradeForAverage(average: number) {
+  if (average >= 70) return "A";
+  if (average >= 60) return "B";
+  if (average >= 50) return "C";
+  if (average >= 45) return "D";
+  if (average >= 40) return "E";
+  return "F";
+}
+
 function overallRemark(average: number) {
   if (average >= 70) return "Excellent performance. Keep up the consistent effort.";
   if (average >= 60) return "Very good performance. Continue working hard.";
@@ -86,12 +95,23 @@ export function ReportCardGenerator({
   const total = results.reduce((sum, item) => sum + item.total, 0);
   const maximum = results.length * 100;
   const average = results.length ? results.reduce((sum, item) => sum + item.percentage, 0) / results.length : 0;
-  const overallGrade =
+  const overallGrade = overallGradeForAverage(average);
+  const defaultTeacherRemark = settings?.teacherRemarks?.[overallGrade] || overallRemark(average);
+  const defaultPrincipalRemark = settings?.principalRemarks?.[overallGrade] || "Continue to support the student’s learning and maintain regular attendance.";
+  /*
+    The grade-based defaults are school-editable in Result Settings.
+    The explicit teacherRemark/principalRemark props still take precedence when supplied.
+  */
+  /*
+    Legacy calculation kept out of the UI; overallGrade now uses the same thresholds.
+  */
+  /* OLD:
     average >= 70 ? "A" :
     average >= 60 ? "B" :
     average >= 50 ? "C" :
     average >= 45 ? "D" :
     average >= 40 ? "E" : "F";
+  */
   const overallPosition = results.length ? Math.min(...results.map(item => item.position)) : null;
 
   const print = () => window.print();
@@ -198,13 +218,13 @@ export function ReportCardGenerator({
             {show("showTeacherRemark") && (
               <div className="report-card-remark">
                 <strong>Teacher Remark</strong>
-                <span>{teacherRemark || overallRemark(average)}</span>
+                <span>{teacherRemark || defaultTeacherRemark}</span>
               </div>
             )}
             {show("showPrincipalRemark") && (
               <div className="report-card-remark">
                 <strong>Principal Remark</strong>
-                <span>{principalRemark || "Continue to support the student’s learning and maintain regular attendance."}</span>
+                <span>{principalRemark || defaultPrincipalRemark}</span>
               </div>
             )}
           </div>
