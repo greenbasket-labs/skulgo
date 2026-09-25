@@ -9,7 +9,6 @@ type Settings = {
   firstTermLabel: string;
   secondTermLabel: string;
   thirdTermLabel: string;
-  resultUnlockPrice: number;
   digitalResultEnabled: boolean;
   showPosition: boolean;
   showAttendance: boolean;
@@ -30,7 +29,6 @@ const DEFAULT_SETTINGS: Settings = {
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
   thirdTermLabel: "Third Term",
-  resultUnlockPrice: 200,
   digitalResultEnabled: true,
   showPosition: true,
   showAttendance: true,
@@ -165,27 +163,6 @@ export default function SettingsPage() {
           </div>
           <input value={settings.thirdTermLabel} onChange={e => setSettings(s => ({ ...s, thirdTermLabel: e.target.value }))} placeholder="Third term label" />
         </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2>Result unlock</h2>
-        <p className="muted">SkulGo controls the unlock feature. The school only sets the amount charged to view its published result.</p>
-        <input
-          inputMode="decimal"
-          value={settings.resultUnlockPrice}
-          onChange={e => setSettings(s => ({ ...s, resultUnlockPrice: Number(e.target.value) }))}
-          placeholder="Unlock price"
-        />
-        <p className="muted">Current price: ₦{settings.resultUnlockPrice.toLocaleString("en-NG")}</p>
-        <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            checked={settings.digitalResultEnabled}
-            onChange={e => setSettings(s => ({ ...s, digitalResultEnabled: e.target.checked }))}
-          />
-          Digital result available after unlock
-        </label>
-        <p className="muted">Feature owner: SkulGo</p>
       </section>
 
       <section className="card" style={{ marginTop: 18 }}>
