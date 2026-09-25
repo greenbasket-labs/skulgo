@@ -31,14 +31,14 @@ export async function PUT(request: Request) {
 
   for (const key of booleanKeys) {
     if (typeof body?.[key] !== "boolean") {
-      return NextResponse.json({ error: \`Invalid \${key}.\` }, { status: 400 });
+      return NextResponse.json({ error: `Invalid ${key}.` }, { status: 400 });
     }
   }
 
   for (const key of numberKeys) {
     const value = Number(body?.[key]);
     if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
-      return NextResponse.json({ error: \`Invalid \${key}.\` }, { status: 400 });
+      return NextResponse.json({ error: `Invalid ${key}.` }, { status: 400 });
     }
   }
 
