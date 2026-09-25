@@ -8,9 +8,11 @@ export function referralLevel(referralCount: number) {
   return "Member";
 }
 
-export function createReferralCode(foundingNumber: number | null) {
-  if (foundingNumber !== null) {
-    return `SKG100-${String(foundingNumber).padStart(3, "0")}`;
+export function createReferralCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let suffix = "";
+  for (let i = 0; i < 6; i += 1) {
+    suffix += alphabet[randomBytes(1)[0] % alphabet.length];
   }
-  return `SKG-${randomBytes(4).toString("hex").toUpperCase()}`;
+  return `SKG${suffix}`;
 }
