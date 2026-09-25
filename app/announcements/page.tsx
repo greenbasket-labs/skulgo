@@ -7,6 +7,7 @@ type Announcement = {
   title: string;
   body: string;
   createdAt: string;
+  audience: string;
 };
 
 type User = {
@@ -21,6 +22,7 @@ export default function AnnouncementsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [audience, setAudience] = useState("SCHOOL");
   const [message, setMessage] = useState("Loading...");
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +68,7 @@ export default function AnnouncementsPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, body }),
+          body: JSON.stringify({ title, body, audience }),
         }
       );
 
@@ -79,6 +81,7 @@ export default function AnnouncementsPage() {
 
       setTitle("");
       setBody("");
+      setAudience("SCHOOL");
       setMessage("Announcement posted.");
       await load();
     } catch {
@@ -121,6 +124,14 @@ export default function AnnouncementsPage() {
               rows={4}
               required
             />
+            <select value={audience} onChange={event => setAudience(event.target.value)}>
+              <option value="SCHOOL">Whole school</option>
+              <option value="STAFF">Staff</option>
+              <option value="TEACHER">Teachers</option>
+              <option value="STUDENT">Students</option>
+              <option value="PARENT">Parents</option>
+              <option value="CASHIER">Cashiers</option>
+            </select>
           </div>
           <button className="button" type="submit" disabled={saving}>
             {saving ? "Posting..." : "Post announcement"}
@@ -138,6 +149,7 @@ export default function AnnouncementsPage() {
             <article className="card" key={item.id}>
               <h2>{item.title}</h2>
               <p>{item.body}</p>
+              <p className="muted">{item.audience === "SCHOOL" ? "Whole school" : item.audience === "STAFF" ? "Staff" : item.audience === "TEACHER" ? "Teachers" : item.audience === "STUDENT" ? "Students" : item.audience === "PARENT" ? "Parents" : "Cashiers"}</p>
               <p className="muted">{new Date(item.createdAt).toLocaleString()}</p>
             </article>
           ))}
