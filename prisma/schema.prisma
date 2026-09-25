@@ -104,6 +104,11 @@ model User {
   parent Parent?
   cashier Cashier?
   createdAt DateTime @default(now())
+  referralCode String @unique
+  foundingNumber Int? @unique
+  referredById String?
+  referredBy User? @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals User[] @relation("UserReferrals")
   requests SchoolRequest[]
   memberships SchoolMembership[]
   auditLogs AuditLog[] @relation("AuditActor")
