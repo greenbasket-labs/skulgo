@@ -1,3 +1,4 @@
+import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 
 function money(value: number) {
@@ -5,6 +6,7 @@ function money(value: number) {
 }
 
 export default async function OwnerPayments() {
+  await requireOwner();
   const [summary, payments] = await Promise.all([
     db.payment.aggregate({ _sum: { amount: true }, _count: { _all: true } }),
     db.payment.findMany({
