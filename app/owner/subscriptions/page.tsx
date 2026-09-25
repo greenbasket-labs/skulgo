@@ -1,6 +1,8 @@
+import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 
 export default async function OwnerSubscriptions() {
+  await requireOwner();
   const subscriptions = await db.schoolSubscription.findMany({
     orderBy: { createdAt: "desc" },
     include: { school: { select: { name: true, abbr: true } } },
