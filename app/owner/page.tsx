@@ -2,7 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 
 export default async function OwnerOverview() {
-  const [schools, activeSubscriptions, trialSubscriptions, recentSchools] = await Promise.all([
+  const [users, schools, activeSubscriptions, trialSubscriptions, recentSchools] = await Promise.all([
+    db.user.count(),
     db.school.count(),
     db.schoolSubscription.count({ where: { status: "ACTIVE" } }),
     db.schoolSubscription.count({ where: { status: "TRIAL" } }),
@@ -19,6 +20,7 @@ export default async function OwnerOverview() {
         <div><p className="muted">SkulGo Owner</p><h1>Overview</h1><p>One simple view of the schools using SkulGo.</p></div>
       </div>
       <div className="grid grid-2">
+        <div className="card"><p className="muted">Users</p><div className="stat">{users}</div><Link href="/owner/users">View users →</Link></div>
         <div className="card"><p className="muted">Schools</p><div className="stat">{schools}</div><Link href="/owner/schools">View schools →</Link></div>
         <div className="card"><p className="muted">Active subscriptions</p><div className="stat">{activeSubscriptions}</div><Link href="/owner/subscriptions">View subscriptions →</Link></div>
         <div className="card"><p className="muted">Trials</p><div className="stat">{trialSubscriptions}</div></div>
