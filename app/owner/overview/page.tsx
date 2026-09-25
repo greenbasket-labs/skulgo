@@ -1,7 +1,9 @@
+import { requireOwner } from "@/lib/owner";
 import Link from "next/link";
 import { db } from "@/lib/db";
 
 export default async function OwnerOverview() {
+  await requireOwner();
   const [users, schools, activeSubscriptions, trialSubscriptions, recentSchools] = await Promise.all([
     db.user.count(),
     db.school.count(),
