@@ -23,8 +23,19 @@ export async function GET(
     return NextResponse.json({ error: "School access required" }, { status: 403 });
   }
 
+  const role = membership.role;
+  const audienceWhere = role === "ADMIN"
+    ? {}
+    : {
+        OR: [
+          { audience: "SCHOOL" },
+          { audience: role },
+          ...(role === "TEACHER" || role === "CASHIER" ? [{ audience: "STAFF" }] : []),
+        ],
+      };
+
   return NextResponse.json(await db.announcement.findMany({
-    where: { schoolId },
+    where: { schoolId, ...audienceWhere },
     orderBy: { createdAt: "desc" },
   }));
 }
@@ -45,6 +56,10 @@ export async function POST(
   const body = await request.json().catch(() => null);
   const title = typeof body?.title === "string" ? body.title.trim() : "";
   const announcementBody = typeof body?.body === "string" ? body.body.trim() : "";
+  const allowedAudiences = ["SCHOOL", "STAFF", "TEACHER", "STUDENT", "PARENT", "CASHIER"];
+  const audience = typeof body?.audience === "string" && allowedAudiences.includes(body.audience)
+    ? body.audience
+    : "SCHOOL";
 
   if (!title || !announcementBody) {
     return NextResponse.json({ error: "Title and message are required" }, { status: 400 });
@@ -55,6 +70,7 @@ export async function POST(
       schoolId,
       title,
       body: announcementBody,
+      audience,
       createdById: user.id,
     },
   });
@@ -65,7 +81,7 @@ export async function POST(
     action: "CREATE",
     entity: "ANNOUNCEMENT",
     entityId: announcement.id,
-    details: { title },
+    details: { title, audience },
   });
 
   return NextResponse.json(announcement, { status: 201 });
