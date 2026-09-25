@@ -21,6 +21,14 @@ const DEFAULT_SETTINGS = {
   showStudentName: true,
   showAdmissionId: true,
   showClass: true,
+  teacherRemarks: {
+    A: "Excellent performance. Keep it up.", B: "Very good performance. Continue working hard.", C: "Good effort. More consistent study will improve performance.",
+    D: "Performance is below average. More effort is required.", E: "Performance needs improvement. More focus and regular study are required.", F: "Performance is very low. Immediate improvement is required.",
+  },
+  principalRemarks: {
+    A: "Excellent performance. Keep up the good work.", B: "Very good performance. Continue to improve.", C: "Satisfactory performance. Encourage more consistent effort.",
+    D: "Performance needs improvement. Closer attention is advised.", E: "More effort and support are required.", F: "Significant improvement is required. Close support is advised.",
+  },
 };
 
 const DEFAULT_GRADING_BANDS = [
@@ -135,6 +143,22 @@ export async function PATCH(
     "showClass",
   ] as const) {
     if (body?.settings?.[field] !== undefined) nextSettings[field] = Boolean(body.settings[field]);
+  }
+
+  for (const field of ["teacherRemarks", "principalRemarks"] as const) {
+    if (body?.settings?.[field] !== undefined) {
+      const value = body.settings[field];
+      if (!value || typeof value !== "object") return NextResponse.json({ error: "Invalid " + field }, { status: 400 });
+      const next = { ...nextSettings[field] };
+      for (const grade of ["A", "B", "C", "D", "E", "F"]) {
+        if (value[grade] !== undefined) {
+          const remark = String(value[grade]).trim();
+          if (!remark) return NextResponse.json({ error: field + " " + grade + " cannot be empty" }, { status: 400 });
+          next[grade] = remark;
+        }
+      }
+      nextSettings[field] = next;
+    }
   }
 
   let nextBands = parseBands(current.gradingBands);
