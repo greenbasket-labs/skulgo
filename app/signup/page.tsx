@@ -1,14 +1,21 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Register() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const searchParams = useSearchParams();
-  const referredBy = (searchParams.get("ref") ?? "").trim().toUpperCase();
-  const [referralCode, setReferralCode] = useState(referredBy || "SKGA6UBY5");
+  const [referralCode, setReferralCode] = useState("SKGA6UBY5");
+  const [referredBy, setReferredBy] = useState("");
+
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? "";
+    if (ref) {
+      setReferralCode(ref);
+      setReferredBy(ref);
+    }
+  }, []);
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
