@@ -70,7 +70,7 @@ export default async function Dashboard() {
         db.schoolRequest.count({ where: { schoolId, status: "PENDING" } }),
         db.attendance.findMany({
           where: { schoolId, date: { gte: todayStart, lt: tomorrow } },
-          select: { present: true, student: { select: { gender: true } } },
+          select: { present: true },
         }),
         db.payment.aggregate({
           where: { schoolId, paidAt: { gte: todayStart, lt: tomorrow } },
@@ -91,14 +91,8 @@ export default async function Dashboard() {
           <div className="card"><p className="muted">Teachers</p><div className="stat">{teachers}</div></div>
           <div className="card"><p className="muted">Classes</p><div className="stat">{classes}</div></div>
           <div className="card"><p className="muted">Sections</p><div className="stat">{sections}</div></div>
-          <div className="card"><p className="muted">Today's attendance</p><div className="stat">{attendancePercentage}%</div><Link href="/admin/attendance">View by class →</Link></div>
+          <div className="card"><p className="muted">Today's attendance</p><div className="stat">{attendancePercentage}%</div></div>
           <div className="card"><p className="muted">Today's payments</p><div className="stat">{money(payments._sum.amount ?? 0)}</div></div>
-        </div>
-
-        <div className="card" style={{ marginTop: 18 }}>
-          <strong>Daily attendance record</strong>
-          <p className="muted">Follow today's attendance from class to each student.</p>
-          <Link className="button" href="/admin/attendance">Open attendance →</Link>
         </div>
 
         <div className="card" style={{ marginTop: 18 }}>
