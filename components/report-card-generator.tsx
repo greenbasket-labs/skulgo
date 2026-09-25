@@ -217,13 +217,13 @@ export function ReportCardGenerator({
             <div className="report-card-section-title">Remarks</div>
             {show("showTeacherRemark") && (
               <div className="report-card-remark">
-                <strong>Teacher Remark</strong>
+                <strong>{settings?.teacherRemarkLabel || "Teacher Remark"}</strong>
                 <span>{teacherRemark || defaultTeacherRemark}</span>
               </div>
             )}
             {show("showPrincipalRemark") && (
               <div className="report-card-remark">
-                <strong>Principal Remark</strong>
+                <strong>{settings?.principalRemarkLabel || "Principal Remark"}</strong>
                 <span>{principalRemark || defaultPrincipalRemark}</span>
               </div>
             )}
