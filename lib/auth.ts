@@ -6,6 +6,7 @@ const COOKIE = "skulgo_session";
 const OWNER_COOKIE = "skulgo_owner_session";
 const DEVICE_COOKIE = "skulgo_device";
 const MAX_AGE = 60 * 60 * 24 * 7;
+const OWNER_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 const DEVICE_MAX_AGE = 60 * 60 * 24 * 30;
 const OWNER_DEVICE_INACTIVITY_DAYS = 7;
 const DEFAULT_DEVICE_INACTIVITY_DAYS = 30;
@@ -150,18 +151,19 @@ export function setSession(
   response: Response,
   user: { id: string },
   membershipId: string | null = null,
-  deviceId: string
+  deviceId: string,
+  maxAge = MAX_AGE
 ) {
   const token = encode({
     userId: user.id,
     membershipId,
     deviceId,
-    exp: Math.floor(Date.now() / 1000) + MAX_AGE,
+    exp: Math.floor(Date.now() / 1000) + maxAge,
   });
 
   response.headers.append(
     "Set-Cookie",
-    `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+    `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
   );
 }
 
@@ -170,12 +172,12 @@ export function setOwnerSession(response: Response, user: { id: string }, device
     userId: user.id,
     membershipId: null,
     deviceId,
-    exp: Math.floor(Date.now() / 1000) + MAX_AGE,
+    exp: Math.floor(Date.now() / 1000) + OWNER_SESSION_MAX_AGE,
   });
 
   response.headers.append(
     "Set-Cookie",
-    `${OWNER_COOKIE}=${token}; Path=/owner; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+    `${OWNER_COOKIE}=${token}; Path=/owner; HttpOnly; SameSite=Lax; Max-Age=${OWNER_SESSION_MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
   );
 }
 
