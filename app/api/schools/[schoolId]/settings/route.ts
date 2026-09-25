@@ -153,7 +153,7 @@ export async function PATCH(
     if (body?.settings?.[field] !== undefined) {
       const value = body.settings[field];
       if (!value || typeof value !== "object") return NextResponse.json({ error: "Invalid " + field }, { status: 400 });
-      const next: Record<string, string> = { ...nextSettings[field] };
+      const next: typeof nextSettings[typeof field] = { ...nextSettings[field] };
       for (const grade of ["A", "B", "C", "D", "E", "F"]) {
         if (value[grade] !== undefined) {
           const remark = String(value[grade]).trim();
