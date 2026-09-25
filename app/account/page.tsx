@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { referralLevel } from "@/lib/referrals";
 import SchoolConnections from "@/components/school-connections";
 import WorkspacePin from "@/components/workspace-pin";
+import ReferralShare from "@/components/referral-share";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -73,6 +74,7 @@ export default async function AccountPage() {
             <div>
               <p className="muted">Referral ID</p>
               <strong>{referral.referralCode}</strong>
+              <ReferralShare referralCode={referral.referralCode} />
             </div>
             <div>
               <p className="muted">Level</p>
