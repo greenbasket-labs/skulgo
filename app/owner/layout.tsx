@@ -28,7 +28,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
           <Link href="/owner/subscriptions">Subscriptions</Link>
           <Link href="/owner/payments">Payments</Link>
           <Link href="/owner/system">System</Link>
-          <Link href="/owner/activity">Activity</Link>
+          <Link href="/owner/activity">Activity</Link>\n          <Link href="/owner/messages">Messages / Requests</Link>
         </nav>
         <div className="workspace-person">
           <strong>{user.name}</strong>
