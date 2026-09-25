@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     let generatedReferralCode = createReferralCode();
     {
       while (await tx.user.findUnique({ where: { referralCode: generatedReferralCode }, select: { id: true } })) {
-        generatedReferralCode = createReferralCode(null);
+        generatedReferralCode = createReferralCode();
       }
     }
 
