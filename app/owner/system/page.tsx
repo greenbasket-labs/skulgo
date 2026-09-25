@@ -1,6 +1,8 @@
+import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 
 export default async function OwnerSystem() {
+  await requireOwner();
   const [users, schools, memberships, auditLogs] = await Promise.all([
     db.user.count(),
     db.school.count(),

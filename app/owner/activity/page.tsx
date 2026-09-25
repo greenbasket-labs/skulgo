@@ -1,6 +1,8 @@
+import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 
 export default async function OwnerActivity() {
+  await requireOwner();
   const activity = await db.auditLog.findMany({
     orderBy: { createdAt: "desc" },
     take: 50,

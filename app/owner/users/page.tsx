@@ -1,6 +1,8 @@
+import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
 
 export default async function OwnerUsers() {
+  await requireOwner();
   const users = await db.user.findMany({
     orderBy: { createdAt: "desc" },
     select: {
