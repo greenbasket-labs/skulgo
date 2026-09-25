@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "e2e": "playwright test",
-    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma",
+    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma --accept-data-loss",
     "build:prod": "npm install --include=dev && npm run postinstall && npm run db:push:prod && next build",
     "postinstall": "prisma generate --schema prisma/schema.production.prisma"
   },
