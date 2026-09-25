@@ -21,8 +21,8 @@ export type SchoolSettings = {
   showClass: boolean;
   teacherRemarks: Record<string, string>;
   principalRemarks: Record<string, string>;
-  teacherRemarkLabel: string;
-  principalRemarkLabel: string;
+  teacherRemarkLabel?: string;
+  principalRemarkLabel?: string;
 };
 
 export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
