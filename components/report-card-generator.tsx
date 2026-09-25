@@ -137,8 +137,6 @@ export function ReportCardGenerator({
                 <tr>
                   <th>S/N</th>
                   <th>Subject</th>
-                  <th>CA / 40</th>
-                  <th>Exam / 60</th>
                   {show("showTotal") && <th>Total</th>}
                   {show("showPercentage") && <th>%</th>}
                   {show("showGrade") && <th>Grade</th>}
@@ -152,8 +150,6 @@ export function ReportCardGenerator({
                     <tr key={`${item.subject.name}-${index}`}>
                       <td>{index + 1}</td>
                       <td>{item.subject.name}</td>
-                      <td>—</td>
-                      <td>—</td>
                       {show("showTotal") && <td>{item.total}</td>}
                       {show("showPercentage") && <td className={weak ? "report-card-danger-text" : ""}>{item.percentage.toFixed(0)}%</td>}
                       {show("showGrade") && <td className={weak ? "report-card-danger-cell" : ""}>{item.grade}</td>}
