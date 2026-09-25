@@ -352,7 +352,7 @@ This checkpoint records the actual next work so development follows the roadmap 
 
 - **Cashier workflow:** cashier identity, cashier dashboard/navigation, student Admission ID payment lookup, cash/manual bank-transfer recording and teller/receipt metadata are implemented in the development history.
 - **School result configuration:** school-owned grading bands, report-card settings/fields, term labels and configurable result-unlock price are implemented in the development history.
-- **Result Unlock:** the mechanism remains **SkulGo-owned**. The school controls only the price (default **₦200**).
+- **Result Unlock:** the mechanism remains **SkulGo-owned**. The school-facing product should not present a fixed SkulGo result-unlock price as a school setting. Commercial result-unlock pricing belongs in SkulGo terms and conditions; the full payment-gated access flow remains incomplete.
 - **Subscription plans:** the initial subscription/payment work is on the separate branch `feat/subscription-plans-payments` and is **not merged into `main`**. It includes Basic ₦2,500, Starter ₦5,000, Pro ₦10,000 and Premium ₦18,000 monthly plans, with Custom handled separately.
 - **Paystack:** production integration is prepared in the subscription branch. The Live Secret Key must remain server-side in Render and must never be committed to GitHub.
 - **Moniepoint:** manual bank-transfer subscription payment flow is prepared, but the approval model must be reviewed before production use; a school Admin must not be allowed to approve their own subscription payment as the final verification authority.
@@ -372,6 +372,24 @@ The latest confirmed **live** deployment is commit `854c0ed`. The dashboard synt
 4. **Finish subscription/payment integration safely** on `feat/subscription-plans-payments`: Paystack Live Secret Key only in Render environment variables; configure and verify Paystack webhook; verify successful transaction server-side; review Moniepoint verification authority; keep Custom outside fixed automatic pricing.
 5. **Run the controlled capacity test** against the actual deployed service. Record measured RPS, latency, error rate, web CPU/RAM and Postgres CPU/connections. Do not publish capacity limits from generic estimates.
 6. **Complete Admin verification, then continue the role sequence**: **Admin → Teacher → Student → Parent → Cashier → cross-role pilot**.
+
+### Newly confirmed roadmap items
+
+These are intentionally small platform capabilities, not a move toward a large ERP:
+
+- **SkulGo Admin Dashboard:** a lightweight internal SkulGo dashboard showing platform-level facts such as total registered users, total schools, active schools/users, and other simple operational counts that SkulGo itself owns. No large analytics system.
+- **Account Referral ID:** every personal SkulGo account should have a unique referral ID. Commission rules will be defined later; do not build a commission engine now.
+- **School → SkulGo Support:** add a small Support item to the school's Admin workspace. Admin can submit a title and body to SkulGo. The message should appear in the internal SkulGo Admin Dashboard for follow-up. Keep this as a simple support/contact record, not a chat system.
+
+### Confirmed next implementation sequence
+
+1. **Announcements** — keep/finish the existing lightweight announcement capability only where it is needed in the school workflow.
+2. **Subscription** — keep the existing basic school subscription model; billing is not core MVP and should remain small.
+3. **Result Unlock** — complete the actual payment-gated result access flow: Admin publishes → Student/Parent sees result-ready state → result remains locked → SkulGo verifies payment → result/report card becomes viewable and printable/downloadable.
+4. **Full payment-gated result access** — verify the complete end-to-end payment and access boundary before treating Result Unlock as complete.
+5. **SkulGo internal Admin Dashboard** — small platform overview only.
+6. **Unique referral ID per personal account** — ID first; commission definition later.
+7. **School Admin Support → SkulGo Admin** — simple title/body submission and internal visibility.
 
 ### Safety rule for this checkpoint
 
