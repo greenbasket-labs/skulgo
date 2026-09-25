@@ -8,6 +8,20 @@ function money(value: number) {
   return "₦" + value.toLocaleString("en-NG", { maximumFractionDigits: 2 });
 }
 
+function getGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-NG", {
+      timeZone: "Africa/Lagos",
+      hour: "numeric",
+      hour12: false,
+    }).format(new Date())
+  );
+
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default async function Dashboard() {
   const u = await getCurrentUser();
   if (!u) redirect("/login");
@@ -387,7 +401,7 @@ export default async function Dashboard() {
         <div className="workspace-header">
           <div>
             <p className="muted">{role.toLowerCase()} workspace · {u.membership.school.name}</p>
-            <h1>Good morning, {u.name.split(" ")[0]}</h1>
+            <h1>{getGreeting()}, {u.name.split(" ")[0]}</h1>
           </div>
         </div>
         {content}
