@@ -74,7 +74,7 @@ export default async function AccountPage() {
             <div>
               <p className="muted">Referral ID</p>
               <strong>{referral.referralCode}</strong>
-              <ReferralShare referralCode={referral.referralCode} />
+              {referral.referralCode && <ReferralShare referralCode={referral.referralCode} />}
             </div>
             <div>
               <p className="muted">Level</p>
