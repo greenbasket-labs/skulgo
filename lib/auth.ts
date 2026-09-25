@@ -80,7 +80,7 @@ function decode(token: string): Session | null {
   }
 }
 
-export async function createOrReuseDevice(userId: string, response: Response) {
+export async function createOrReuseDevice(userId: string, response: Response, maxActiveDevices = 2) {
   const cookieToken = (await cookies()).get(DEVICE_COOKIE)?.value;
   const now = new Date();
 
@@ -95,7 +95,7 @@ export async function createOrReuseDevice(userId: string, response: Response) {
   }
 
   const active = await db.deviceSession.count({ where: { userId, revokedAt: null } });
-  if (active >= 2) return null;
+  if (active >= maxActiveDevices) return null;
 
   const raw = randomBytes(32).toString("base64url");
   const device = await db.deviceSession.create({
