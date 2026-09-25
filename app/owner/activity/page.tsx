@@ -9,7 +9,7 @@ export default async function OwnerActivity() {
 
   return (
     <>
-      <div className="workspace-header"><div><p className="muted">SkulGo Owner</p><h1>Activity</h1><p>Recent important school-record changes.</p></div></div>
+      <div className="workspace-header"><div><p className="muted">SkulGo Owner</p><h1>Activity</h1><p>Recent activity recorded in the existing school audit logs.</p></div></div>
       <div className="grid">
         {!activity.length ? <div className="card"><p className="muted">No activity yet.</p></div> : activity.map(item => (
           <div className="card" key={item.id}>
