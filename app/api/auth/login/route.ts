@@ -12,6 +12,11 @@ export async function POST(request: Request) {
   }
 
   const user = await db.user.findUnique({ where: { email } });
+  const ownerEmail = process.env.SKULGO_OWNER_EMAIL?.trim().toLowerCase();
+  if (ownerEmail && email === ownerEmail) {
+    return NextResponse.json({ error: "Use the SkulGo Owner login at /owner/login." }, { status: 403 });
+  }
+
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ error: "Invalid login details" }, { status: 401 });
   }
