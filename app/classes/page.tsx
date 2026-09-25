@@ -6,7 +6,7 @@ import { starterClassNames } from "@/lib/class-catalog";
 type SchoolClass = { id: string; name: string; arm: string | null };
 type Section = { id: string; name: string; classes: SchoolClass[] };
 
-const arms = [
+const standardArms = [
   { value: "A", label: "Arm A" },
   { value: "B", label: "Arm B" },
   { value: "C", label: "Arm C" },
@@ -21,6 +21,7 @@ export default function ClassesPage() {
   const [message, setMessage] = useState("");
   const [customName, setCustomName] = useState("");
   const [customArm, setCustomArm] = useState("");
+  const [armChoice, setArmChoice] = useState("");
 
   async function load() {
     setLoading(true);
@@ -52,14 +53,14 @@ export default function ClassesPage() {
   const starterNames = selected ? starterClassNames(selected.name) : [];
 
   async function saveClass(name: string, arm: string) {
-    if (!schoolId || !selected || !name.trim() || !arm) return;
+    if (!schoolId || !selected || !name.trim() || !arm.trim()) return;
     setSaving(`${name}-${arm}`);
     setMessage("");
     try {
       const response = await fetch(`/api/schools/${schoolId}/classes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: selected.id, name: name.trim(), arm }),
+        body: JSON.stringify({ sectionId: selected.id, name: name.trim(), arm: arm.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error ?? "Unable to save class arm.");
@@ -67,7 +68,7 @@ export default function ClassesPage() {
       setSections(current => current.map(section =>
         section.id === selected.id ? { ...section, classes: [...section.classes, data] } : section
       ));
-      setMessage(`${name.trim()} Arm ${arm} saved.`);
+      setMessage(`${name.trim()} — ${arm.trim()} saved.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to save class arm.");
     } finally {
@@ -88,20 +89,23 @@ export default function ClassesPage() {
           ? { ...section, classes: section.classes.filter(item => item.id !== schoolClass.id) }
           : section
       ));
-      setMessage(`${schoolClass.name} ${schoolClass.arm ? `Arm ${schoolClass.arm}` : ""} removed.`);
+      setMessage(`${schoolClass.name} ${schoolClass.arm ? `— ${schoolClass.arm}` : ""} removed.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to remove class arm.");
     }
   }
 
   async function saveCustomClass() {
-    if (!customName.trim() || !customArm) {
-      setMessage("Enter a class name and choose an arm.");
+    const arm = armChoice === "CUSTOM" ? customArm.trim() : armChoice;
+    if (!customName.trim() || !arm) {
+      setMessage("Enter a class name and choose or enter an arm.");
       return;
     }
-    await saveClass(customName, customArm);
+
+    await saveClass(customName, arm);
     setCustomName("");
     setCustomArm("");
+    setArmChoice("");
   }
 
   return (
@@ -110,11 +114,15 @@ export default function ClassesPage() {
         <div>
           <p className="muted">Admin</p>
           <h1>Classes</h1>
-          <p>Save and remove each class arm separately.</p>
+          <p>Each arm is an independent class record.</p>
         </div>
       </div>
 
-      {message && <div role="status" style={{ marginBottom: 16, padding: 12, borderRadius: 8, background: "#f3f4f6" }}>{message}</div>}
+      {message && (
+        <div role="status" style={{ marginBottom: 16, padding: 12, borderRadius: 8, background: "#f3f4f6" }}>
+          {message}
+        </div>
+      )}
 
       {loading ? <p>Loading...</p> : sections.length === 0 ? (
         <section className="workspace-card">
@@ -139,14 +147,14 @@ export default function ClassesPage() {
           {selected && (
             <section className="workspace-card" style={{ marginTop: 20 }}>
               <div className="workspace-card-header">
-                <div><h2>{selected.name}</h2><p>Each arm is saved as its own class record.</p></div>
+                <div><h2>{selected.name}</h2><p>Each arm can have its own class master, teachers, students, attendance and scores.</p></div>
               </div>
 
               {selected.classes.length === 0 ? <p>No class arms saved yet.</p> : (
                 <div style={{ display: "grid", gap: 10 }}>
                   {selected.classes.map(schoolClass => (
                     <div key={schoolClass.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                      <strong>{schoolClass.name}{schoolClass.arm ? ` — Arm ${schoolClass.arm}` : ""}</strong>
+                      <strong>{schoolClass.name}{schoolClass.arm ? ` — ${schoolClass.arm}` : ""}</strong>
                       <button type="button" onClick={() => void removeClass(schoolClass)}>Remove</button>
                     </div>
                   ))}
@@ -155,10 +163,19 @@ export default function ClassesPage() {
 
               <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <input value={customName} onChange={event => setCustomName(event.target.value)} placeholder="Class name" aria-label="Class name" />
-                <select value={customArm} onChange={event => setCustomArm(event.target.value)} aria-label="Class arm">
+                <select value={armChoice} onChange={event => setArmChoice(event.target.value)} aria-label="Class arm">
                   <option value="">Choose arm</option>
-                  {arms.map(arm => <option key={arm.value} value={arm.value}>{arm.label}</option>)}
+                  {standardArms.map(arm => <option key={arm.value} value={arm.value}>{arm.label}</option>)}
+                  <option value="CUSTOM">Custom arm...</option>
                 </select>
+                {armChoice === "CUSTOM" && (
+                  <input
+                    value={customArm}
+                    onChange={event => setCustomArm(event.target.value)}
+                    placeholder="e.g. Gold, Blue, Science"
+                    aria-label="Custom arm name"
+                  />
+                )}
                 <button type="button" onClick={() => void saveCustomClass()} disabled={!!saving}>Save Arm</button>
               </div>
 
@@ -170,7 +187,7 @@ export default function ClassesPage() {
                       <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                         <strong>{name}</strong>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {arms.map(arm => (
+                          {standardArms.map(arm => (
                             <button key={arm.value} type="button" disabled={!!saving} onClick={() => void saveClass(name, arm.value)}>
                               {saving === `${name}-${arm.value}` ? "Saving..." : `Save ${arm.label}`}
                             </button>
