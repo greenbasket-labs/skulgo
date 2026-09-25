@@ -46,6 +46,7 @@ export default async function Dashboard() {
   const role = u.membership.role as WorkspaceRole;
   const schoolId = u.membership.schoolId;
   const nav = navForRole(role);
+  const workspaceLabel = role === "ADMIN" ? "Admin Office" : `${role.toLowerCase()} workspace`;
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -400,7 +401,7 @@ export default async function Dashboard() {
       <section className="workspace-main">
         <div className="workspace-header">
           <div>
-            <p className="muted">{role.toLowerCase()} workspace · {u.membership.school.name}</p>
+            <p className="muted">{workspaceLabel} · {u.membership.school.name}</p>
             <h1>{getGreeting()}, {u.name.split(" ")[0]}</h1>
           </div>
         </div>
