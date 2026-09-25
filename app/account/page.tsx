@@ -1,11 +1,32 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { referralLevel } from "@/lib/referrals";
 import SchoolConnections from "@/components/school-connections";
 import WorkspacePin from "@/components/workspace-pin";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  const referral = user.referralCode
+    ? await db.user.findUnique({
+        where: { id: user.id },
+        select: {
+          referralCode: true,
+          foundingNumber: true,
+          _count: {
+            select: {
+              referrals: {
+                where: { emailVerifiedAt: { not: null } },
+              },
+            },
+          },
+        },
+      })
+    : null;
+
+  const referralCount = referral?._count.referrals ?? 0;
 
   return (
     <main className="workspace-main">
@@ -43,6 +64,34 @@ export default async function AccountPage() {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 18 }}>
+        <h2>My Referral</h2>
+        {referral ? (
+          <div className="grid grid-2" style={{ marginTop: 16 }}>
+            <div>
+              <p className="muted">Referral ID</p>
+              <strong>{referral.referralCode}</strong>
+            </div>
+            <div>
+              <p className="muted">Level</p>
+              <strong>{referralLevel(referralCount)}</strong>
+            </div>
+            <div>
+              <p className="muted">Verified referrals</p>
+              <strong>{referralCount}</strong>
+            </div>
+            {referral.foundingNumber && (
+              <div>
+                <p className="muted">Founding 100</p>
+                <strong>#{referral.foundingNumber}</strong>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="muted">Your referral ID will be available for new accounts.</p>
+        )}
       </section>
 
       <WorkspacePin configured={Boolean(user.pinHash)} />
