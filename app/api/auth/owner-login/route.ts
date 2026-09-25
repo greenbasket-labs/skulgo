@@ -26,9 +26,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid owner login details." }, { status: 401 });
   }
 
-  if (!user.emailVerifiedAt) {
-    return NextResponse.json({ error: "Owner email must be verified before signing in." }, { status: 403 });
-  }
 
   const response = NextResponse.json({ ok: true });
   const deviceId = await createOrReuseDevice(user.id, response, 2, 7);
