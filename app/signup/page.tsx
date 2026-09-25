@@ -1,11 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Register() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const searchParams = useSearchParams();
+  const referredBy = (searchParams.get("ref") ?? "").trim().toUpperCase();
+  const [referralCode, setReferralCode] = useState(referredBy || "SKGA6UBY5");
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -68,8 +71,15 @@ export default function Register() {
 
           <label className="grid">
             <span>Referral ID <span className="muted">(optional)</span></span>
-            <input name="referralCode" defaultValue="SKGA6UBY5" placeholder="e.g. SKG65T3W" />
-            <span className="muted">Have a friend's SKG referral ID? Enter it here.</span>
+            <input
+              name="referralCode"
+              value={referralCode}
+              onChange={event => setReferralCode(event.target.value.toUpperCase())}
+              placeholder="e.g. SKG65T3W"
+            />
+            <span className="muted">
+              {referredBy ? "You were invited by a SkulGo user. You can clear or change this ID." : "Have a friend's SKG referral ID? Enter it here."}
+            </span>
           </label>
 
           <label className="grid">
