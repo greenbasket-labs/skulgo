@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
 import { createOtp, createRawToken, hashToken } from "@/lib/email-tokens";
+import { createReferralCode } from "@/lib/referrals";
 
 export async function POST(request: Request) {
   const b = await request.json().catch(() => null);
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   const email = String(b?.email ?? "").trim().toLowerCase();
   const password = String(b?.password ?? "").trim();
   const confirmPassword = String(b?.confirmPassword ?? b?.passwordConfirmation ?? "").trim();
+  const referralCode = String(b?.referralCode ?? "").trim().toUpperCase();
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: "name, email and password are required" }, { status: 400 });
@@ -27,19 +29,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
   }
 
+  let referredById: string | null = null;
+  if (referralCode) {
+    const referrer = await db.user.findUnique({
+      where: { referralCode },
+      select: { id: true },
+    });
+
+    if (!referrer) {
+      return NextResponse.json({ error: "Referral ID is not valid" }, { status: 400 });
+    }
+
+    referredById = referrer.id;
+  }
+
   const verificationToken = createRawToken();
   const verificationOtp = createOtp();
 
-  const user = await db.user.create({
-    data: {
-      name,
-      email,
-      passwordHash: hashPassword(password),
-      emailVerificationTokenHash: hashToken(verificationToken),
-      emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      emailVerificationOtpHash: hashToken(verificationOtp),
-      emailVerificationOtpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    },
+  const user = await db.$transaction(async tx => {
+    const foundingCount = await tx.user.count({
+      where: { foundingNumber: { not: null } },
+    });
+    const foundingNumber = foundingCount < 100 ? foundingCount + 1 : null;
+
+    let generatedReferralCode = createReferralCode();
+    {
+      while (await tx.user.findUnique({ where: { referralCode: generatedReferralCode }, select: { id: true } })) {
+        generatedReferralCode = createReferralCode(null);
+      }
+    }
+
+    return tx.user.create({
+      data: {
+        name,
+        email,
+        passwordHash: hashPassword(password),
+        referralCode: generatedReferralCode,
+        foundingNumber,
+        referredById,
+        emailVerificationTokenHash: hashToken(verificationToken),
+        emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        emailVerificationOtpHash: hashToken(verificationOtp),
+        emailVerificationOtpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        referralCode: true,
+        foundingNumber: true,
+      },
+    });
   });
 
   try {
@@ -55,7 +95,14 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(
-    { id: user.id, name: user.name, email: user.email, verificationSent: true },
+    {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      referralCode: user.referralCode,
+      foundingNumber: user.foundingNumber,
+      verificationSent: true,
+    },
     { status: 201 }
   );
 }

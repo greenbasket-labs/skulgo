@@ -221,6 +221,7 @@ export async function getCurrentUser() {
       id: true,
       name: true,
       email: true,
+      referralCode: true,
       pinHash: true,
       pinFailedAttempts: true,
       pinLockedUntil: true,
