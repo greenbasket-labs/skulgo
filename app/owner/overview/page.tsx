@@ -26,7 +26,8 @@ export default async function OwnerOverview() {
         <div className="card"><p className="muted">Schools</p><div className="stat">{schools}</div><Link href="/owner/schools">View schools →</Link></div>
         <div className="card"><p className="muted">Active subscriptions</p><div className="stat">{activeSubscriptions}</div><Link href="/owner/subscriptions">View subscriptions →</Link></div>
         <div className="card"><p className="muted">Trials</p><div className="stat">{trialSubscriptions}</div></div>
-        <div className="card"><p className="muted">Messages / Requests</p><div className="stat">{openSupport}</div><Link href="/owner/messages">Open requests →</Link></div>\n        <div className="card"><p className="muted">Platform</p><div className="stat">Online</div><Link href="/owner/system">System →</Link></div>
+        <div className="card"><p className="muted">Messages / Requests</p><div className="stat">{openSupport}</div><Link href="/owner/messages">Open requests →</Link></div>
+        <div className="card"><p className="muted">Platform</p><div className="stat">Online</div><Link href="/owner/system">System →</Link></div>
       </div>
       <div className="card" style={{ marginTop: 18 }}>
         <strong>Recent schools</strong>
