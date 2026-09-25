@@ -8,7 +8,8 @@ export default async function OwnerOverview() {
     db.user.count(),
     db.school.count(),
     db.schoolSubscription.count({ where: { status: "ACTIVE" } }),
-    db.schoolSubscription.count({ where: { status: "TRIAL" } }),\n    db.supportThread.count({ where: { status: "OPEN" } }),
+    db.schoolSubscription.count({ where: { status: "TRIAL" } }),
+    db.supportThread.count({ where: { status: "OPEN" } }),
     db.school.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
