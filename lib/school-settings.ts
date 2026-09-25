@@ -7,7 +7,6 @@ export type SchoolSettings = {
   firstTermLabel: string;
   secondTermLabel: string;
   thirdTermLabel: string;
-  resultUnlockPrice: number;
   digitalResultEnabled: boolean;
   showPosition: boolean;
   showAttendance: boolean;
@@ -29,7 +28,6 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
   thirdTermLabel: "Third Term",
-  resultUnlockPrice: 200,
   digitalResultEnabled: true,
   showPosition: true,
   showAttendance: true,
