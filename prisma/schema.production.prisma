@@ -64,6 +64,7 @@ model School {
   auditLogs AuditLog[]
   classSubjects ClassSubject[]
   attendanceSessions AttendanceSession[]
+  supportThreads SupportThread[]
 }
 
 model SchoolSubscription {
@@ -101,6 +102,8 @@ model User {
   memberships SchoolMembership[]
   auditLogs AuditLog[] @relation("AuditActor")
   deviceSessions DeviceSession[]
+  supportThreads SupportThread[] @relation("SupportThreadCreator")
+  supportMessages SupportMessage[] @relation("SupportMessageSender")
 }
 
 model SchoolMembership {
@@ -445,4 +448,35 @@ model DeviceSession {
   lastSeenAt DateTime @default(now())
   revokedAt DateTime?
   @@index([userId,revokedAt])
+}
+
+enum SupportStatus {
+  OPEN
+  CLOSED
+}
+
+model SupportThread {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  createdById String
+  createdBy User @relation("SupportThreadCreator",fields:[createdById],references:[id],onDelete:Cascade)
+  subject String
+  status SupportStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages SupportMessage[]
+  @@index([schoolId,status])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id String @id @default(cuid())
+  threadId String
+  thread SupportThread @relation(fields:[threadId],references:[id],onDelete:Cascade)
+  senderUserId String
+  sender User @relation("SupportMessageSender",fields:[senderUserId],references:[id],onDelete:Cascade)
+  body String
+  createdAt DateTime @default(now())
+  @@index([threadId,createdAt])
 }

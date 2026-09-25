@@ -4,11 +4,11 @@ import { db } from "@/lib/db";
 
 export default async function OwnerOverview() {
   await requireOwner();
-  const [users, schools, activeSubscriptions, trialSubscriptions, recentSchools] = await Promise.all([
+  const [users, schools, activeSubscriptions, trialSubscriptions, openSupport, recentSchools] = await Promise.all([
     db.user.count(),
     db.school.count(),
     db.schoolSubscription.count({ where: { status: "ACTIVE" } }),
-    db.schoolSubscription.count({ where: { status: "TRIAL" } }),
+    db.schoolSubscription.count({ where: { status: "TRIAL" } }),\n    db.supportThread.count({ where: { status: "OPEN" } }),
     db.school.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -26,6 +26,7 @@ export default async function OwnerOverview() {
         <div className="card"><p className="muted">Schools</p><div className="stat">{schools}</div><Link href="/owner/schools">View schools →</Link></div>
         <div className="card"><p className="muted">Active subscriptions</p><div className="stat">{activeSubscriptions}</div><Link href="/owner/subscriptions">View subscriptions →</Link></div>
         <div className="card"><p className="muted">Trials</p><div className="stat">{trialSubscriptions}</div></div>
+        <div className="card"><p className="muted">Messages / Requests</p><div className="stat">{openSupport}</div><Link href="/owner/messages">Open requests →</Link></div>
         <div className="card"><p className="muted">Platform</p><div className="stat">Online</div><Link href="/owner/system">System →</Link></div>
       </div>
       <div className="card" style={{ marginTop: 18 }}>
