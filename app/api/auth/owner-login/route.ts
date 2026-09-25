@@ -40,7 +40,8 @@ export async function POST(request: Request) {
     );
   }
 
-  setSession(response, { id: user.id }, null, deviceId);
+  const ownerSessionMaxAge = 60 * 60 * 24 * 30;
+  setSession(response, { id: user.id }, null, deviceId, ownerSessionMaxAge);
   setOwnerSession(response, { id: user.id }, deviceId);
 
   return response;
