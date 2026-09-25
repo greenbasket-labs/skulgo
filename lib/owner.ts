@@ -6,7 +6,7 @@ export async function requireOwner() {
   const ownerEmail = process.env.SKULGO_OWNER_EMAIL?.trim().toLowerCase();
 
   if (!user || !ownerEmail || user.email.toLowerCase() !== ownerEmail) {
-    redirect("/dashboard");
+    redirect("/owner/login");
   }
 
   return user;
