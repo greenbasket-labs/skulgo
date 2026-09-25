@@ -1,5 +1,6 @@
 import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
+import PlatformPricingSettings from "./pricing-settings";
 
 export default async function OwnerSubscriptions() {
   await requireOwner();
@@ -11,6 +12,7 @@ export default async function OwnerSubscriptions() {
   return (
     <>
       <div className="workspace-header"><div><p className="muted">SkulGo Owner</p><h1>Subscriptions</h1><p>Subscription status for each school.</p></div></div>
+      <PlatformPricingSettings />
       <div className="grid">
         {!subscriptions.length ? <div className="card"><p className="muted">No subscription records yet.</p></div> : subscriptions.map(item => (
           <div className="card" key={item.id}>
