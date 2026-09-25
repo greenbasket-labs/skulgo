@@ -344,6 +344,66 @@ Do not:
 
 When a requirement is unclear, inspect the code and existing workflow first. Do not silently invent a new product direction.
 
+## Result / Report Card checkpoint — September 25, 2026
+
+This is a narrow completion checkpoint. Do not expand SkulGo into a large school ERP.
+
+### Result publishing
+
+**Status: WORKING**
+
+- Teacher saves CA + Exam scores.
+- Result records are generated.
+- Admin publishes results.
+- Student/Parent visibility is restricted to published results.
+
+### Result Unlock
+
+**Status: NOT FINISHED**
+
+The intended default behavior remains:
+
+**Admin publishes → Student/Parent sees result-ready notice → result remains locked → SkulGo-controlled unlock flow verifies payment → result/report card becomes viewable/printable/downloadable.**
+
+The result-unlock mechanism belongs to SkulGo. The school-facing settings must **not expose a fixed ₦200 result-unlock price**. Commercial result-unlock pricing will be defined by SkulGo and documented in SkulGo Terms & Conditions. If a future Admin option is provided, it must be optional and must preserve a working default when the Admin does not edit it.
+
+### Report-card design
+
+**Status: 🟡 Design/component exists; complete school workflow is 🔴 NOT FINISHED**
+
+The current report-card generator is connected to school/student/result data, but the complete production workflow still needs verification and completion before it is treated as finished.
+
+Known completion work includes:
+- use the school's configured grading bands instead of fixed generator grading logic;
+- use the school's report-card settings/fields consistently;
+- complete attendance/remarks/summary data wiring where supported by existing records;
+- verify print/download behavior;
+- verify the published-result and Result Unlock boundary.
+
+### Result Settings
+
+The school-owned Result Settings area should remain small and practical.
+
+Current settings that belong to the school:
+- report heading;
+- First / Second / Third Term labels;
+- grading bands;
+- report-card fields;
+- attendance session setting;
+- digital-result setting.
+
+Default grading bands remain:
+
+**70 A · 60 B · 50 C · 45 D · 40 E · 0 F**
+
+The school may edit the grading bands. If the Admin does not edit them, the default bands remain active.
+
+**Result unlock price is not a school-facing setting.** It belongs to the SkulGo-controlled Result Unlock product flow and SkulGo Terms & Conditions.
+
+### Rule for this checkpoint
+
+Do not change unrelated attendance, fees, approval, authentication or role behavior while finishing Results. Work one small piece at a time, verify it, deploy it, and record the result.
+
 ## Current execution checkpoint — September 24, 2026
 
 This checkpoint records the actual next work so development follows the roadmap instead of expanding sideways.
