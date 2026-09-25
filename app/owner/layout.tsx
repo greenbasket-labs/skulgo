@@ -1,8 +1,18 @@
 import Link from "next/link";
-import { requireOwner } from "@/lib/owner";
+import { getCurrentUser, getOwnerSession } from "@/lib/auth";
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireOwner();
+  const ownerSession = await getOwnerSession();
+
+  if (!ownerSession) {
+    return children;
+  }
+
+  const user = await getCurrentUser();
+
+  if (!user || user.session.deviceId !== ownerSession.deviceId) {
+    return children;
+  }
 
   return (
     <main className="workspace">
