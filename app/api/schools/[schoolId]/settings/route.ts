@@ -29,6 +29,8 @@ const DEFAULT_SETTINGS = {
     A: "Excellent performance. Keep up the good work.", B: "Very good performance. Continue to improve.", C: "Satisfactory performance. Encourage more consistent effort.",
     D: "Performance needs improvement. Closer attention is advised.", E: "More effort and support are required.", F: "Significant improvement is required. Close support is advised.",
   },
+  teacherRemarkLabel: "Teacher Remark",
+  principalRemarkLabel: "Principal Remark",
 };
 
 const DEFAULT_GRADING_BANDS = [
@@ -110,6 +112,8 @@ export async function PATCH(
     "firstTermLabel",
     "secondTermLabel",
     "thirdTermLabel",
+    "teacherRemarkLabel",
+    "principalRemarkLabel",
   ] as const;
 
   for (const field of editableStringFields) {
