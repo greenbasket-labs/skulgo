@@ -6,7 +6,7 @@ Teachers can manage their assigned classes, subjects, attendance and scores. Adm
 
 We are currently opening SkulGo for real pilot users. We would really value your experience, feedback and honest opinion while we improve it.
 
-🌐 Visit: https://skulgo.com
+🌐 Visit: {{REFERRAL_LINK}}
 
 If you are interested, create a personal account and explore it. You can also share it with a teacher, school administrator, parent or student who may want to participate in the pilot.
 
@@ -17,7 +17,10 @@ If you create your account, you can enter this Referral ID during registration.
 SkulGo — Transparent & Secure Records.`;
 
 export function buildReferralPilotMessage(referralCode: string) {
-  return PILOT_MESSAGE.replace("{{REFERRAL_ID}}", referralCode);
+  const referralLink = buildReferralLink(referralCode);
+  return PILOT_MESSAGE
+    .replace("{{REFERRAL_ID}}", referralCode)
+    .replace("{{REFERRAL_LINK}}", referralLink);
 }
 
 export function buildReferralLink(referralCode: string) {
