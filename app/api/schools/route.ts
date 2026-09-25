@@ -32,11 +32,6 @@ export async function POST(request: Request) {
       data: { schoolId: s.id, userId: user.id, role: "ADMIN" },
     });
 
-    await tx.section.createMany({
-      data: ["Nursery", "Primary", "Junior Secondary", "Senior Secondary"]
-        .map(sectionName => ({ schoolId: s.id, name: sectionName })),
-    });
-
     return s;
   });
 
