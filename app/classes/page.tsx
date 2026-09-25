@@ -22,6 +22,7 @@ export default function ClassesPage() {
   const [customName, setCustomName] = useState("");
   const [customArm, setCustomArm] = useState("");
   const [armChoice, setArmChoice] = useState("");
+  const [starterArms, setStarterArms] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -108,6 +109,16 @@ export default function ClassesPage() {
     setArmChoice("");
   }
 
+  async function saveStarterArm(name: string) {
+    const arm = starterArms[name] ?? "";
+    if (!arm) {
+      setMessage(`Choose an arm for ${name} first.`);
+      return;
+    }
+    await saveClass(name, arm);
+    setStarterArms(current => ({ ...current, [name]: "" }));
+  }
+
   return (
     <main className="workspace-main">
       <div className="workspace-header">
@@ -186,12 +197,22 @@ export default function ClassesPage() {
                     {starterNames.map(name => (
                       <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                         <strong>{name}</strong>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {standardArms.map(arm => (
-                            <button key={arm.value} type="button" disabled={!!saving} onClick={() => void saveClass(name, arm.value)}>
-                              {saving === `${name}-${arm.value}` ? "Saving..." : `Save ${arm.label}`}
-                            </button>
-                          ))}
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <select
+                            value={starterArms[name] ?? ""}
+                            onChange={event => setStarterArms(current => ({ ...current, [name]: event.target.value }))}
+                            aria-label={`Arm for ${name}`}
+                          >
+                            <option value="">Choose arm</option>
+                            {standardArms.map(arm => <option key={arm.value} value={arm.value}>{arm.label}</option>)}
+                          </select>
+                          <button
+                            type="button"
+                            disabled={!!saving}
+                            onClick={() => void saveStarterArm(name)}
+                          >
+                            {saving.startsWith(`${name}-`) ? "Saving..." : "Save Arm"}
+                          </button>
                         </div>
                       </div>
                     ))}
