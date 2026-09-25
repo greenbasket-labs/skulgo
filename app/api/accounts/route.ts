@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     });
     const foundingNumber = foundingCount < 100 ? foundingCount + 1 : null;
 
-    let generatedReferralCode = createReferralCode(foundingNumber);
-    if (foundingNumber === null) {
+    let generatedReferralCode = createReferralCode();
+    {
       while (await tx.user.findUnique({ where: { referralCode: generatedReferralCode }, select: { id: true } })) {
         generatedReferralCode = createReferralCode(null);
       }
