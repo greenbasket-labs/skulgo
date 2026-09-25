@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS = {
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
   thirdTermLabel: "Third Term",
-  resultUnlockPrice: 200,
   digitalResultEnabled: true,
   showPosition: true,
   showAttendance: true,
@@ -111,14 +110,6 @@ export async function PATCH(
       if (!value) return NextResponse.json({ error: field + " cannot be empty" }, { status: 400 });
       nextSettings[field] = value;
     }
-  }
-
-  if (body?.settings?.resultUnlockPrice !== undefined) {
-    const price = Number(body.settings.resultUnlockPrice);
-    if (!Number.isFinite(price) || price < 0) {
-      return NextResponse.json({ error: "Result unlock price must be 0 or more" }, { status: 400 });
-    }
-    nextSettings.resultUnlockPrice = Math.round(price * 100) / 100;
   }
 
   if (body?.settings?.attendanceSessions !== undefined) {
