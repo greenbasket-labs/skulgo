@@ -66,6 +66,13 @@ model School {
   supportThreads SupportThread[]
 }
 
+model PlatformSetting {
+  key String @id
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model SchoolSubscription {
   id String @id @default(cuid())
   schoolId String @unique
