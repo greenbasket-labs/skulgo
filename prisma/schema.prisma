@@ -63,6 +63,7 @@ model School {
   auditLogs AuditLog[]
   classSubjects ClassSubject[]
   attendanceSessions AttendanceSession[]
+  supportThreads SupportThread[]
 }
 
 model SchoolSubscription {
@@ -100,6 +101,8 @@ model User {
   memberships SchoolMembership[]
   auditLogs AuditLog[] @relation("AuditActor")
   deviceSessions DeviceSession[]
+  supportThreads SupportThread[] @relation("SupportThreadCreator")
+  supportMessages SupportMessage[] @relation("SupportMessageSender")
 }
 
 model SchoolMembership {
