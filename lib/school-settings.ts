@@ -21,6 +21,8 @@ export type SchoolSettings = {
   showClass: boolean;
   teacherRemarks: Record<string, string>;
   principalRemarks: Record<string, string>;
+  teacherRemarkLabel: string;
+  principalRemarkLabel: string;
 };
 
 export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
@@ -58,6 +60,8 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
     E: "More effort and support are required.",
     F: "Significant improvement is required. Close support is advised.",
   },
+  teacherRemarkLabel: "Teacher Remark",
+  principalRemarkLabel: "Principal Remark",
 };
 
 export const DEFAULT_GRADING_BANDS: GradingBand[] = [
