@@ -83,9 +83,12 @@ export default async function AccountPage() {
               <strong>{referralCount}</strong>
             </div>
             {referral.foundingNumber && (
-              <div>
-                <p className="muted">Founding 100</p>
-                <strong>#{referral.foundingNumber}</strong>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <strong>You are among the first 100 people helping pilot SkulGo.</strong>
+                <p className="muted">
+                  You are one of the early believers in SkulGo. Keep your place and
+                  share your Referral ID with people you trust.
+                </p>
               </div>
             )}
           </div>
