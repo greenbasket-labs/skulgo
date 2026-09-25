@@ -24,6 +24,8 @@ type Settings = {
   attendanceSessions: "MORNING" | "MORNING_AFTERNOON";
   teacherRemarks: Record<string, string>;
   principalRemarks: Record<string, string>;
+  teacherRemarkLabel: string;
+  principalRemarkLabel: string;
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,8 @@ const DEFAULT_SETTINGS: Settings = {
   attendanceSessions: "MORNING",
   teacherRemarks: { A: "Excellent performance. Keep it up.", B: "Very good performance. Continue working hard.", C: "Good effort. More consistent study will improve performance.", D: "Performance is below average. More effort is required.", E: "Performance needs improvement. More focus and regular study are required.", F: "Performance is very low. Immediate improvement is required." },
   principalRemarks: { A: "Excellent performance. Keep up the good work.", B: "Very good performance. Continue to improve.", C: "Satisfactory performance. Encourage more consistent effort.", D: "Performance needs improvement. Closer attention is advised.", E: "More effort and support are required.", F: "Significant improvement is required. Close support is advised." },
+  teacherRemarkLabel: "Teacher Remark",
+  principalRemarkLabel: "Principal Remark",
 };
 
 const DEFAULT_BANDS: Band[] = [
@@ -212,12 +216,16 @@ export default function SettingsPage() {
       <section className="card" style={{ marginTop: 18 }}>
         <h2>Performance remarks</h2>
         <p className="muted">Default remarks are provided by performance level. Edit and save them for this school.</p>
+        <div className="grid grid-2" style={{ marginBottom: 14 }}>
+          <label className="grid"><span>Teacher remark name</span><input value={settings.teacherRemarkLabel} onChange={e => setSettings(s => ({ ...s, teacherRemarkLabel: e.target.value }))} placeholder="e.g. Class Teacher Remark" /></label>
+          <label className="grid"><span>School authority remark name</span><input value={settings.principalRemarkLabel} onChange={e => setSettings(s => ({ ...s, principalRemarkLabel: e.target.value }))} placeholder="e.g. Principal Remark, Head Teacher Remark, Admin Remark" /></label>
+        </div>
         <div className="grid grid-2">
           {["A", "B", "C", "D", "E", "F"].map(grade => (
             <label className="grid" key={grade}>
-              <span>Grade {grade} — Teacher remark</span>
+              <span>Grade {grade} — {settings.teacherRemarkLabel || "Teacher remark"}</span>
               <textarea rows={2} value={settings.teacherRemarks?.[grade] ?? ""} onChange={e => setSettings(s => ({ ...s, teacherRemarks: { ...s.teacherRemarks, [grade]: e.target.value } }))} />
-              <span>Grade {grade} — Principal remark</span>
+              <span>Grade {grade} — {settings.principalRemarkLabel || "School authority remark"}</span>
               <textarea rows={2} value={settings.principalRemarks?.[grade] ?? ""} onChange={e => setSettings(s => ({ ...s, principalRemarks: { ...s.principalRemarks, [grade]: e.target.value } }))} />
             </label>
           ))}
