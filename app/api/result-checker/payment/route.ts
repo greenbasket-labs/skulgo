@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!access) return NextResponse.json({ error: "Invalid ID or PIN." }, { status: 401 });
 
   const requested = Array.isArray(body?.studentIds) ? body.studentIds.map(String) : [];
-  const studentIds = requested.filter(id => access.studentIds.includes(id));
+  const studentIds = requested.filter((id: string) => access.studentIds.includes(id));
   if (!studentIds.length) return NextResponse.json({ error: "Select at least one result." }, { status: 400 });
 
   const published = await db.result.findMany({
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     distinct: ["studentId"],
   });
   const availableIds = published.map(item => item.studentId);
-  const selectedIds = studentIds.filter(id => availableIds.includes(id));
+  const selectedIds = studentIds.filter((id: string) => availableIds.includes(id));
   if (!selectedIds.length) return NextResponse.json({ error: "No published result is available." }, { status: 409 });
 
   const feeSetting = await db.platformSetting.findUnique({ where: { key: "resultUnlockFee" } });
