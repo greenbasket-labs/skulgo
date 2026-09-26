@@ -26,7 +26,19 @@ export default function PlanPurchase({ schoolId, plans, paystackEnabled }: { sch
       <label><span className="muted">Billing</span><select value={billing} onChange={e => setBilling(e.target.value as "MONTHLY" | "TERM" | "YEARLY")} disabled={busy || !paystackEnabled}><option value="MONTHLY">{selected ? money(selected.monthly) : ""} · Monthly</option><option value="TERM">{selected ? money(selected.term) : ""} · Term</option><option value="YEARLY">{selected ? money(selected.yearly) : ""} · Yearly</option></select></label>
     </div>
     {!paystackEnabled && <p className="muted">Paystack is not configured for this environment.</p>}
-    {paystackEnabled && <button className="button" type="button" disabled={busy || !selected} onClick={() => void pay()}>{busy ? "Opening Paystack…" : "Pay " + money(amount) + " with Paystack"}</button>}
+    {paystackEnabled && (
+      <div style={{ marginTop: 18 }}>
+        <button
+          className="button"
+          style={{ width: "100%", justifyContent: "center", fontWeight: 700, padding: "13px 16px" }}
+          type="button"
+          disabled={busy || !selected}
+          onClick={() => void pay()}
+        >
+          {busy ? "Opening Paystack…" : "Pay " + money(amount) + " with Paystack"}
+        </button>
+      </div>
+    )}
     {message && <p className="muted">{message}</p>}
     <p className="muted">Moniepoint will use the same subscription payment record when its gateway is connected.</p>
   </div>;
