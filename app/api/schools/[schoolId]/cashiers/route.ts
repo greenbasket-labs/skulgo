@@ -25,6 +25,7 @@ export async function GET(
 
   return NextResponse.json(cashiers.map(item => ({
     id: item.user.id,
+    membershipId: item.id,
     name: item.user.name,
     email: item.user.email,
     role: item.role,
