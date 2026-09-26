@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { resolveResultCheckerAccess, resultCheckerEnabled } from "@/lib/result-checker";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   const feePerChild = Math.max(0, Number(feeSetting?.value ?? 200));
   const amount = feePerChild * selectedIds.length;
 
-  const reference = "SKULGO-RESULT-" + Date.now().toString(36) + "-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  const reference = "SKULGO-RESULT-" + Date.now().toString(36) + "-" + randomUUID().replace(/-/g, "").slice(0, 12);
 
   const payment = await db.resultAccessPayment.create({
     data: {
