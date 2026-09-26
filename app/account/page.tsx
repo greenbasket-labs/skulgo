@@ -73,7 +73,6 @@ export default async function AccountPage() {
           <div className="grid grid-2" style={{ marginTop: 16 }}>
             <div>
               <p className="muted">Referral ID</p>
-              <strong>{referral.referralCode}</strong>
               {referral.referralCode && <ReferralShare referralCode={referral.referralCode} />}
             </div>
             <div>
