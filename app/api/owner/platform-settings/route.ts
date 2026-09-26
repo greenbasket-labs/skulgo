@@ -3,12 +3,14 @@ import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/owner";
 
 const defaults = {
-  monthlyEnabled: "true",
-  monthlyPrice: "0",
-  termEnabled: "true",
-  termPrice: "0",
-  yearlyEnabled: "true",
-  yearlyPrice: "0",
+  basicEnabled: "true",
+  basicPrice: "5000",
+  starterEnabled: "true",
+  starterPrice: "10000",
+  proEnabled: "true",
+  proPrice: "20000",
+  premiumEnabled: "true",
+  premiumPrice: "28000",
   trialEnabled: "true",
   trialDays: "14",
   resultUnlockEnabled: "true",
@@ -26,8 +28,8 @@ export async function PUT(request: Request) {
   await requireOwner();
   const body = await request.json().catch(() => null);
 
-  const booleanKeys = ["monthlyEnabled","termEnabled","yearlyEnabled","trialEnabled","resultUnlockEnabled"] as const;
-  const numberKeys = ["monthlyPrice","termPrice","yearlyPrice","trialDays","resultUnlockFee"] as const;
+  const booleanKeys = ["basicEnabled","starterEnabled","proEnabled","premiumEnabled","trialEnabled","resultUnlockEnabled"] as const;
+  const numberKeys = ["basicPrice","starterPrice","proPrice","premiumPrice","trialDays","resultUnlockFee"] as const;
 
   for (const key of booleanKeys) {
     if (typeof body?.[key] !== "boolean") {
@@ -43,12 +45,14 @@ export async function PUT(request: Request) {
   }
 
   const values = {
-    monthlyEnabled: String(body.monthlyEnabled),
-    monthlyPrice: String(body.monthlyPrice),
-    termEnabled: String(body.termEnabled),
-    termPrice: String(body.termPrice),
-    yearlyEnabled: String(body.yearlyEnabled),
-    yearlyPrice: String(body.yearlyPrice),
+    basicEnabled: String(body.basicEnabled),
+    basicPrice: String(body.basicPrice),
+    starterEnabled: String(body.starterEnabled),
+    starterPrice: String(body.starterPrice),
+    proEnabled: String(body.proEnabled),
+    proPrice: String(body.proPrice),
+    premiumEnabled: String(body.premiumEnabled),
+    premiumPrice: String(body.premiumPrice),
     trialEnabled: String(body.trialEnabled),
     trialDays: String(body.trialDays),
     resultUnlockEnabled: String(body.resultUnlockEnabled),

@@ -27,6 +27,14 @@ enum SubscriptionPlan {
   YEARLY
 }
 
+enum SubscriptionTier {
+  BASIC
+  STARTER
+  PRO
+  PREMIUM
+  CUSTOM
+}
+
 enum SubscriptionStatus {
   ACTIVE
   EXPIRED
@@ -79,6 +87,7 @@ model SchoolSubscription {
   id String @id @default(cuid())
   schoolId String @unique
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  tier SubscriptionTier @default(BASIC)
   plan SubscriptionPlan
   status SubscriptionStatus @default(TRIAL)
   startedAt DateTime?
