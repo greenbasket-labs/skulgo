@@ -127,6 +127,8 @@ model SchoolMembership {
   role Role
   active Boolean @default(true)
   createdAt DateTime @default(now())
+  endedAt DateTime?
+  endReason String?
   @@unique([schoolId,userId])
   @@index([userId,active])
 }
