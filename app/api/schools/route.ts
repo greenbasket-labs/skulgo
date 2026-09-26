@@ -35,6 +35,8 @@ export async function POST(request: Request) {
     await tx.schoolSubscription.create({
       data: {
         schoolId: s.id,
+        tier: "BASIC",
+        tier: "BASIC",
         plan: "MONTHLY",
         status: "TRIAL",
       },
