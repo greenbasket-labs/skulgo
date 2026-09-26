@@ -94,6 +94,11 @@ export default async function PlanPage() {
             <p className="muted">Your free trial starts when the school approves its first person.</p>
           )}
           {effectiveStatus === "EXPIRED" && <p className="muted">The free trial has ended. Choose an available paid plan when payment is ready.</p>}
+          {subscription.status === "PAUSED" && subscription.pausedAt && subscription.expiresAt && (
+            <p className="muted">
+              Paid time is paused. Your plan will keep the remaining time when you resume.
+            </p>
+          )}
           <PlanActions status={effectiveStatus} schoolId={schoolId} />
         </div>
 
