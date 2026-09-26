@@ -36,7 +36,6 @@ export async function POST(request: Request) {
       data: {
         schoolId: s.id,
         tier: "BASIC",
-        tier: "BASIC",
         plan: "MONTHLY",
         status: "TRIAL",
       },
