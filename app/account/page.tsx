@@ -32,7 +32,6 @@ export default async function AccountPage() {
   return (
     <main className="workspace-main">
       <div className="workspace-header">
-        <p className="muted">Personal account</p>
         <h1>{user.name}</h1>
         <p className="muted">{user.email}</p>
       </div>
