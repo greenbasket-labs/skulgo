@@ -66,6 +66,7 @@ model School {
   memberships SchoolMembership[]
   subscription SchoolSubscription?
   subscriptionPayments SchoolSubscriptionPayment[]
+  resultAccessPayments ResultAccessPayment[]
   manualPaymentsEnabled Boolean @default(true)
   schoolSettings String?
   gradingBands String?
@@ -99,6 +100,25 @@ enum PlatformPaymentStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+model ResultAccessPayment {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  membershipId String?
+  accessId String
+  studentIds String
+  childCount Int
+  amount Float
+  currency String @default("NGN")
+  provider String @default("PAYSTACK")
+  reference String @unique
+  status PlatformPaymentStatus @default(PENDING)
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([schoolId,createdAt])
+  @@index([accessId,status])
 }
 
 model SchoolSubscriptionPayment {
@@ -157,6 +177,7 @@ model SchoolMembership {
   userId String
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
   role Role
+  workspaceCode String @unique @default(cuid())
   active Boolean @default(true)
   createdAt DateTime @default(now())
   endedAt DateTime?

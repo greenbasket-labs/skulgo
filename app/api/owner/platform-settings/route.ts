@@ -14,6 +14,7 @@ const defaults = {
   trialEnabled: "true",
   trialDays: "14",
   resultUnlockEnabled: "true",
+  resultCheckerEnabled: "false",
   resultUnlockFee: "200",
 };
 
@@ -28,7 +29,7 @@ export async function PUT(request: Request) {
   await requireOwner();
   const body = await request.json().catch(() => null);
 
-  const booleanKeys = ["basicEnabled","starterEnabled","proEnabled","premiumEnabled","trialEnabled","resultUnlockEnabled"] as const;
+  const booleanKeys = ["basicEnabled","starterEnabled","proEnabled","premiumEnabled","trialEnabled","resultUnlockEnabled","resultCheckerEnabled"] as const;
   const numberKeys = ["basicPrice","starterPrice","proPrice","premiumPrice","trialDays","resultUnlockFee"] as const;
 
   for (const key of booleanKeys) {
@@ -56,6 +57,7 @@ export async function PUT(request: Request) {
     trialEnabled: String(body.trialEnabled),
     trialDays: String(body.trialDays),
     resultUnlockEnabled: String(body.resultUnlockEnabled),
+    resultCheckerEnabled: String(body.resultCheckerEnabled),
     resultUnlockFee: String(body.resultUnlockFee),
   };
 
