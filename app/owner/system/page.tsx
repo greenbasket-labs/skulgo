@@ -1,5 +1,6 @@
 import { requireOwner } from "@/lib/owner";
 import { db } from "@/lib/db";
+import ResultCheckerSetting from "./result-checker-setting";
 
 export default async function OwnerSystem() {
   await requireOwner();
@@ -19,6 +20,7 @@ export default async function OwnerSystem() {
         <div className="card"><p className="muted">Active school connections</p><div className="stat">{memberships}</div></div>
         <div className="card"><p className="muted">Audit records</p><div className="stat">{auditLogs}</div></div>
       </div>
+      <ResultCheckerSetting />
     </>
   );
 }
