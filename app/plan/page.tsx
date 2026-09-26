@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import PlanActions from "./plan-actions";
+import PlanPurchase from "./plan-purchase";
 
 const defaults = {
   basicEnabled: "true", basicPrice: "5000",
@@ -98,7 +99,7 @@ export default async function PlanPage() {
 
         <div className="card" style={{ marginTop: 18 }}>
           <h2>Available plans</h2>
-          <p className="muted">Choose a school size and billing period. Payment will be connected separately.</p>
+          <p className="muted">Choose a school size and billing period.</p>
           <div className="grid grid-2" style={{ marginTop: 12 }}>
             {plans.map(plan => (
               <div className="card" key={plan.key}>
@@ -115,6 +116,8 @@ export default async function PlanPage() {
             <p className="muted">For schools above Premium capacity. Pricing is handled separately.</p>
           </div>
         </div>
+
+        <PlanPurchase schoolId={schoolId} plans={plans} paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)} />
 
         <div className="card" style={{ marginTop: 18 }}>
           <h2>Free trial</h2>
