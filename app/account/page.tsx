@@ -40,7 +40,7 @@ export default async function AccountPage() {
       <section className="card" style={{ marginBottom: 18 }}>
         <h2>Personal profile</h2>
         <p className="muted">
-          This is your personal SkulGo profile. School records stay inside each
+          Your personal account is used to access SkulGo. School records stay inside each
           school workspace.
         </p>
         <div className="grid grid-2" style={{ marginTop: 16 }}>
@@ -68,7 +68,7 @@ export default async function AccountPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 18 }}>
-        <h2>My Referral</h2>
+        <h2>Referral</h2>
         {referral ? (
           <div className="grid grid-2" style={{ marginTop: 16 }}>
             <div>
@@ -86,10 +86,9 @@ export default async function AccountPage() {
             </div>
             {referral.foundingNumber && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <strong>You are among the first 100 people helping pilot SkulGo.</strong>
+                <strong>You’re among the first people helping pilot SkulGo.</strong>
                 <p className="muted">
-                  You are one of the early believers in SkulGo. Keep your place and
-                  share your Referral ID with people you trust.
+                  You’re helping us pilot SkulGo. Share your Referral ID with people you trust.
                 </p>
               </div>
             )}
