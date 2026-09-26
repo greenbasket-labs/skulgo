@@ -66,6 +66,7 @@ export async function resolveResultCheckerAccess(id: string, pin: string): Promi
 
   if (!parentMembership?.user.parent) return null;
   const user = parentMembership.user;
+  const parentId = user.parent.id;
   if (user.pinLockedUntil && user.pinLockedUntil > new Date()) return null;
   if (!user.pinHash || !verifyPin(pin, user.pinHash)) {
     await recordPinFailure(user.id, user.pinFailedAttempts);
@@ -73,7 +74,7 @@ export async function resolveResultCheckerAccess(id: string, pin: string): Promi
   }
 
   const links = await db.parentStudent.findMany({
-    where: { parentId: user.parent.id, approved: true, student: { schoolId: parentMembership.schoolId } },
+    where: { parentId, approved: true, student: { schoolId: parentMembership.schoolId } },
     select: { student: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { student: { lastName: "asc" } },
   });
