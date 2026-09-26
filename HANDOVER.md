@@ -19,6 +19,35 @@ Then inspect the current main branch.
 
 ## Product model
 
+## Personal identity and school history
+
+The `User` record is the person's long-term SkulGo identity.
+
+A person can move through different school stages using the same identity:
+
+**Student → other school → Teacher → other school**, etc.
+
+`SchoolMembership` represents the person's relationship/access to a specific school. It now preserves:
+
+- role;
+- start date (`createdAt`);
+- active access;
+- ended date (`endedAt`);
+- leaving reason (`endReason`).
+
+When Admin ends a staff relationship, the system should:
+
+1. close the active school access;
+2. record the end date and selected leaving reason;
+3. retain the membership history;
+4. write the important action to `AuditLog`.
+
+The history belongs to the person's Personal Profile, while school operational records remain owned by the school.
+
+Do not build a full CV, promotion engine, HR system or reference system unless a real pilot need justifies it.
+
+
+
 Personal account
 → School connection
 → Role / duty
@@ -248,6 +277,24 @@ Treat them as cleanup items unless they become functional problems.
 
 ## Production status
 
+## Current identity/history implementation checkpoint
+
+Implemented in the current development history:
+
+- `7490fb0` — `feat: keep school employment history on membership` — added `endedAt` and `endReason` to `SchoolMembership`.
+- `6d62698` — `feat: show school work history in personal profile` — Personal Profile now shows school history.
+- `8914ff4` — `feat: let admin end staff school access with reason` — Admin can close active staff school access and retain history.
+- `5e1db02` — `feat: expose staff membership id for access management` — teacher API exposes the membership ID needed for access management.
+- `2f796cc` — `feat: expose cashier membership id for access management` — cashier API exposes the membership ID needed for access management.
+- `67a99a6` — `feat: let admin end staff school access with reason` — staff UI provides the leaving-reason/end-access action.
+- `a95b40e` — `fix: hide cv wording from personal profile links` — current UI avoids presenting the future CV direction as a finished CV feature.
+
+These changes establish the **foundation only**. Promotion history, a full CV builder and richer employment history are future work, not current MVP scope.
+
+**Production caution:** the production Prisma schema is maintained separately in `prisma/schema.production.prisma`. Before deploying schema changes, verify that the production schema contains the same required membership fields and that the production migration/db-push path is safe. Do not claim the above schema change is production-live until that is verified.
+
+
+
 The production baseline is now live on Render from `main`.
 
 Verified deployment checkpoint:
@@ -267,6 +314,91 @@ Remaining production-readiness items:
 
 ## Safe development workflow
 
+## Exact fix / repair mode
+
+This is the required mode for future coding AIs and developers.
+
+### 1. Inspect first
+
+Before touching code:
+
+- check the current branch;
+- check `git status`;
+- read the current relevant file;
+- inspect the related API route and schema;
+- inspect the existing test;
+- inspect the actual build/runtime error if one exists.
+
+Never assume an older conversation, branch or remembered version is the current code.
+
+### 2. Diagnose from evidence
+
+Use the real compiler error, runtime error, failing test, user-visible behavior, database/schema state, or deployment log.
+
+Do not invent a cause because it "looks likely."
+
+### 3. Make the smallest safe fix
+
+Prefer:
+
+**one bug → one focused change → one focused commit**
+
+Reuse the existing route/model/page/utility. Do not create a second implementation of something SkulGo already has.
+
+### 4. Verify before moving on
+
+At minimum:
+
+- typecheck/build the affected code;
+- run the focused test;
+- inspect the diff.
+
+If the change affects production, verify the deployed commit separately.
+
+### 5. Preserve local work
+
+The user may have uncommitted work.
+
+Never reset, hard reset, clean, stash, overwrite local files, or replace local schema/pages with an older remote version unless the user explicitly tells you to do so.
+
+### 6. No broad fixes
+
+Do not solve a narrow error with:
+
+- `npm audit fix --force`;
+- blanket dependency upgrades;
+- unrelated refactors;
+- schema rewrites;
+- replacing whole pages/routes;
+- copying code from the old App-School/Bridge Hosting projects.
+
+If a broad change is genuinely required, explain why and wait for approval when it changes architecture or product scope.
+
+### 7. Commit discipline
+
+After each meaningful fix, report:
+
+- what was wrong;
+- what was changed;
+- files changed;
+- commit SHA;
+- tests/build result;
+- deployment result, if any.
+
+A commit is **not** proof that Render is live.
+
+### 8. Handover discipline
+
+When a change affects the product model, database, permissions or workflow, update:
+
+- `README.md`;
+- `ROADMAP.md`;
+- `HANDOVER.md`;
+
+so the next AI starts from the real current state.
+
+
+
 For every change:
 
 1. Read current main.
@@ -285,6 +417,16 @@ When using the GitHub connector:
 - never merge old repositories into SkulGo.
 
 ## Product boundary
+
+## Result unlock wording rule
+
+Do not describe a fixed **₦200 result unlock fee** as a school-facing setting or current school requirement.
+
+The commercial result-access fee belongs to SkulGo's own terms and conditions. The complete payment-gated result-access flow remains a separate implementation item.
+
+When documenting result access, describe the behavior without hardcoding a public price unless the current product decision explicitly requires it.
+
+
 
 Before adding anything, ask:
 
