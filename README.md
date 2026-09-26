@@ -160,7 +160,7 @@ For attendance, when the class teacher submits daily attendance, the parent can 
 
 For fees, the parent sees assigned fees, amount paid and outstanding balance, and can pay directly from SkulGo. The payment is recorded for the school without the parent needing to contact the school separately.
 
-When a result is published, the parent sees that the **result is ready**. Viewing/downloading the result requires the configured result-view payment (for example **₦200 once per result**). After payment, the parent can view and download the result digitally.
+When a result is published, the parent sees that the **result is ready**. Viewing/downloading a result may use SkulGo's configured result-access/payment flow. Any commercial result-access fee is a SkulGo product/terms matter, not a fixed school-facing setting. The full payment-gated result-access flow remains a separate implementation item.
 
 ### Cashier
 
@@ -432,6 +432,29 @@ If a proposed feature does not improve that flow, stop and discuss it before bui
 
 ### Before every future change
 
+### How fixes are made
+
+The project follows a **small, evidence-first repair mode**.
+
+When a bug or gap is reported:
+
+1. **Inspect before editing** — read the current file, API route, schema and relevant test.
+2. **Identify the exact failure** from the actual error, log or behavior.
+3. **Find the smallest existing place to fix it** — extend the current flow instead of creating a parallel system.
+4. **Change only the required files** — no unrelated cleanup or refactor.
+5. **Typecheck/build the affected path.**
+6. **Run the narrowest useful test** — then expand testing only if needed.
+7. **Review the diff** for accidental changes.
+8. **Commit one focused change** with a clear message.
+9. **Report the exact commit and what was verified.**
+10. **Only claim production/live status when deployment evidence confirms it.**
+
+Never use broad dependency upgrades or destructive commands as a shortcut for an unrelated build error. For example, do not run `npm audit fix --force` merely because npm prints that suggestion after a build.
+
+If the cause is uncertain, stop at inspection and explain the evidence needed. Do not guess.
+
+
+
 A new developer or AI should answer these questions internally:
 
 1. What existing file already handles this?
@@ -450,6 +473,32 @@ If the answer is unclear, inspect first. Do not guess.
 
 ### Current wiring principles
 
+### Employment / school relationship history rule
+
+`SchoolMembership` is the current access relationship and the beginning of SkulGo's school-history record.
+
+Current fields include:
+
+- `createdAt` — relationship start date;
+- `active` — whether school access is currently active;
+- `endedAt` — when access ended;
+- `endReason` — simple Admin-selected reason.
+
+Current supported leaving reasons are:
+
+- Resigned
+- Contract ended
+- Terminated
+- Dismissed
+- Transferred
+- Other
+
+When Admin ends a staff relationship, SkulGo must revoke that school access and retain the history. The action is also recorded in `AuditLog`.
+
+Do not automatically expose sensitive employment-ending details to another school. Cross-school history visibility must be designed deliberately later.
+
+
+
 SkulGo is intentionally designed like a **digital school record book with wiring**:
 
 - A school owns the school records.
@@ -466,6 +515,27 @@ SkulGo is intentionally designed like a **digital school record book with wiring
 Do not create separate copies of the same attendance, score, result or payment for each role.
 
 ### Personal account vs school records
+
+### Personal profile as a long-term personal record
+
+The personal account is the same identity a person can keep as their life and school journey grows.
+
+A person may begin as a **student**, later appear in other schools, and eventually become a **teacher or another school role** without creating a second SkulGo identity.
+
+School membership records keep the relationship history:
+
+- school;
+- role;
+- start date;
+- active/ended state;
+- ended date;
+- leaving reason when Admin ends the relationship.
+
+Ending school access must **close access without deleting the historical relationship**. The school keeps its own records, while the person's Personal Profile can show their school history.
+
+This is intentionally a small foundation for the future Personal Profile/CV direction. Do not build a full CV builder, promotion engine, reference system or HR module yet.
+
+
 
 The personal account is intentionally separate from the school workspace.
 
