@@ -31,6 +31,7 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   TRIAL
+  PAUSED
 }
 
 model School {
@@ -80,7 +81,7 @@ model SchoolSubscription {
   school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
   plan SubscriptionPlan
   status SubscriptionStatus @default(TRIAL)
-  startedAt DateTime @default(now())
+  startedAt DateTime?
   expiresAt DateTime?
   createdAt DateTime @default(now())
 }
