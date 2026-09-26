@@ -28,7 +28,7 @@ export default function WorkspacePin({ configured }: { configured: boolean }) {
 
     setPin("");
     setConfirmPin("");
-    setMessage(configured ? "Workspace PIN updated." : "Workspace PIN created.");
+    setMessage(configured ? "School workspace PIN updated." : "Workspace PIN created.");
   }
 
   return (
@@ -36,7 +36,7 @@ export default function WorkspacePin({ configured }: { configured: boolean }) {
       <h2>Workspace PIN</h2>
       <p className="muted">
         {configured
-          ? "Your personal account password signs you in. Your 4-6 digit PIN unlocks a school workspace."
+          ? "Your account password signs you in. Your 4–6 digit PIN unlocks a school workspace."
           : "Set a 4-6 digit PIN. You will need it before entering a school workspace."}
       </p>
       <form onSubmit={save} className="grid" style={{ marginTop: 16, maxWidth: 420 }}>
