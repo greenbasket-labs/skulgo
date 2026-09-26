@@ -11,10 +11,10 @@ export async function GET(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const membership = await db.schoolMembership.findUnique({
-    where: { schoolId_userId: { schoolId, userId: user.id } },
-  });
-  if (!membership?.active) return NextResponse.json({ error: "School access required" }, { status: 403 });
+  const membership = user.membership?.schoolId === schoolId && user.membership.active
+    ? user.membership
+    : null;
+  if (!membership) return NextResponse.json({ error: "School access required" }, { status: 403 });
 
   const studentId = request.nextUrl.searchParams.get("studentId");
   const allowedStudentIds = await visibleStudentIds(schoolId, user.id, membership.role, studentId);
@@ -37,10 +37,10 @@ export async function POST(
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const membership = await db.schoolMembership.findUnique({
-    where: { schoolId_userId: { schoolId, userId: user.id } },
-  });
-  if (!membership?.active) return NextResponse.json({ error: "School access required" }, { status: 403 });
+  const membership = user.membership?.schoolId === schoolId && user.membership.active
+    ? user.membership
+    : null;
+  if (!membership) return NextResponse.json({ error: "School access required" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   let studentId = String(body?.studentId ?? "");
