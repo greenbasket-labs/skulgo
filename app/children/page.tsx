@@ -14,6 +14,7 @@ type Child = {
 export default function ChildrenPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [message, setMessage] = useState("Loading…");
+  const [resultCheckerId, setResultCheckerId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -42,7 +43,8 @@ export default function ChildrenPage() {
         const response = await fetch("/api/schools/current/children");
         const data = await response.json().catch(() => []);
         if (response.ok) {
-          const next = Array.isArray(data) ? data : [];
+          const next = Array.isArray(data) ? data : Array.isArray(data?.children) ? data.children : [];
+          if (data?.resultCheckerEnabled && data?.resultCheckerId) setResultCheckerId(data.resultCheckerId);
           setChildren(next);
           if (cacheKey) cacheRecord(cacheKey, next);
           setMessage(next.length ? "" : "No approved children are connected yet.");
@@ -70,6 +72,8 @@ export default function ChildrenPage() {
       <div className="card" style={{ maxWidth: 800, margin: "0 auto" }}>
         <p className="muted">Parent workspace</p>
         <h1>{children.length === 1 ? "My Child" : "My Children"}</h1>
+
+        {resultCheckerId && <p className="muted">Result Checker ID: <strong>{resultCheckerId}</strong></p>}
 
         {!children.length && <p className="muted">{message}</p>}
 
