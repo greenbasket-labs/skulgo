@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Teacher = {
   id: string;
+  membershipId: string | null;
   teacherCode: string;
   approved: boolean;
   user: { id: string; name: string; email: string };
@@ -11,6 +12,7 @@ type Teacher = {
 
 type Cashier = {
   id: string;
+  membershipId: string;
   cashierCode: string | null;
   approved: boolean;
   user?: { id: string; name: string; email: string };
@@ -22,6 +24,9 @@ export default function StaffPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [message, setMessage] = useState("Loading...");
+  const [schoolId, setSchoolId] = useState("");
+  const [endReasons, setEndReasons] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState("");
 
   async function load() {
     try {
@@ -32,10 +37,11 @@ export default function StaffPage() {
         return;
       }
 
-      const schoolId = data.user.membership.schoolId;
+      const currentSchoolId = data.user.membership.schoolId;
+      setSchoolId(currentSchoolId);
       const [teacherResponse, cashierResponse] = await Promise.all([
-        fetch(`/api/schools/${schoolId}/teachers`),
-        fetch(`/api/schools/${schoolId}/cashiers`),
+        fetch(`/api/schools/${currentSchoolId}/teachers`),
+        fetch(`/api/schools/${currentSchoolId}/cashiers`),
       ]);
       const teacherResult = await teacherResponse.json().catch(() => []);
       const cashierResult = await cashierResponse.json().catch(() => []);
@@ -54,6 +60,35 @@ export default function StaffPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  async function endSchoolAccess(membershipId: string, personId: string) {
+    const endReason = endReasons[personId] || "";
+    if (!endReason) {
+      setMessage("Choose a leaving reason first.");
+      return;
+    }
+    if (!window.confirm("End this person's access to the school? Their school history will remain on their Personal Profile.")) {
+      return;
+    }
+
+    setBusy(personId);
+    setMessage("");
+    try {
+      const response = await fetch("/api/schools/" + schoolId + "/memberships/" + membershipId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endReason }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Could not end school access.");
+      setMessage("School access ended. The person's history remains in their Personal Profile.");
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not end school access.");
+    } finally {
+      setBusy("");
+    }
+  }
 
   return (
     <main className="workspace-main">
@@ -85,6 +120,22 @@ export default function StaffPage() {
               <p className="muted">
                 Status: {teacher.approved ? "Approved" : "Pending"}
               </p>
+              {teacher.membershipId && (
+                <div style={{ marginTop: 12 }}>
+                  <select value={endReasons[teacher.id] || ""} onChange={event => setEndReasons(current => ({ ...current, [teacher.id]: event.target.value }))} disabled={busy === teacher.id}>
+                    <option value="">Leaving reason</option>
+                    <option value="Resigned">Resigned</option>
+                    <option value="Contract ended">Contract ended</option>
+                    <option value="Terminated">Terminated</option>
+                    <option value="Dismissed">Dismissed</option>
+                    <option value="Transferred">Transferred</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <button type="button" disabled={busy === teacher.id} onClick={() => void endSchoolAccess(teacher.membershipId!, teacher.id)} style={{ marginTop: 8 }}>
+                    {busy === teacher.id ? "Ending..." : "End school access"}
+                  </button>
+                </div>
+              )}
             </article>
           ))}
 
@@ -101,6 +152,20 @@ export default function StaffPage() {
               <p className="muted">
                 Status: {cashier.approved ? "Approved" : "Pending"}
               </p>
+              <div style={{ marginTop: 12 }}>
+                <select value={endReasons[cashier.id] || ""} onChange={event => setEndReasons(current => ({ ...current, [cashier.id]: event.target.value }))} disabled={busy === cashier.id}>
+                  <option value="">Leaving reason</option>
+                  <option value="Resigned">Resigned</option>
+                  <option value="Contract ended">Contract ended</option>
+                  <option value="Terminated">Terminated</option>
+                  <option value="Dismissed">Dismissed</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Other">Other</option>
+                </select>
+                <button type="button" disabled={busy === cashier.id} onClick={() => void endSchoolAccess(cashier.membershipId, cashier.id)} style={{ marginTop: 8 }}>
+                  {busy === cashier.id ? "Ending..." : "End school access"}
+                </button>
+              </div>
             </article>
           ))}
         </div>
