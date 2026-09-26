@@ -16,6 +16,7 @@ export function navForRole(role: WorkspaceRole) {
         ["Announcements", "/announcements"],
         ["Talk to SkulGo Support", "/support"],
         ["Result Settings", "/settings"],
+        ["Plan", "/plan"],
         ["My Account", "/account"],
       ];
     case "TEACHER":

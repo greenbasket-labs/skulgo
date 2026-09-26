@@ -32,6 +32,14 @@ export async function POST(request: Request) {
       data: { schoolId: s.id, userId: user.id, role: "ADMIN" },
     });
 
+    await tx.schoolSubscription.create({
+      data: {
+        schoolId: s.id,
+        plan: "MONTHLY",
+        status: "TRIAL",
+      },
+    });
+
     return s;
   });
 
