@@ -435,6 +435,29 @@ The latest confirmed **live** deployment is commit `854c0ed`. The dashboard synt
 
 ### Newly confirmed roadmap items
 
+### Personal identity / school history — foundation added
+
+The Personal Profile now begins to act as a **long-term record of the person's SkulGo school journey**, without becoming a full CV system.
+
+Current foundation:
+
+- one personal `User` identity can connect to multiple schools;
+- `SchoolMembership` records role and relationship start;
+- ended school relationships retain `endedAt` and `endReason`;
+- Admin can end active staff school access with a simple leaving reason;
+- ended access remains visible as history in the Personal Profile;
+- ending access does not delete the person's identity or historical school relationship.
+
+Future direction, only when justified by real use:
+
+- promotion/history records;
+- richer professional profile/CV data;
+- other career-history details.
+
+These are **not** being built now.
+
+
+
 These are intentionally small platform capabilities, not a move toward a large ERP:
 
 - **SkulGo Admin Dashboard:** a lightweight internal SkulGo dashboard showing platform-level facts such as total registered users, total schools, active schools/users, and other simple operational counts that SkulGo itself owns. No large analytics system.
@@ -559,6 +582,25 @@ If real testing reveals a genuine gap, fix that role first before moving forward
 **8. Repeat: observe → fix → wire → extend → test**
 
 ## Handover principle
+
+### Engineering change discipline
+
+Every future fix should follow the same small-change loop:
+
+**inspect → identify evidence → smallest fix → typecheck/test → review diff → focused commit → verify deployment when applicable**
+
+Rules:
+
+- Read the current repository state before editing.
+- Preserve existing working behavior.
+- Reuse the existing schema/API/page instead of creating duplicate paths.
+- Fix the exact reported cause; do not broaden the task without approval.
+- Do not perform unrelated refactors or dependency upgrades.
+- Do not use destructive Git commands on local work.
+- Do not treat a successful commit as proof of a successful deployment.
+- Record the commit and verification result in the handover when a change materially affects architecture or workflow.
+
+
 
 The codebase should always be understandable to the next developer or AI.
 
