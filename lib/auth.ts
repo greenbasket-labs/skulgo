@@ -262,5 +262,28 @@ export async function getCurrentUser() {
     ? user.memberships.find(m => m.id === session.membershipId) ?? null
     : null;
 
-  return { ...user, membership, session };
+  if (membership) {
+    const subscription = await db.schoolSubscription.findUnique({
+      where: { schoolId: membership.schoolId },
+      select: { status: true, expiresAt: true },
+    });
+
+    let subscriptionStatus = subscription?.status ?? null;
+    if (subscription?.status === "TRIAL" && subscription.expiresAt && subscription.expiresAt <= now) {
+      const expired = await db.schoolSubscription.update({
+        where: { schoolId: membership.schoolId },
+        data: { status: "EXPIRED" },
+        select: { status: true },
+      });
+      subscriptionStatus = expired.status;
+    }
+
+    if (membership.role !== "ADMIN" && (subscriptionStatus === "PAUSED" || subscriptionStatus === "EXPIRED")) {
+      return { ...user, membership: null, subscriptionBlocked: true, subscriptionStatus, session };
+    }
+
+    return { ...user, membership, subscriptionBlocked: false, subscriptionStatus, session };
+  }
+
+  return { ...user, membership, subscriptionBlocked: false, subscriptionStatus: null, session };
 }
