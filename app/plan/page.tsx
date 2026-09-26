@@ -109,7 +109,7 @@ export default async function PlanPage() {
           {effectiveStatus === "EXPIRED" && (
             <p className="muted">The free trial has ended. Choose an available paid plan when payment is ready.</p>
           )}
-          <PlanActions status={effectiveStatus} />
+          <PlanActions status={effectiveStatus} schoolId={schoolId} />
         </div>
 
         <div className="card" style={{ marginTop: 18 }}>
