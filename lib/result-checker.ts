@@ -64,6 +64,7 @@ export async function resolveResultCheckerAccess(id: string, pin: string): Promi
     },
   });
 
+  if (!parentMembership) return null;
   const parentId = parentMembership.user.parent?.id;
   if (!parentId) return null;
   const user = parentMembership.user;
