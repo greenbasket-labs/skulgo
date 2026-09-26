@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function PlanActions({ status }: { status: string }) {
+export default function PlanActions({ status, schoolId }: { status: string; schoolId: string }) {
   const [current, setCurrent] = useState(status);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
