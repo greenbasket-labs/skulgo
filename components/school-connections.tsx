@@ -36,7 +36,7 @@ export default function SchoolConnections({ memberships }: { memberships: Member
 
   return (
     <section className="card">
-      <h2>My schools</h2>
+      <h2>My school workspaces</h2>
       {!memberships.length ? (
         <p className="muted">No school connection yet.</p>
       ) : (
@@ -49,11 +49,11 @@ export default function SchoolConnections({ memberships }: { memberships: Member
                 disabled={Boolean(busy)}
                 onClick={() => setSelected(membership)}
                 style={{ width: "100%", textAlign: "left", cursor: "pointer" }}
-                aria-label={"Unlock " + membership.school.name}
+                aria-label={"Open " + membership.school.name + " workspace"}
               >
                 <strong>{membership.school.name}</strong>
                 <p className="muted">{membership.school.abbr} · {membership.role}</p>
-                <p className="muted">Unlock school workspace →</p>
+                <p className="muted">Open school workspace →</p>
               </button>
               {selected?.id === membership.id && (
                 <WorkspaceUnlock
