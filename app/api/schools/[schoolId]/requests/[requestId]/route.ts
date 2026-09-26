@@ -62,6 +62,8 @@ export async function PATCH(
   });
   if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
 
+  const approvalTime = new Date();
+
   await db.$transaction(async tx => {
     await tx.schoolMembership.upsert({
       where: { schoolId_userId: { schoolId, userId: schoolRequest.userId } },
@@ -166,8 +168,35 @@ export async function PATCH(
 
     await tx.schoolRequest.update({
       where: { id: schoolRequest.id },
-      data: { status: "APPROVED", reviewedAt: new Date() },
+      data: { status: "APPROVED", reviewedAt: approvalTime },
     });
+
+    const subscription = await tx.schoolSubscription.findUnique({
+      where: { schoolId },
+    });
+
+    if (subscription && !subscription.startedAt) {
+      const rows = await tx.platformSetting.findMany({
+        where: { key: { in: ["trialEnabled", "trialDays"] } },
+      });
+      const settings = Object.fromEntries(rows.map(row => [row.key, row.value]));
+      const trialEnabled = settings.trialEnabled !== "false";
+      const trialDays = Math.max(0, Number(settings.trialDays ?? "14") || 0);
+
+      if (trialEnabled && trialDays > 0) {
+        const expiresAt = new Date(approvalTime);
+        expiresAt.setDate(expiresAt.getDate() + trialDays);
+        await tx.schoolSubscription.update({
+          where: { id: subscription.id },
+          data: { status: "TRIAL", startedAt: approvalTime, expiresAt },
+        });
+      } else {
+        await tx.schoolSubscription.update({
+          where: { id: subscription.id },
+          data: { status: "EXPIRED", startedAt: null, expiresAt: null },
+        });
+      }
+    }
   });
 
   await recordAudit({ schoolId, actorUserId: admin.id, action: "APPROVE", entity: "SCHOOL_REQUEST", entityId: schoolRequest.id, details: { requestedRole: schoolRequest.requestedRole } });
