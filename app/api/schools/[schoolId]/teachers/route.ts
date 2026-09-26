@@ -15,11 +15,24 @@ export async function GET(
 
   const teachers = await db.teacher.findMany({
     where: { user: { memberships: { some: { schoolId, active: true, role: "TEACHER" } } } },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          memberships: { where: { schoolId, active: true, role: "TEACHER" }, select: { id: true } },
+        },
+      },
+    },
     orderBy: { user: { name: "asc" } },
   });
 
-  return NextResponse.json(teachers);
+  return NextResponse.json(teachers.map(teacher => ({
+    ...teacher,
+    membershipId: teacher.user.memberships[0]?.id ?? null,
+    user: { id: teacher.user.id, name: teacher.user.name, email: teacher.user.email },
+  })));
 }
 
 export async function POST() {
