@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-type Settings = {
-  resultCheckerEnabled: boolean;
-  resultUnlockFee: number;
-};
-
 export default function ResultCheckerSetting() {
   const [enabled, setEnabled] = useState(false);
   const [fee, setFee] = useState(200);
