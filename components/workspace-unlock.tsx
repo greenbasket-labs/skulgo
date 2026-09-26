@@ -28,8 +28,8 @@ export default function WorkspaceUnlock({ schoolName, onCancel, onUnlock }: Prop
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
-      <strong>Unlock {schoolName}</strong>
-      <p className="muted">Enter your 4-6 digit workspace PIN.</p>
+      <strong>Open {schoolName}</strong>
+      <p className="muted">Enter your 4–6 digit PIN to continue.</p>
       <form onSubmit={submit} className="grid" style={{ marginTop: 12 }}>
         <input
           required
@@ -45,7 +45,7 @@ export default function WorkspaceUnlock({ schoolName, onCancel, onUnlock }: Prop
           autoComplete="current-password"
         />
         <button className="button" disabled={busy}>
-          {busy ? "Unlocking…" : "Unlock workspace"}
+          {busy ? "Unlocking…" : "Open workspace"}
         </button>
         {onCancel && (
           <button type="button" className="button" onClick={onCancel} disabled={busy}>
