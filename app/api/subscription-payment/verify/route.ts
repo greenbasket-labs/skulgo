@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const expiresAt = addPeriod(baseDate, payment.plan);
   await db.$transaction([
     db.schoolSubscriptionPayment.update({ where: { id: payment.id }, data: { status: "SUCCESS", paidAt: transaction.paid_at ? new Date(transaction.paid_at) : now } }),
-    db.schoolSubscription.update({ where: { id: subscription.id }, data: { tier: payment.tier, plan: payment.plan, status: "ACTIVE", startedAt: now, expiresAt } }),
+    db.schoolSubscription.update({ where: { id: subscription.id }, data: { tier: payment.tier, plan: payment.plan, status: "ACTIVE", startedAt: now, expiresAt, pausedAt: null } }),
   ]);
   return NextResponse.json({ ok: true, status: "SUCCESS", tier: payment.tier, plan: payment.plan, expiresAt });
 }

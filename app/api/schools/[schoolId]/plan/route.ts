@@ -64,6 +64,24 @@ export async function PATCH(request: Request) {
   if (!subscription) return NextResponse.json({ error: "School plan not found" }, { status: 404 });
   if (action === "PAUSE" && subscription.status !== "ACTIVE") return NextResponse.json({ error: "Only an active paid plan can be paused." }, { status: 400 });
   if (action === "RESUME" && subscription.status !== "PAUSED") return NextResponse.json({ error: "Only a paused paid plan can be resumed." }, { status: 400 });
-  const updated = await db.schoolSubscription.update({ where: { id: subscription.id }, data: { status: action === "PAUSE" ? "PAUSED" : "ACTIVE" } });
+
+  if (action === "PAUSE") {
+    const updated = await db.schoolSubscription.update({
+      where: { id: subscription.id },
+      data: { status: "PAUSED", pausedAt: new Date() },
+    });
+    return NextResponse.json({ ok: true, subscription: updated });
+  }
+
+  const now = new Date();
+  const pausedAt = subscription.pausedAt;
+  const expiresAt = subscription.expiresAt;
+  const remainingMs = pausedAt && expiresAt ? Math.max(0, expiresAt.getTime() - pausedAt.getTime()) : 0;
+  const resumedExpiresAt = remainingMs > 0 ? new Date(now.getTime() + remainingMs) : now;
+
+  const updated = await db.schoolSubscription.update({
+    where: { id: subscription.id },
+    data: { status: "ACTIVE", pausedAt: null, expiresAt: resumedExpiresAt },
+  });
   return NextResponse.json({ ok: true, subscription: updated });
 }
