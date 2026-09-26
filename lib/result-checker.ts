@@ -64,9 +64,9 @@ export async function resolveResultCheckerAccess(id: string, pin: string): Promi
     },
   });
 
-  if (!parentMembership?.user.parent) return null;
+  const parentId = parentMembership.user.parent?.id;
+  if (!parentId) return null;
   const user = parentMembership.user;
-  const parentId = user.parent.id;
   if (user.pinLockedUntil && user.pinLockedUntil > new Date()) return null;
   if (!user.pinHash || !verifyPin(pin, user.pinHash)) {
     await recordPinFailure(user.id, user.pinFailedAttempts);
