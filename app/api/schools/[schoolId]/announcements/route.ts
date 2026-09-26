@@ -46,7 +46,7 @@ export async function POST(
   const { schoolId } = await params;
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const membership = await access(user.id, schoolId);
+  const membership = await access(user, schoolId);
   if (!membership?.active || membership.role !== "ADMIN") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
