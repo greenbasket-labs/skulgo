@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "e2e": "playwright test",
-    "db:push:prod": "prisma db push --schema prisma/schema.production.prisma --accept-data-loss",
+    "db:prepare:workspace-codes": "node scripts/prepare-workspace-codes.js",
+    "db:push:prod": "npm run db:prepare:workspace-codes && prisma db push --schema prisma/schema.production.prisma --accept-data-loss",
     "build:prod": "npm install --include=dev && npm run postinstall && npm run db:push:prod && npm run db:backfill:subscriptions && next build",
     "postinstall": "prisma generate --schema prisma/schema.production.prisma",
     "db:backfill:subscriptions": "node scripts/backfill-school-subscriptions.js"
