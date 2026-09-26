@@ -65,6 +65,7 @@ model School {
   requests SchoolRequest[]
   memberships SchoolMembership[]
   subscription SchoolSubscription?
+  subscriptionPayments SchoolSubscriptionPayment[]
   manualPaymentsEnabled Boolean @default(true)
   schoolSettings String?
   gradingBands String?
@@ -92,6 +93,28 @@ model SchoolSubscription {
   startedAt DateTime?
   expiresAt DateTime?
   createdAt DateTime @default(now())
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model SchoolSubscriptionPayment {
+  id String @id @default(cuid())
+  schoolId String
+  school School @relation(fields:[schoolId],references:[id],onDelete:Cascade)
+  tier SubscriptionTier
+  plan SubscriptionPlan
+  amount Float
+  currency String @default("NGN")
+  provider String @default("PAYSTACK")
+  reference String @unique
+  status PlatformPaymentStatus @default(PENDING)
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([schoolId,createdAt])
 }
 
 model User {
