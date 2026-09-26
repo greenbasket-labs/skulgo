@@ -29,6 +29,12 @@ export default async function AccountPage() {
 
   const referralCount = referral?._count.referrals ?? 0;
 
+  const schoolHistory = await db.schoolMembership.findMany({
+    where: { userId: user.id },
+    include: { school: { select: { id: true, name: true, abbr: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <main className="workspace-main">
       <div className="workspace-header">
@@ -109,6 +115,32 @@ export default async function AccountPage() {
           },
         }))}
       />
+
+      <section className="card" style={{ marginTop: 18 }}>
+        <h2>School history</h2>
+        {!schoolHistory.length ? (
+          <p className="muted">Your school work history will appear here when a school approves your connection.</p>
+        ) : (
+          <div className="grid" style={{ marginTop: 12 }}>
+            {schoolHistory.map(item => (
+              <div key={item.id}>
+                <strong>{item.school.name}</strong>
+                <p className="muted">
+                  {item.school.abbr} · {item.role} · Started {new Date(item.createdAt).toLocaleDateString("en-NG")}
+                </p>
+                {item.active ? (
+                  <p className="muted">Active</p>
+                ) : (
+                  <p className="muted">
+                    Ended {item.endedAt ? new Date(item.endedAt).toLocaleDateString("en-NG") : ""}
+                    {item.endReason ? " · " + item.endReason : ""}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
