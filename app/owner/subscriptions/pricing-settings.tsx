@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 
 type Settings = {
-  monthlyEnabled: boolean;
-  monthlyPrice: number;
-  termEnabled: boolean;
-  termPrice: number;
-  yearlyEnabled: boolean;
-  yearlyPrice: number;
+  basicEnabled: boolean;
+  basicPrice: number;
+  starterEnabled: boolean;
+  starterPrice: number;
+  proEnabled: boolean;
+  proPrice: number;
+  premiumEnabled: boolean;
+  premiumPrice: number;
   trialEnabled: boolean;
   trialDays: number;
   resultUnlockEnabled: boolean;
@@ -16,12 +18,14 @@ type Settings = {
 };
 
 const initial: Settings = {
-  monthlyEnabled: true,
-  monthlyPrice: 0,
-  termEnabled: true,
-  termPrice: 0,
-  yearlyEnabled: true,
-  yearlyPrice: 0,
+  basicEnabled: true,
+  basicPrice: 5000,
+  starterEnabled: true,
+  starterPrice: 10000,
+  proEnabled: true,
+  proPrice: 20000,
+  premiumEnabled: true,
+  premiumPrice: 28000,
   trialEnabled: true,
   trialDays: 14,
   resultUnlockEnabled: true,
@@ -39,12 +43,14 @@ export default function PlatformPricingSettings() {
       .then((response) => response.json())
       .then((data) => {
         setSettings({
-          monthlyEnabled: data.monthlyEnabled === "true",
-          monthlyPrice: Number(data.monthlyPrice),
-          termEnabled: data.termEnabled === "true",
-          termPrice: Number(data.termPrice),
-          yearlyEnabled: data.yearlyEnabled === "true",
-          yearlyPrice: Number(data.yearlyPrice),
+          basicEnabled: data.basicEnabled === "true",
+          basicPrice: Number(data.basicPrice),
+          starterEnabled: data.starterEnabled === "true",
+          starterPrice: Number(data.starterPrice),
+          proEnabled: data.proEnabled === "true",
+          proPrice: Number(data.proPrice),
+          premiumEnabled: data.premiumEnabled === "true",
+          premiumPrice: Number(data.premiumPrice),
           trialEnabled: data.trialEnabled === "true",
           trialDays: Number(data.trialDays),
           resultUnlockEnabled: data.resultUnlockEnabled === "true",
@@ -85,9 +91,10 @@ export default function PlatformPricingSettings() {
 
       <div className="grid grid-2">
         {[
-          ["Monthly", "monthlyEnabled", "monthlyPrice"],
-          ["Term", "termEnabled", "termPrice"],
-          ["Yearly", "yearlyEnabled", "yearlyPrice"],
+          ["Basic", "basicEnabled", "basicPrice"],
+          ["Starter", "starterEnabled", "starterPrice"],
+          ["Pro", "proEnabled", "proPrice"],
+          ["Premium", "premiumEnabled", "premiumPrice"],
         ].map(([label, enabledKey, priceKey]) => (
           <div className="card" key={label}>
             <strong>{label} plan</strong>
