@@ -38,7 +38,7 @@ export default async function AccountPage() {
       </div>
 
       <section className="card" style={{ marginBottom: 18 }}>
-        <h2>My profile</h2>
+        <h2>Personal profile</h2>
         <p className="muted">
           This is your personal SkulGo profile. School records stay inside each
           school workspace.
