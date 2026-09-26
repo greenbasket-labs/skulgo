@@ -93,6 +93,7 @@ model SchoolSubscription {
   status SubscriptionStatus @default(TRIAL)
   startedAt DateTime?
   expiresAt DateTime?
+  pausedAt DateTime?
   createdAt DateTime @default(now())
 }
 
