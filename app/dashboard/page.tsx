@@ -36,7 +36,7 @@ export default async function Dashboard() {
           <div className="grid grid-2" style={{ marginTop: 16 }}>
             <Link className="button" href="/schools">Find a school</Link>
             <Link className="button" href="/register">Create a school</Link>
-            <Link className="button" href="/account">My profile / CV</Link>
+            <Link className="button" href="/account">My profile</Link>
           </div>
         </div>
       </main>
@@ -388,7 +388,7 @@ export default async function Dashboard() {
         <div className="workspace-person">
           <strong>{u.name}</strong>
           <span>{role}</span>
-          <Link href="/account">My profile / CV</Link>
+          <Link href="/account">My profile</Link>
         </div>
       </aside>
 
