@@ -50,6 +50,7 @@ export async function GET() {
     plans,
     customPlan: { label: "Custom", students: null, staff: null, message: "For schools above Premium capacity." },
     trial: { enabled: settings.trialEnabled === "true", days: Number(settings.trialDays) },
+    payments: { paystack: Boolean(process.env.PAYSTACK_SECRET_KEY) },
   });
 }
 
