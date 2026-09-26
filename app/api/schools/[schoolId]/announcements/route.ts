@@ -3,11 +3,9 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 
-async function access(userId: string, schoolId: string) {
-  return db.schoolMembership.findUnique({
-    where: { schoolId_userId: { schoolId, userId } },
-    select: { id: true, role: true, active: true },
-  });
+async function access(user: Awaited<ReturnType<typeof getCurrentUser>>, schoolId: string) {
+  if (!user?.membership || user.membership.schoolId !== schoolId || !user.membership.active) return null;
+  return user.membership;
 }
 
 export async function GET(
@@ -18,7 +16,7 @@ export async function GET(
   const { schoolId } = await params;
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const membership = await access(user.id, schoolId);
+  const membership = await access(user, schoolId);
   if (!membership?.active) {
     return NextResponse.json({ error: "School access required" }, { status: 403 });
   }
