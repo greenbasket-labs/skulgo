@@ -6,15 +6,11 @@ import { useRouter } from "next/navigation";
 export default function Register() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [referralCode, setReferralCode] = useState("SKGA6UBY5");
-  const [referredBy, setReferredBy] = useState("");
+  const [introducedBy, setIntroducedBy] = useState("");
 
   useEffect(() => {
     const ref = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? "";
-    if (ref) {
-      setReferralCode(ref);
-      setReferredBy(ref);
-    }
+    if (ref) setIntroducedBy(ref);
   }, []);
   const router = useRouter();
 
@@ -77,16 +73,13 @@ export default function Register() {
           </label>
 
           <label className="grid">
-            <span>Referral ID <span className="muted">(optional)</span></span>
+            <span>Who introduced you to SkulGo? <span className="muted">(optional)</span></span>
             <input
               name="referralCode"
-              value={referralCode}
-              onChange={event => setReferralCode(event.target.value.toUpperCase())}
-              placeholder="e.g. SKG65T3W"
+              value={introducedBy}
+              onChange={event => setIntroducedBy(event.target.value.toUpperCase())}
+              placeholder="SkulGo Account ID"
             />
-            <span className="muted">
-              {referredBy ? "You were invited by a SkulGo user. You can clear or change this ID." : "Have a friend's SKG referral ID? Enter it here."}
-            </span>
           </label>
 
           <label className="grid">
