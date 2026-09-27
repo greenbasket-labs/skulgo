@@ -1,33 +1,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { referralLevel } from "@/lib/referrals";
 import SchoolConnections from "@/components/school-connections";
 import WorkspacePin from "@/components/workspace-pin";
-import ReferralShare from "@/components/referral-share";
+import AccountIdCopy from "@/components/account-id-copy";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const referral = user.referralCode
-    ? await db.user.findUnique({
-        where: { id: user.id },
-        select: {
-          referralCode: true,
-          foundingNumber: true,
-          _count: {
-            select: {
-              referrals: {
-                where: { emailVerifiedAt: { not: null } },
-              },
-            },
-          },
-        },
-      })
-    : null;
-
-  const referralCount = referral?._count.referrals ?? 0;
+  const accountId = user.referralCode;
 
   const schoolHistory = await db.schoolMembership.findMany({
     where: { userId: user.id },
@@ -73,32 +55,14 @@ export default async function AccountPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 18 }}>
-        <h2>Referral</h2>
-        {referral ? (
-          <div className="grid grid-2" style={{ marginTop: 16 }}>
-            <div>
-              <p className="muted">Referral ID</p>
-              {referral.referralCode && <ReferralShare referralCode={referral.referralCode} />}
-            </div>
-            <div>
-              <p className="muted">Level</p>
-              <strong>{referralLevel(referralCount)}</strong>
-            </div>
-            <div>
-              <p className="muted">Verified referrals</p>
-              <strong>{referralCount}</strong>
-            </div>
-            {referral.foundingNumber && (
-              <div style={{ gridColumn: "1 / -1" }}>
-                <strong>You’re among the first people helping pilot SkulGo.</strong>
-                <p className="muted">
-                  You’re helping us pilot SkulGo. Share your Referral ID with people you trust.
-                </p>
-              </div>
-            )}
-          </div>
+        <h2>SkulGo Account ID</h2>
+        <p className="muted">
+          Your unique SkulGo identity. Share it when you want someone to connect with your account.
+        </p>
+        {accountId ? (
+          <AccountIdCopy accountId={accountId} />
         ) : (
-          <p className="muted">Your referral ID will be available for new accounts.</p>
+          <p className="muted">Account ID unavailable.</p>
         )}
       </section>
 
