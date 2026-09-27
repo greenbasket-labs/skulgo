@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminAddPerson from "@/components/admin-add-person";
 
 type Request = {
   id: string;
@@ -115,6 +116,8 @@ export default function ApplicationsPage() {
       </div>
 
       {message && <p role="status" className="muted">{message}</p>}
+
+      <AdminAddPerson schoolId={schoolId} classes={classes} />
 
       {!requests.length && !message.includes("Loading") ? (
         <div className="card">
