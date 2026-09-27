@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type SchoolClass = {
   id: string;
@@ -24,7 +24,7 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
     setStudentAdmissionId("");
   }, [role]);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
