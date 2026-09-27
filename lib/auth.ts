@@ -182,17 +182,8 @@ export function setOwnerSession(response: Response, user: { id: string }, device
 }
 
 export async function clearSession(response: Response) {
-  const session = await getSession();
-  if (session) {
-    await db.deviceSession.updateMany({
-      where: { id: session.deviceId, userId: session.userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-  }
-
   response.headers.append("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
   response.headers.append("Set-Cookie", `${OWNER_COOKIE}=; Path=/owner; HttpOnly; SameSite=Lax; Max-Age=0`);
-  response.headers.append("Set-Cookie", `${DEVICE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
 export async function getSession() {
