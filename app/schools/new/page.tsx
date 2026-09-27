@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export default function NewSchool() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [registrationRole, setRegistrationRole] = useState("");
   const router = useRouter();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -59,6 +60,23 @@ export default function NewSchool() {
           <input required name="address" placeholder="Address" />
           <input required name="phone" placeholder="Phone" />
           <input required type="email" name="email" placeholder="School email" />
+
+          <label className="grid">
+            <span>Your role in the school</span>
+            <select required name="registrationRole" value={registrationRole} onChange={e => setRegistrationRole(e.target.value)}>
+              <option value="" disabled>Select your role</option>
+              <option value="Owner">Owner</option>
+              <option value="Proprietor">Proprietor</option>
+              <option value="Principal / Head">Principal / Head</option>
+              <option value="Developer">Developer</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+
+          {registrationRole === "Other" && (
+            <input required name="registrationRoleOther" placeholder="Enter your role" />
+          )}
+
           <button className="button" disabled={busy}>
             {busy ? "Creating…" : "Create school"}
           </button>
