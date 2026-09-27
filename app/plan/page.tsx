@@ -52,6 +52,10 @@ export default async function PlanPage() {
   const effectiveStatus = subscription.status === "TRIAL" && subscription.expiresAt && subscription.expiresAt <= new Date()
     ? "EXPIRED" : subscription.status;
   const currentTier = tiers.find(tier => tier.key === subscription.tier) ?? tiers[0];
+  const trialDaysElapsed = subscription.status === "TRIAL" && subscription.startedAt
+    ? Math.floor((Date.now() - subscription.startedAt.getTime()) / (24 * 60 * 60 * 1000))
+    : null;
+  const showPaidPlans = subscription.status !== "TRIAL" || trialDaysElapsed === null || trialDaysElapsed >= 10;
 
   const plans = tiers.map(tier => {
     const monthly = Number(settings[tier.setting + "Price" as keyof typeof settings]);
@@ -97,7 +101,8 @@ export default async function PlanPage() {
           <PlanActions status={effectiveStatus} schoolId={schoolId} />
         </div>
 
-        <div className="card" style={{ marginTop: 18 }}>
+        {showPaidPlans ? (
+          <div className="card" style={{ marginTop: 18 }}>
           <h2>Available plans</h2>
           <p className="muted">Choose a school size and billing period.</p>
           <div className="grid grid-2" style={{ marginTop: 12 }}>
@@ -117,7 +122,14 @@ export default async function PlanPage() {
           </div>
         </div>
 
-        <PlanPurchase schoolId={schoolId} plans={plans} paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)} />
+          <PlanPurchase schoolId={schoolId} plans={plans} paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)} />
+          </div>
+        ) : (
+          <div className="card" style={{ marginTop: 18 }}>
+            <strong>Your free trial is active.</strong>
+            <p className="muted">Paid plans will be available after 10 days of the school trial.</p>
+          </div>
+        )
 
         <div className="card" style={{ marginTop: 18 }}>
           <h2>Free trial</h2>
