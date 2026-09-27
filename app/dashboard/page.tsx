@@ -385,12 +385,16 @@ export default async function Dashboard() {
         <nav className="workspace-nav">
           <Link href="/dashboard">Dashboard</Link>
           {nav.map(group => (
-            <div key={group.label} style={{ marginTop: 14 }}>
-              <p className="muted" style={{ margin: "0 0 6px" }}>{group.label}</p>
-              {group.items.map(([label, href]) => (
-                <Link key={href} href={href}>{label}</Link>
-              ))}
-            </div>
+            <details key={group.label} style={{ marginTop: 10 }}>
+              <summary style={{ cursor: "pointer", fontWeight: 600, padding: "6px 0" }}>
+                {group.label}
+              </summary>
+              <div style={{ marginTop: 4 }}>
+                {group.items.map(([label, href]) => (
+                  <Link key={href} href={href}>{label}</Link>
+                ))}
+              </div>
+            </details>
           ))}
         </nav>
         <div className="workspace-nav" style={{ marginTop: 18 }}>
