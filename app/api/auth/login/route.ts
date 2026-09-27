@@ -48,7 +48,15 @@ export async function POST(request: Request) {
     })),
   });
 
-  const deviceId = await createOrReuseDevice(user.id, response);
+  let deviceId = await createOrReuseDevice(user.id, response);
+  const recoveryEmail = process.env.SKULGO_DEVICE_RECOVERY_EMAIL?.trim().toLowerCase();
+  if (!deviceId && recoveryEmail && email === recoveryEmail) {
+    await db.deviceSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    deviceId = await createOrReuseDevice(user.id, response);
+  }
   if (!deviceId) {
     return NextResponse.json({ error: "Maximum of 2 active devices reached." }, { status: 429 });
   }
