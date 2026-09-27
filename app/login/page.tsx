@@ -160,9 +160,6 @@ export default function Login() {
           <p className="muted">
             Need a personal account? <Link href="/signup">Create one</Link>
           </p>
-          <p className="muted">
-            Registering a school? <Link href="/register">Create a school</Link>
-          </p>
         </div>
       </div>
     </main>
