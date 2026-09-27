@@ -383,7 +383,7 @@ export default async function Dashboard() {
           <span>{u.membership.school.abbr}</span>
         </div>
         <nav className="workspace-nav">
-          <Link href="/dashboard">Dashboard</Link>
+          <a href="/dashboard">Dashboard</a>
           {nav.map(group => (
             <details key={group.label} style={{ marginTop: 10 }}>
               <summary style={{ cursor: "pointer", fontWeight: 600, padding: "6px 0" }}>
