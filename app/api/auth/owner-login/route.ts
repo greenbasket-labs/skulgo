@@ -28,7 +28,15 @@ export async function POST(request: Request) {
 
 
   const response = NextResponse.json({ ok: true });
-  const deviceId = await createOrReuseDevice(user.id, response, 2, 7);
+  let deviceId = await createOrReuseDevice(user.id, response, 2, 7);
+
+  if (!deviceId && process.env.SKULGO_OWNER_DEVICE_RECOVERY === "true") {
+    await db.deviceSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    deviceId = await createOrReuseDevice(user.id, response, 2, 7);
+  }
 
   if (!deviceId) {
     return NextResponse.json(
