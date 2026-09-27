@@ -104,33 +104,37 @@ export default async function PlanPage() {
         {showPaidPlans ? (
           <>
             <div className="card" style={{ marginTop: 18 }}>
-          <h2>Available plans</h2>
-          <p className="muted">Choose a school size and billing period.</p>
-          <div className="grid grid-2" style={{ marginTop: 12 }}>
-            {plans.map(plan => (
-              <div className="card" key={plan.key}>
-                <strong>{plan.label}</strong>
-                <p className="muted">{plan.students.toLocaleString("en-NG")} students · {plan.staff} staff</p>
-                <div>Monthly: <strong>{money(plan.monthly)}</strong></div>
-                <div>Term: <strong>{money(plan.term)}</strong></div>
-                <div>Yearly: <strong>{money(plan.yearly)}</strong></div>
+              <h2>Available plans</h2>
+              <p className="muted">Choose a school size and billing period.</p>
+              <div className="grid grid-2" style={{ marginTop: 12 }}>
+                {plans.map(plan => (
+                  <div className="card" key={plan.key}>
+                    <strong>{plan.label}</strong>
+                    <p className="muted">{plan.students.toLocaleString("en-NG")} students · {plan.staff} staff</p>
+                    <div>Monthly: <strong>{money(plan.monthly)}</strong></div>
+                    <div>Term: <strong>{money(plan.term)}</strong></div>
+                    <div>Yearly: <strong>{money(plan.yearly)}</strong></div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="card" style={{ marginTop: 12 }}>
-            <strong>Custom</strong>
-            <p className="muted">For schools above Premium capacity. Pricing is handled separately.</p>
-          </div>
-        </div>
+              <div className="card" style={{ marginTop: 12 }}>
+                <strong>Custom</strong>
+                <p className="muted">For schools above Premium capacity. Pricing is handled separately.</p>
+              </div>
+            </div>
 
-          <PlanPurchase schoolId={schoolId} plans={plans} paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)} />
+            <PlanPurchase
+              schoolId={schoolId}
+              plans={plans}
+              paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)}
+            />
           </>
         ) : (
           <div className="card" style={{ marginTop: 18 }}>
             <strong>Your free trial is active.</strong>
             <p className="muted">Paid plans will be available after 10 days of the school trial.</p>
           </div>
-        )
+        )}
 
         <div className="card" style={{ marginTop: 18 }}>
           <h2>Free trial</h2>
