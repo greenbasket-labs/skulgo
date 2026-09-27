@@ -1,5 +1,13 @@
-const CACHE_NAME = "skulgo-shell-v4";
+const CACHE_NAME = "skulgo-shell-v5";
 const APP_SHELL = ["/", "/login", "/signup", "/dashboard", "/attendance", "/scores", "/fees", "/results", "/offline"];
+
+function isCacheableAsset(url) {
+  if (url.origin !== self.location.origin) return false;
+  return url.pathname.startsWith("/_next/static/") ||
+    url.pathname === "/manifest.webmanifest" ||
+    url.pathname === "/favicon.ico" ||
+    url.pathname.startsWith("/icon");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -38,6 +46,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Never cache authenticated/server API responses. User- and school-specific
+  // records are handled by the scoped offline cache in the application.
+  if (url.pathname.startsWith("/api/")) return;
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(async () => {
@@ -56,23 +68,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (!isCacheableAsset(url)) return;
+
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
+    caches.match(event.request).then((cached) => {
+      const network = fetch(event.request).then((response) => {
         if (response.ok) {
           const copy = response.clone();
           void caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
         return response;
-      })
-      .catch(async () => {
-        const cached = await caches.match(event.request);
-        if (cached) return cached;
+      });
+      return cached || network;
+    }).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
 
-        return new Response("Offline", {
-          status: 503,
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
-      })
+      return new Response("Offline", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    })
   );
 });
