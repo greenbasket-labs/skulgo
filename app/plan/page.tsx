@@ -102,7 +102,8 @@ export default async function PlanPage() {
         </div>
 
         {showPaidPlans ? (
-          <div className="card" style={{ marginTop: 18 }}>
+          <>
+            <div className="card" style={{ marginTop: 18 }}>
           <h2>Available plans</h2>
           <p className="muted">Choose a school size and billing period.</p>
           <div className="grid grid-2" style={{ marginTop: 12 }}>
@@ -123,7 +124,7 @@ export default async function PlanPage() {
         </div>
 
           <PlanPurchase schoolId={schoolId} plans={plans} paystackEnabled={Boolean(process.env.PAYSTACK_SECRET_KEY)} />
-          </div>
+          </>
         ) : (
           <div className="card" style={{ marginTop: 18 }}>
             <strong>Your free trial is active.</strong>
