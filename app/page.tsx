@@ -7,7 +7,7 @@ export default function Home() {
         <div>
           <h1 style={{ margin: 0, fontSize: "clamp(42px, 8vw, 72px)", lineHeight: 1 }}>SkulGo</h1>
           <h2 style={{ margin: "18px 0 28px", fontWeight: 400 }}>
-            Transparent &amp; Secure Records.
+            Connected. Transparent. Secure Records.
           </h2>
           <Link className="button" href="/login">Sign in</Link>
         </div>
