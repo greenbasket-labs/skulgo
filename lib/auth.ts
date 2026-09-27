@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 const COOKIE = "skulgo_session";
 const OWNER_COOKIE = "skulgo_owner_session";
 const DEVICE_COOKIE = "skulgo_device";
+
+function deviceCookieName(userId: string) {
+  return `${DEVICE_COOKIE}_${createHmac("sha256", secret()).update(`cookie:${userId}`).digest("hex").slice(0, 32)}`;
+}
 const MAX_AGE = 60 * 60 * 24 * 7;
 const OWNER_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 const DEVICE_MAX_AGE = 60 * 60 * 24 * 30;
@@ -94,12 +98,19 @@ export async function createOrReuseDevice(
   maxActiveDevices = 2,
   inactivityDays = DEFAULT_DEVICE_INACTIVITY_DAYS
 ) {
-  const cookieToken = (await cookies()).get(DEVICE_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const accountDeviceCookie = deviceCookieName(userId);
+  const cookieToken = cookieStore.get(accountDeviceCookie)?.value;
+  const legacyCookieToken = cookieStore.get(DEVICE_COOKIE)?.value;
   const now = new Date();
 
-  if (cookieToken) {
+  const reusableTokens = [cookieToken, legacyCookieToken].filter((token, index, tokens) =>
+    Boolean(token) && tokens.indexOf(token) === index
+  ) as string[];
+
+  for (const token of reusableTokens) {
     const existing = await db.deviceSession.findFirst({
-      where: { userId, deviceHash: hashDeviceToken(cookieToken), revokedAt: null },
+      where: { userId, deviceHash: hashDeviceToken(token), revokedAt: null },
     });
 
     if (existing) {
@@ -110,6 +121,12 @@ export async function createOrReuseDevice(
         });
       } else {
         await db.deviceSession.update({ where: { id: existing.id }, data: { lastSeenAt: now } });
+        if (token === legacyCookieToken && token !== cookieToken) {
+          response.headers.append(
+            "Set-Cookie",
+            `${accountDeviceCookie}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DEVICE_MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+          );
+        }
         return existing.id;
       }
     }
@@ -141,7 +158,7 @@ export async function createOrReuseDevice(
 
   response.headers.append(
     "Set-Cookie",
-    `${DEVICE_COOKIE}=${raw}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DEVICE_MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+    `${accountDeviceCookie}=${raw}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DEVICE_MAX_AGE}${process.env.NODE_ENV === "production" ? "; Secure" : ""}`
   );
 
   return device.id;
