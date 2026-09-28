@@ -45,6 +45,11 @@ export async function POST(
   const accountId = clean(body?.accountId).toUpperCase();
   const name = clean(body?.name);
   const email = clean(body?.email).toLowerCase();
+  const phone = clean(body?.phone);
+  const gender = clean(body?.gender);
+  const guardianName = clean(body?.guardianName);
+  const guardianPhone = clean(body?.guardianPhone);
+  const relationship = clean(body?.relationship);
   const classId = clean(body?.classId);
   const studentAdmissionId = clean(body?.studentAdmissionId);
 
@@ -97,6 +102,8 @@ export async function POST(
       data: {
         name,
         email,
+        phone: phone || null,
+        gender: gender || null,
         passwordHash: hashPassword(temporaryPassword),
         referralCode,
         emailVerificationTokenHash: hashToken(verificationToken),
@@ -151,6 +158,14 @@ export async function POST(
   }
 
   await db.$transaction(async tx => {
+    await tx.user.update({
+      where: { id: user!.id },
+      data: {
+        ...(phone ? { phone } : {}),
+        ...(gender ? { gender } : {}),
+      },
+    });
+
     await tx.schoolMembership.upsert({
       where: { schoolId_userId: { schoolId, userId: user!.id } },
       update: {
@@ -207,12 +222,20 @@ export async function POST(
             lastName: names.lastName,
             classId,
             admissionId,
+            gender: gender || null,
+            guardianName: guardianName || null,
+            guardianPhone: guardianPhone || null,
           },
         });
       } else {
         await tx.student.update({
           where: { id: existingStudent.id },
-          data: { classId },
+          data: {
+            classId,
+            ...(gender ? { gender } : {}),
+            ...(guardianName ? { guardianName } : {}),
+            ...(guardianPhone ? { guardianPhone } : {}),
+          },
         });
       }
     }
@@ -229,8 +252,8 @@ export async function POST(
 
       await tx.parentStudent.upsert({
         where: { parentId_studentId: { parentId: parentRecord.id, studentId: child.id } },
-        update: { approved: true },
-        create: { parentId: parentRecord.id, studentId: child.id, approved: true },
+        update: { approved: true, relationship: relationship || null },
+        create: { parentId: parentRecord.id, studentId: child.id, approved: true, relationship: relationship || null },
       });
     }
 
