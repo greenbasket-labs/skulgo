@@ -3,6 +3,10 @@ import type { GradingBand } from "@/lib/grading";
 export type SchoolSettings = {
   manualPaymentsEnabled: boolean;
   attendanceSessions: "MORNING" | "MORNING_AFTERNOON";
+  morningAttendanceStart: string;
+  morningAttendanceEnd: string;
+  afternoonAttendanceStart: string;
+  afternoonAttendanceEnd: string;
   resultHeading: string;
   firstTermLabel: string;
   secondTermLabel: string;
@@ -28,6 +32,10 @@ export type SchoolSettings = {
 export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   manualPaymentsEnabled: true,
   attendanceSessions: "MORNING",
+  morningAttendanceStart: "07:30",
+  morningAttendanceEnd: "09:00",
+  afternoonAttendanceStart: "13:00",
+  afternoonAttendanceEnd: "14:00",
   resultHeading: "Student Report Card",
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
