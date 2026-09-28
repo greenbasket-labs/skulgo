@@ -14,6 +14,11 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
   const [accountId, setAccountId] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [relationship, setRelationship] = useState("");
   const [classId, setClassId] = useState("");
   const [studentAdmissionId, setStudentAdmissionId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,6 +27,11 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
   useEffect(() => {
     setClassId("");
     setStudentAdmissionId("");
+    setPhone("");
+    setGender("");
+    setGuardianName("");
+    setGuardianPhone("");
+    setRelationship("");
   }, [role]);
 
   async function submit(event: FormEvent) {
@@ -38,6 +48,11 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
           accountId,
           name,
           email,
+          phone,
+          gender,
+          guardianName,
+          guardianPhone,
+          relationship,
           classId,
           studentAdmissionId,
         }),
@@ -52,6 +67,11 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
       setAccountId("");
       setName("");
       setEmail("");
+      setPhone("");
+      setGender("");
+      setGuardianName("");
+      setGuardianPhone("");
+      setRelationship("");
       setClassId("");
       setStudentAdmissionId("");
     } catch (error) {
@@ -100,6 +120,50 @@ export default function AdminAddPerson({ schoolId, classes }: { schoolId: string
             <input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="Email" required={!accountId} />
           </label>
         </div>
+
+        {(role === "TEACHER" || role === "PARENT") && (
+          <label className="grid">
+            <span>Phone number</span>
+            <input value={phone} onChange={event => setPhone(event.target.value)} placeholder="Phone number" type="tel" />
+          </label>
+        )}
+
+        {(role === "TEACHER" || role === "STUDENT") && (
+          <label className="grid">
+            <span>Gender</span>
+            <select value={gender} onChange={event => setGender(event.target.value)}>
+              <option value="">Choose gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </label>
+        )}
+
+        {role === "STUDENT" && (
+          <div className="grid grid-2">
+            <label className="grid">
+              <span>Parent/Guardian name</span>
+              <input value={guardianName} onChange={event => setGuardianName(event.target.value)} placeholder="Parent or guardian name" />
+            </label>
+            <label className="grid">
+              <span>Parent/Guardian phone</span>
+              <input value={guardianPhone} onChange={event => setGuardianPhone(event.target.value)} placeholder="Parent or guardian phone" type="tel" />
+            </label>
+          </div>
+        )}
+
+        {role === "PARENT" && (
+          <label className="grid">
+            <span>Relationship to child</span>
+            <select value={relationship} onChange={event => setRelationship(event.target.value)}>
+              <option value="">Choose relationship</option>
+              <option value="Mother">Mother</option>
+              <option value="Father">Father</option>
+              <option value="Guardian">Guardian</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+        )}
 
         {role === "STUDENT" && (
           <label className="grid">
