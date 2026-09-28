@@ -5,6 +5,10 @@ import { recordAudit } from "@/lib/audit";
 
 const DEFAULT_SETTINGS = {
   attendanceSessions: "MORNING",
+  morningAttendanceStart: "07:30",
+  morningAttendanceEnd: "09:00",
+  afternoonAttendanceStart: "13:00",
+  afternoonAttendanceEnd: "14:00",
   resultHeading: "Student Report Card",
   firstTermLabel: "First Term",
   secondTermLabel: "Second Term",
@@ -120,6 +124,14 @@ export async function PATCH(
     if (body?.settings?.[field] !== undefined) {
       const value = String(body.settings[field]).trim();
       if (!value) return NextResponse.json({ error: field + " cannot be empty" }, { status: 400 });
+      nextSettings[field] = value;
+    }
+  }
+
+  for (const field of ["morningAttendanceStart", "morningAttendanceEnd", "afternoonAttendanceStart", "afternoonAttendanceEnd"] as const) {
+    if (body?.settings?.[field] !== undefined) {
+      const value = String(body.settings[field]).trim();
+      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value)) return NextResponse.json({ error: "Invalid attendance time" }, { status: 400 });
       nextSettings[field] = value;
     }
   }
