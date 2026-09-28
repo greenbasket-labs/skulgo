@@ -22,6 +22,10 @@ type Settings = {
   showAdmissionId: boolean;
   showClass: boolean;
   attendanceSessions: "MORNING" | "MORNING_AFTERNOON";
+  morningAttendanceStart: string;
+  morningAttendanceEnd: string;
+  afternoonAttendanceStart: string;
+  afternoonAttendanceEnd: string;
   teacherRemarks: Record<string, string>;
   principalRemarks: Record<string, string>;
   teacherRemarkLabel: string;
@@ -46,6 +50,10 @@ const DEFAULT_SETTINGS: Settings = {
   showAdmissionId: true,
   showClass: true,
   attendanceSessions: "MORNING",
+  morningAttendanceStart: "07:30",
+  morningAttendanceEnd: "09:00",
+  afternoonAttendanceStart: "13:00",
+  afternoonAttendanceEnd: "14:00",
   teacherRemarks: { A: "Excellent performance. Keep it up.", B: "Very good performance. Continue working hard.", C: "Good effort. More consistent study will improve performance.", D: "Performance is below average. More effort is required.", E: "Performance needs improvement. More focus and regular study are required.", F: "Performance is very low. Immediate improvement is required." },
   principalRemarks: { A: "Excellent performance. Keep up the good work.", B: "Very good performance. Continue to improve.", C: "Satisfactory performance. Encourage more consistent effort.", D: "Performance needs improvement. Closer attention is advised.", E: "More effort and support are required.", F: "Significant improvement is required. Close support is advised." },
   teacherRemarkLabel: "Teacher Remark",
@@ -134,7 +142,7 @@ export default function SettingsPage() {
 
     setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
     setBands(data.gradingBands);
-    setMessage("School result settings saved.");
+    setMessage("School settings saved.");
   }
 
   return (
@@ -159,6 +167,29 @@ export default function SettingsPage() {
             <option value="MORNING_AFTERNOON">Morning + Afternoon</option>
           </select>
         </label>
+        <div className="grid grid-2" style={{ marginTop: 14 }}>
+          <label className="grid">
+            <span>Morning opens</span>
+            <input type="time" value={settings.morningAttendanceStart} onChange={e => setSettings(s => ({ ...s, morningAttendanceStart: e.target.value }))} />
+          </label>
+          <label className="grid">
+            <span>Morning closes</span>
+            <input type="time" value={settings.morningAttendanceEnd} onChange={e => setSettings(s => ({ ...s, morningAttendanceEnd: e.target.value }))} />
+          </label>
+        </div>
+        {settings.attendanceSessions === "MORNING_AFTERNOON" && (
+          <div className="grid grid-2" style={{ marginTop: 14 }}>
+            <label className="grid">
+              <span>Afternoon opens</span>
+              <input type="time" value={settings.afternoonAttendanceStart} onChange={e => setSettings(s => ({ ...s, afternoonAttendanceStart: e.target.value }))} />
+            </label>
+            <label className="grid">
+              <span>Afternoon closes</span>
+              <input type="time" value={settings.afternoonAttendanceEnd} onChange={e => setSettings(s => ({ ...s, afternoonAttendanceEnd: e.target.value }))} />
+            </label>
+          </div>
+        )}
+        <p className="muted" style={{ marginTop: 10 }}>Attendance can only be recorded inside these school time windows. SkulGo uses Nigeria time.</p>
       </section>
 
       <section className="card" style={{ marginTop: 18 }}>
