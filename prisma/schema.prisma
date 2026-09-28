@@ -346,6 +346,7 @@ model Attendance {
   date DateTime
   session String
   present Boolean
+  recordedAt DateTime @default(now())
   @@unique([studentId,date,session])
 }
 
