@@ -30,6 +30,11 @@ type AttendanceSession = {
   submittedAt?: string | null;
 };
 
+type AttendanceWindow = {
+  startTime: string;
+  endTime: string;
+};
+
 type Data = {
   teacher: { teacherCode: string };
   assignments: unknown[];
@@ -58,6 +63,7 @@ export default function AttendancePage() {
   const [scopeKey, setScopeKey] = useState("");
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
   const [attendanceSessions, setAttendanceSessions] = useState<"MORNING" | "MORNING_AFTERNOON">("MORNING");
+  const [attendanceWindow, setAttendanceWindow] = useState<AttendanceWindow>({ startTime: "07:30", endTime: "09:00" });
   const [selectedSession, setSelectedSession] = useState<"morning" | "afternoon">("morning");
   const [now, setNow] = useState(Date.now());
   const date = useMemo(() => today(), []);
@@ -67,7 +73,11 @@ export default function AttendancePage() {
   const deadlineMs = attendanceSession ? new Date(attendanceSession.deadlineAt).getTime() : 0;
   const remainingMs = attendanceSession ? Math.max(0, deadlineMs - now) : 0;
   const expired = Boolean(attendanceSession && remainingMs <= 0 && !submitted);
-  const locked = submitted || expired;
+  const windowStart = (() => { const [h, m] = attendanceWindow.startTime.split(":").map(Number); const value = new Date(); value.setHours(h, m, 0, 0); return value.getTime(); })();
+  const windowEnd = (() => { const [h, m] = attendanceWindow.endTime.split(":").map(Number); const value = new Date(); value.setHours(h, m, 0, 0); return value.getTime(); })();
+  const outsideFixedWindow = now < windowStart || now >= windowEnd;
+  const beforeFixedWindow = now < windowStart;
+  const locked = submitted || expired || outsideFixedWindow;
   const markedCount = students.filter(student => marks[student.id] !== undefined).length;
   const presentCount = students.filter(student => marks[student.id] === true).length;
   const absentCount = students.filter(student => marks[student.id] === false).length;
@@ -148,6 +158,13 @@ export default function AttendancePage() {
       if (settingsResponse.ok && settingsBody?.settings?.attendanceSessions) {
         setAttendanceSessions(settingsBody.settings.attendanceSessions);
       }
+      if (settingsResponse.ok && settingsBody?.settings) {
+        const key = selectedSession === "afternoon" ? "afternoon" : "morning";
+        setAttendanceWindow({
+          startTime: settingsBody.settings[`${key}AttendanceStart`] ?? (key === "morning" ? "07:30" : "13:00"),
+          endTime: settingsBody.settings[`${key}AttendanceEnd`] ?? (key === "morning" ? "09:00" : "14:00"),
+        });
+      }
     } catch {
       // Keep the default morning-only behavior when settings cannot be loaded.
     }
@@ -210,6 +227,7 @@ export default function AttendancePage() {
         for (const item of body.records ?? []) next[item.studentId] = item.present;
         setMarks(next);
         setAttendanceSession(body.session ?? null);
+        if (body.attendanceWindow) setAttendanceWindow(body.attendanceWindow);
         cacheRecord(key, { marks: next, session: body.session ?? null });
         return;
       }
@@ -470,7 +488,8 @@ export default function AttendancePage() {
             <div className="grid grid-2">
               <div>
                 <p className="muted">Attendance window</p>
-                <strong>{submitted ? "Submitted · Locked" : attendanceSession ? `${timeLeft} remaining` : "Starts when you save the first mark · 01:00:00"}</strong>
+                <strong>{submitted ? "Submitted · Locked" : beforeFixedWindow ? `Opens at ${attendanceWindow.startTime}` : outsideFixedWindow ? `Closed at ${attendanceWindow.endTime}` : attendanceSession ? `${timeLeft} remaining` : `Open until ${attendanceWindow.endTime}`}</strong>
+                <p className="muted">Nigeria time · {attendanceWindow.startTime}–{attendanceWindow.endTime}</p>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end" }}>
                 <button className="button" disabled={locked || !students.length} onClick={() => void markAll(true)}>Mark all Present</button>
