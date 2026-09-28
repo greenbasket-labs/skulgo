@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
+import { DEFAULT_SCHOOL_SETTINGS } from "@/lib/school-settings";
+import { getAttendanceWindow, getAttendanceWindowState } from "@/lib/attendance-window";
 
-const ATTENDANCE_WINDOW_MS = 60 * 60 * 1000;
+function parseSchoolSettings(value: string | null) {
+  if (!value) return { ...DEFAULT_SCHOOL_SETTINGS };
+  try { return { ...DEFAULT_SCHOOL_SETTINGS, ...(JSON.parse(value) as Record<string, unknown>) }; }
+  catch { return { ...DEFAULT_SCHOOL_SETTINGS }; }
+}
 
 async function expireSession(sessionId: string) {
   return db.attendanceSession.update({
@@ -22,15 +28,24 @@ export async function GET(
     return NextResponse.json({ error: "School access required" }, { status: 403 });
   }
 
+  const school = await db.school.findUnique({ where: { id: schoolId }, select: { schoolSettings: true } });
+  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+  const settings = parseSchoolSettings(school.schoolSettings);
+
   const classId = request.nextUrl.searchParams.get("classId");
   const date = request.nextUrl.searchParams.get("date");
   const requestedSession = request.nextUrl.searchParams.get("session");
   const session = requestedSession === "afternoon" ? "afternoon" : "morning";
+  const attendanceWindow = getAttendanceWindow(settings, session);
   let allowedStudentIds: string[] | null = null;
   let allowedClassIds: string[] | null = null;
 
   if (user.membership.role === "TEACHER") {
-    const teacher = await db.teacher.findUnique({
+    const school = await db.school.findUnique({ where: { id: schoolId }, select: { schoolSettings: true } });
+  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+  const settings = parseSchoolSettings(school.schoolSettings);
+
+  const teacher = await db.teacher.findUnique({
       where: { userId: user.id },
       select: { id: true, approved: true },
     });
@@ -85,7 +100,7 @@ export async function GET(
     orderBy: [{ date: "desc" }, { student: { lastName: "asc" } }],
   });
 
-  return NextResponse.json({ records, session: sessionRecord });
+  return NextResponse.json({ records, session: sessionRecord, attendanceWindow });
 }
 
 export async function POST(
@@ -118,6 +133,16 @@ export async function POST(
 
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+  const attendanceWindow = getAttendanceWindow(settings, session);
+  const windowState = getAttendanceWindowState(new Date(), date, attendanceWindow);
+  if (!windowState.allowed) {
+    return NextResponse.json({
+      error: windowState.before
+        ? `Attendance opens at ${attendanceWindow.startTime} (Nigeria time)`
+        : `Attendance closed at ${attendanceWindow.endTime} (Nigeria time)`,
+      attendanceWindow,
+    }, { status: 409 });
+  }
 
   const classTeacher = await db.classTeacher.findFirst({
     where: { schoolId, teacherId: teacher.id, classId },
@@ -178,8 +203,8 @@ export async function POST(
         date,
         session,
         status: "DRAFT",
-        startedAt: now,
-        deadlineAt: new Date(now.getTime() + ATTENDANCE_WINDOW_MS),
+        startedAt: windowState.start,
+        deadlineAt: windowState.end,
       },
     });
   }
@@ -192,10 +217,11 @@ export async function POST(
   const student = await db.student.findFirst({ where: { id: studentId, schoolId, classId } });
   if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
 
+  const recordedAt = new Date();
   const record = await db.attendance.upsert({
     where: { studentId_date_session: { studentId, date, session } },
-    update: { present },
-    create: { schoolId, studentId, classId, date, session, present },
+    update: { present, recordedAt },
+    create: { schoolId, studentId, classId, date, session, present, recordedAt },
   });
 
   await recordAudit({
@@ -207,5 +233,5 @@ export async function POST(
     details: { studentId, classId, date: dateValue, session, present },
   });
 
-  return NextResponse.json({ record, session: attendanceSession }, { status: 201 });
+  return NextResponse.json({ record, session: attendanceSession, attendanceWindow }, { status: 201 });
 }
