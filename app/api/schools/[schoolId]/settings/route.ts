@@ -136,6 +136,12 @@ export async function PATCH(
     }
   }
 
+  for (const [startField, endField] of [["morningAttendanceStart", "morningAttendanceEnd"], ["afternoonAttendanceStart", "afternoonAttendanceEnd"]] as const) {
+    if (nextSettings[startField] >= nextSettings[endField]) {
+      return NextResponse.json({ error: "Attendance opening time must be before closing time" }, { status: 400 });
+    }
+  }
+
   if (body?.settings?.attendanceSessions !== undefined) {
     const value = String(body.settings.attendanceSessions);
     if (value !== "MORNING" && value !== "MORNING_AFTERNOON") {
