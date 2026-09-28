@@ -133,6 +133,9 @@ export async function POST(
 
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+  if (session === "afternoon" && settings.attendanceSessions !== "MORNING_AFTERNOON") {
+    return NextResponse.json({ error: "Afternoon attendance is not enabled by the school" }, { status: 409 });
+  }
   const attendanceWindow = getAttendanceWindow(settings, session);
   const windowState = getAttendanceWindowState(new Date(), date, attendanceWindow);
   if (!windowState.allowed) {
