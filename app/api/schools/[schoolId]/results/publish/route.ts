@@ -20,6 +20,50 @@ export async function PATCH(
 
   if (!term) return NextResponse.json({ error: "term is required" }, { status: 400 });
 
+  const students = await db.student.findMany({
+    where: {
+      schoolId,
+      ...(studentId ? { id: studentId } : {}),
+      class: { section: { name: "Senior Secondary" } },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      assessments: {
+        where: { term },
+        select: { subjectId: true },
+      },
+      results: {
+        where: { term },
+        select: { subjectId: true },
+      },
+    },
+  });
+
+  for (const student of students) {
+    const offeredSubjects = new Set(student.assessments.map(item => item.subjectId)).size;
+    const generatedResults = new Set(student.results.map(item => item.subjectId)).size;
+
+    if (offeredSubjects < 9) {
+      return NextResponse.json(
+        {
+          error: `Senior Secondary students must offer at least 9 subjects. ${student.firstName} ${student.lastName} currently has ${offeredSubjects} subject(s) with assessment data for this term.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    if (generatedResults < 9) {
+      return NextResponse.json(
+        {
+          error: `Results cannot be published for ${student.firstName} ${student.lastName} until at least 9 offered subjects have generated results.`,
+        },
+        { status: 409 }
+      );
+    }
+  }
+
   const result = await db.result.updateMany({
     where: {
       schoolId,
