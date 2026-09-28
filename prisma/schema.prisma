@@ -141,6 +141,8 @@ model User {
   id String @id @default(cuid())
   name String
   email String @unique
+  phone String?
+  gender String?
   emailVerifiedAt DateTime?
   emailVerificationTokenHash String?
   emailVerificationExpiresAt DateTime?
@@ -290,6 +292,8 @@ model Student {
   firstName String
   lastName String
   gender String?
+  guardianName String?
+  guardianPhone String?
   classId String?
   class SchoolClass? @relation(fields:[classId],references:[id],onDelete:SetNull)
   parentLinks ParentStudent[]
@@ -314,6 +318,7 @@ model ParentStudent {
   studentId String
   student Student @relation(fields:[studentId],references:[id],onDelete:Cascade)
   approved Boolean @default(false)
+  relationship String?
   @@unique([parentId,studentId])
 }
 
