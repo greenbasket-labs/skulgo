@@ -138,7 +138,7 @@ export default function Login() {
         </button>
 
         {showHowItWorks ? (
-          <HowSkulGoWorks onBack={() => setShowHowItWorks(false)} backLabel="Back to sign in" />
+          <HowSkulGoWorks onBack={() => setShowHowItWorks(false)} backLabel="Back to sign up" />
         ) : (
           <>
             <form onSubmit={submit} className="grid">
@@ -178,7 +178,7 @@ export default function Login() {
               </p>
             </div>
           </>
-        )
+        )}
       </div>
     </main>
   );
