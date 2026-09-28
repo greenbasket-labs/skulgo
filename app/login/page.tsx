@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WorkspaceUnlock from "@/components/workspace-unlock";
+import HowSkulGoWorks from "@/components/how-skulgo-works";
 
 type Workspace = {
   membershipId: string;
@@ -20,6 +21,7 @@ export default function Login() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [pinConfigured, setPinConfigured] = useState(true);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const router = useRouter();
 
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -125,42 +127,58 @@ export default function Login() {
           Use your SkulGo account to continue to your available school workspaces.
         </p>
 
-        <form onSubmit={submit} className="grid">
-          <label className="grid">
-            <span>Email</span>
-            <input required type="email" name="email" placeholder="Email" />
-          </label>
+        <button
+          type="button"
+          className="button"
+          style={{ marginBottom: 16 }}
+          onClick={() => setShowHowItWorks(value => !value)}
+          aria-expanded={showHowItWorks}
+        >
+          How does SkulGo work? {showHowItWorks ? "⌃" : "⌄"}
+        </button>
 
-          <label className="grid">
-            <span>Password</span>
-            <input required type="password" name="password" placeholder="Password" />
-          </label>
+        {showHowItWorks ? (
+          <HowSkulGoWorks onBack={() => setShowHowItWorks(false)} backLabel="Back to sign in" />
+        ) : (
+          <>
+            <form onSubmit={submit} className="grid">
+              <label className="grid">
+                <span>Email</span>
+                <input required type="email" name="email" placeholder="Email" />
+              </label>
 
-          <button className="button" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+              <label className="grid">
+                <span>Password</span>
+                <input required type="password" name="password" placeholder="Password" />
+              </label>
 
-        {message && <p>{message}</p>}
+              <button className="button" disabled={busy}>
+                {busy ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
 
-        {verificationEmail && (
-          <div className="grid" style={{ marginTop: 12 }}>
-            <p className="muted">Your email is not verified yet.</p>
-            <button className="button" type="button" onClick={resendVerification} disabled={busy}>
-              {busy ? "Sending…" : "Send verification OTP"}
-            </button>
-          </div>
-        )}
+            {message && <p>{message}</p>}
 
-        <p className="muted" style={{ marginTop: 16 }}>
-          <Link href="/forgot-password">Forgot password?</Link>
-        </p>
+            {verificationEmail && (
+              <div className="grid" style={{ marginTop: 12 }}>
+                <p className="muted">Your email is not verified yet.</p>
+                <button className="button" type="button" onClick={resendVerification} disabled={busy}>
+                  {busy ? "Sending…" : "Send verification OTP"}
+                </button>
+              </div>
+            )}
 
-        <div style={{ marginTop: 20 }} className="grid">
-          <p className="muted">
-            Need a personal account? <Link href="/signup">Create one</Link>
-          </p>
-        </div>
+            <p className="muted" style={{ marginTop: 16 }}>
+              <Link href="/forgot-password">Forgot password?</Link>
+            </p>
+
+            <div style={{ marginTop: 20 }} className="grid">
+              <p className="muted">
+                Need a personal account? <Link href="/signup">Create one</Link>
+              </p>
+            </div>
+          </>
+        )
       </div>
     </main>
   );
