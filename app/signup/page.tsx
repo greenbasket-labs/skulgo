@@ -71,7 +71,8 @@ export default function Register() {
         {showHowItWorks ? (
           <HowSkulGoWorks onBack={() => setShowHowItWorks(false)} backLabel="Back to sign up" />
         ) : (
-        <form onSubmit={submit} className="grid">
+          <>
+            <form onSubmit={submit} className="grid">
           <label className="grid">
             <span>Full name</span>
             <input required name="name" placeholder="Full name" />
@@ -111,12 +112,14 @@ export default function Register() {
           <button className="button" disabled={busy}>
             {busy ? "Creating…" : "Create account"}
           </button>
-        </form>
+            </form>
 
-        {message && <p>{message}</p>}
-        <p className="muted" style={{ marginTop: 16 }}>
-          Already have an account? <a href="/login">Sign in</a>
-        </p>
+            {message && <p>{message}</p>}
+            <p className="muted" style={{ marginTop: 16 }}>
+              Already have an account? <a href="/login">Sign in</a>
+            </p>
+          </>
+        )}
       </div>
     </main>
   );
