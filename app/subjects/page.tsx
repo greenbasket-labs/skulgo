@@ -88,6 +88,28 @@ export default function SubjectsPage() {
     }
   }
 
+  async function removeSubject(classSubjectId: string) {
+    if (!schoolId || !classSubjectId) return;
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/class-subjects`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classSubjectId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Unable to remove subject.");
+      setSubjects(current => current.filter(item => item.id !== classSubjectId));
+      setMessage("Subject removed from this class.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to remove subject.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function addSubject() {
     const name = newSubject.trim();
     if (!name || !selectedClassId || !schoolId) return;
@@ -180,7 +202,19 @@ export default function SubjectsPage() {
               <p className="muted">No subjects connected to this class yet.</p>
             ) : (
               <div className="grid">
-                {subjects.map(item => <div key={item.id}><strong>{item.subject.name}</strong></div>)}
+                {subjects.map(item => (
+                  <div key={item.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <strong>{item.subject.name}</strong>
+                    <button
+                      className="button"
+                      type="button"
+                      onClick={() => void removeSubject(item.id)}
+                      disabled={saving}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
