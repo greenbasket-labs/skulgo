@@ -41,11 +41,7 @@ export async function GET(
   let allowedClassIds: string[] | null = null;
 
   if (user.membership.role === "TEACHER") {
-    const school = await db.school.findUnique({ where: { id: schoolId }, select: { schoolSettings: true } });
-  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
-  const settings = parseSchoolSettings(school.schoolSettings);
-
-  const teacher = await db.teacher.findUnique({
+    const teacher = await db.teacher.findUnique({
       where: { userId: user.id },
       select: { id: true, approved: true },
     });
@@ -113,6 +109,10 @@ export async function POST(
     return NextResponse.json({ error: "Teacher access required" }, { status: 403 });
   }
 
+  const school = await db.school.findUnique({ where: { id: schoolId }, select: { schoolSettings: true } });
+  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+  const settings = parseSchoolSettings(school.schoolSettings);
+
   const teacher = await db.teacher.findUnique({
     where: { userId: user.id },
     select: { id: true, approved: true },
@@ -163,7 +163,7 @@ export async function POST(
       return NextResponse.json({ error: "Attendance has not been started yet" }, { status: 400 });
     }
     if (attendanceSession.status === "SUBMITTED") {
-      return NextResponse.json({ session: attendanceSession });
+      return NextResponse.json({ session: attendanceSession, attendanceWindow });
     }
 
     attendanceSession = await db.attendanceSession.update({
@@ -211,7 +211,7 @@ export async function POST(
 
   if (new Date() >= attendanceSession.deadlineAt) {
     attendanceSession = await expireSession(attendanceSession.id);
-    return NextResponse.json({ error: "The 1-hour attendance window has ended", session: attendanceSession }, { status: 409 });
+    return NextResponse.json({ error: `Attendance closed at ${attendanceWindow.endTime} (Nigeria time)`, session: attendanceSession, attendanceWindow }, { status: 409 });
   }
 
   const student = await db.student.findFirst({ where: { id: studentId, schoolId, classId } });
