@@ -131,7 +131,7 @@ export async function PATCH(
   for (const field of ["morningAttendanceStart", "morningAttendanceEnd", "afternoonAttendanceStart", "afternoonAttendanceEnd"] as const) {
     if (body?.settings?.[field] !== undefined) {
       const value = String(body.settings[field]).trim();
-      if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value)) return NextResponse.json({ error: "Invalid attendance time" }, { status: 400 });
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return NextResponse.json({ error: "Invalid attendance time" }, { status: 400 });
       nextSettings[field] = value;
     }
   }
