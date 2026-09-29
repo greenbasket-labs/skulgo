@@ -78,6 +78,51 @@ model School {
   supportThreads SupportThread[]
 }
 
+enum ValidatorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ValidatorProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  validatorId String @unique
+  role Role
+  telegramChatId String? @unique
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  applications ValidatorApplication[]
+}
+
+model ValidatorApplication {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  requestedRole Role
+  schoolExperience String?
+  reason String?
+  telegramChatId String?
+  status ValidatorApplicationStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy User? @relation("ValidatorApplicationReviewer",fields:[reviewedById],references:[id],onDelete:SetNull)
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  profile ValidatorProfile?
+  @@index([status,createdAt])
+  @@index([userId,status])
+}
+
+model ValidatorBotSession {
+  id String @id @default(cuid())
+  telegramChatId String @unique
+  state String @default("IDLE")
+  data String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
 model PlatformSetting {
   key String @id
   value String
@@ -171,6 +216,10 @@ model User {
   deviceSessions DeviceSession[]
   supportThreads SupportThread[] @relation("SupportThreadCreator")
   supportMessages SupportMessage[] @relation("SupportMessageSender")
+  validatorProfile ValidatorProfile?
+  validatorApplications ValidatorApplication[]
+  validatorReviews ValidatorApplication[] @relation("ValidatorApplicationReviewer")
+  validatorBotSession ValidatorBotSession?
 }
 
 model SchoolMembership {
