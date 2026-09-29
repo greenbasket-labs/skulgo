@@ -102,6 +102,7 @@ model ValidatorApplication {
   requestedRole Role
   schoolExperience String?
   reason String?
+  introducedByAccountId String?
   telegramChatId String?
   status ValidatorApplicationStatus @default(PENDING)
   reviewedById String?
