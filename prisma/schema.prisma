@@ -107,6 +107,7 @@ model ValidatorProfile {
   status String @default("ACTIVE")
   createdAt DateTime @default(now())
   application ValidatorApplication?
+  findings ValidatorFinding[]
 }
 
 model ValidatorApplication {
