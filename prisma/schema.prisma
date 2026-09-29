@@ -92,7 +92,7 @@ model ValidatorProfile {
   telegramChatId String? @unique
   status String @default("ACTIVE")
   createdAt DateTime @default(now())
-  applications ValidatorApplication[]
+  application ValidatorApplication?
 }
 
 model ValidatorApplication {
