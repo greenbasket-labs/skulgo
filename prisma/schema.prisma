@@ -108,7 +108,8 @@ model ValidatorApplication {
   reviewedBy User? @relation("ValidatorApplicationReviewer",fields:[reviewedById],references:[id],onDelete:SetNull)
   reviewedAt DateTime?
   createdAt DateTime @default(now())
-  profile ValidatorProfile?
+  profile ValidatorProfile? @relation(fields:[profileId],references:[id],onDelete:SetNull)
+  profileId String? @unique
   @@index([status,createdAt])
   @@index([userId,status])
 }
