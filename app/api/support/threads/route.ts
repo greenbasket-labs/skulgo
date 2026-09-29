@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
@@ -49,14 +50,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is too long." }, { status: 400 });
   }
 
-  const thread = await db.supportThread.create({
-    data: {
-      schoolId: user.membership.schoolId,
-      createdById: user.id,
-      subject,
-      messages: { create: { senderUserId: user.id, body: message } },
-    },
-  });
+  const threadId = randomUUID();
+  const messageId = randomUUID();
 
-  return NextResponse.json({ ok: true, threadId: thread.id });
+  await db.$transaction([
+    db.supportThread.create({
+      data: {
+        id: threadId,
+        schoolId: user.membership.schoolId,
+        createdById: user.id,
+        subject,
+        messages: { create: { id: messageId, senderUserId: user.id, body: message } },
+      },
+    }),
+    db.auditLog.create({
+      data: {
+        schoolId: user.membership.schoolId,
+        actorUserId: user.id,
+        action: "CREATE",
+        entity: "SUPPORT_MESSAGE",
+        entityId: messageId,
+        details: `Support request: ${subject}`,
+      },
+    }),
+  ]);
+
+  return NextResponse.json({ ok: true, threadId });
 }
