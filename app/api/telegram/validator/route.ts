@@ -167,6 +167,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (!text) {
+      await send(chatId, "Please tell us why you want to help validate SkulGo.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await db.validatorBotSession.update({
+      where: { id: session.id },
+      data: {
+        state: "INTRODUCER",
+        data: JSON.stringify({ ...data, reason: text }),
+      },
+    });
+
+    await send(
+      chatId,
+      "Who introduced you to SkulGo Validation?\n\nSend their SkulGo Account ID, or type NONE if nobody introduced you."
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (session.state === "INTRODUCER") {
+    const data = session.data ? JSON.parse(session.data) : null;
+    if (!data?.userId || !data?.requestedRole || !data?.reason) {
+      await send(chatId, "Please restart with /apply.");
+      return NextResponse.json({ ok: true });
+    }
+
+    const introducerInput = text.toUpperCase();
+    let introducedByAccountId: string | null = null;
+
+    if (introducerInput !== "NONE") {
+      const introducer = await db.user.findUnique({
+        where: { referralCode: introducerInput },
+        select: { referralCode: true },
+      });
+
+      if (!introducer) {
+        await send(chatId, "❌ Introducer SkulGo Account ID not found. Please check it, or type NONE.");
+        return NextResponse.json({ ok: true });
+      }
+
+      if (introducerInput === data.accountId) {
+        await send(chatId, "Please enter the SkulGo Account ID of the person who introduced you, or type NONE.");
+        return NextResponse.json({ ok: true });
+      }
+
+      introducedByAccountId = introducer.referralCode;
+    }
+
     const pending = await db.validatorApplication.findFirst({
       where: { userId: data.userId, status: "PENDING" },
     });
@@ -181,7 +230,8 @@ export async function POST(request: Request) {
         userId: data.userId,
         requestedRole: data.requestedRole,
         schoolExperience: data.schoolExperience,
-        reason: text,
+        reason: data.reason,
+        introducedByAccountId,
         telegramChatId: chatId,
       },
     });
@@ -195,6 +245,8 @@ export async function POST(request: Request) {
       chatId,
       "📨 Application received.\n\nRole: " +
         application.requestedRole +
+        "\nIntroduced by: " +
+        (introducedByAccountId || "Nobody / self") +
         "\nStatus: PENDING\n\nA Validation School Admin will review it. You will be informed after a decision."
     );
     return NextResponse.json({ ok: true });
