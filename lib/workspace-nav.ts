@@ -56,6 +56,7 @@ export function navForRole(role: WorkspaceRole): WorkspaceNavGroup[] {
           label: "Workspace",
           items: [
             ["My Subjects", "/my-subjects"],
+            ["Teacher Resources", "/teacher-resources"],
             ["Scores", "/scores"],
             ["Announcements", "/announcements"],
             ["My Account", "/account"],
