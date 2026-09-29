@@ -16,8 +16,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const user = await requireOwner();
     const thread = await db.supportThread.findUnique({ where: { id } });
     if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
-    await db.supportMessage.create({ data: { threadId: id, senderUserId: user.id, body: message } });
-    await db.supportThread.update({ where: { id }, data: { status: "OPEN" } });
+
+    const messageRecord = await db.supportMessage.create({
+      data: { threadId: id, senderUserId: user.id, body: message },
+    });
+
+    await db.$transaction([
+      db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
+      db.auditLog.create({
+        data: {
+          schoolId: thread.schoolId,
+          actorUserId: user.id,
+          action: "CREATE",
+          entity: "SUPPORT_MESSAGE",
+          entityId: messageRecord.id,
+          details: "Owner support reply",
+        },
+      }),
+    ]);
+
     return NextResponse.json({ ok: true });
   }
 
@@ -28,7 +45,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const thread = await db.supportThread.findFirst({ where: { id, schoolId: user.membership.schoolId } });
   if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
 
-  await db.supportMessage.create({ data: { threadId: id, senderUserId: user.id, body: message } });
-  await db.supportThread.update({ where: { id }, data: { status: "OPEN" } });
+  const messageRecord = await db.supportMessage.create({
+    data: { threadId: id, senderUserId: user.id, body: message },
+  });
+
+  await db.$transaction([
+    db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
+    db.auditLog.create({
+      data: {
+        schoolId: thread.schoolId,
+        actorUserId: user.id,
+        action: "CREATE",
+        entity: "SUPPORT_MESSAGE",
+        entityId: messageRecord.id,
+        details: "School support reply",
+      },
+    }),
+  ]);
+
   return NextResponse.json({ ok: true });
 }
