@@ -35,14 +35,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ sch
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) return NextResponse.json({ error: "Paystack is not configured yet." }, { status: 503 });
+  if (!secret) return NextResponse.json({ error: "Paystack is not configured yet." }, { status: 503);
   const body = await request.json().catch(() => null);
   const tier = String(body?.tier ?? "") as keyof typeof tiers;
   const plan = String(body?.plan ?? "") as "MONTHLY" | "TERM" | "YEARLY";
   if (!(tier in tiers) || !["MONTHLY", "TERM", "YEARLY"].includes(plan)) {
     return NextResponse.json({ error: "Choose a valid plan and billing period." }, { status: 400 });
   }
-  const rows = await db.platformSetting.findMany({ where: { key: { in: Object.keys(defaults) } } });
+  const rows = await db.$queryRaw<Array<{ key: string; value: string }>>`SELECT "key", "value" FROM "PlatformSetting" WHERE "key" = ANY(${Object.keys(defaults)})`;
   const settings = { ...defaults, ...Object.fromEntries(rows.map(row => [row.key, row.value])) };
   const tierSetting = tiers[tier];
   if (settings[tierSetting.enabled as keyof typeof settings] !== "true") {
