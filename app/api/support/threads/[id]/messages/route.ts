@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
@@ -17,11 +18,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const thread = await db.supportThread.findUnique({ where: { id } });
     if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
 
-    const messageRecord = await db.supportMessage.create({
-      data: { threadId: id, senderUserId: user.id, body: message },
-    });
-
+    const messageId = randomUUID();
     await db.$transaction([
+      db.supportMessage.create({
+        data: { id: messageId, threadId: id, senderUserId: user.id, body: message },
+      }),
       db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
       db.auditLog.create({
         data: {
@@ -29,7 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           actorUserId: user.id,
           action: "CREATE",
           entity: "SUPPORT_MESSAGE",
-          entityId: messageRecord.id,
+          entityId: messageId,
           details: "Owner support reply",
         },
       }),
@@ -45,11 +46,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const thread = await db.supportThread.findFirst({ where: { id, schoolId: user.membership.schoolId } });
   if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
 
-  const messageRecord = await db.supportMessage.create({
-    data: { threadId: id, senderUserId: user.id, body: message },
-  });
-
+  const messageId = randomUUID();
   await db.$transaction([
+    db.supportMessage.create({
+      data: { id: messageId, threadId: id, senderUserId: user.id, body: message },
+    }),
     db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
     db.auditLog.create({
       data: {
@@ -57,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         actorUserId: user.id,
         action: "CREATE",
         entity: "SUPPORT_MESSAGE",
-        entityId: messageRecord.id,
+        entityId: messageId,
         details: "School support reply",
       },
     }),
