@@ -18,8 +18,8 @@ export async function POST(request: Request) {
   });
 
   const children = access.children.filter(child => published.some(item => item.studentId === child.id));
-  const feeSetting = await db.platformSetting.findUnique({ where: { key: "resultUnlockFee" } });
-  const feePerChild = Math.max(0, Number(feeSetting?.value ?? 200));
+  const feeRows = await db.$queryRaw<Array<{ value: string }>>`SELECT "value" FROM "PlatformSetting" WHERE "key" = ${"resultUnlockFee"} LIMIT 1`;
+  const feePerChild = Math.max(0, Number(feeRows[0]?.value ?? 200));
 
   return NextResponse.json({
     school: access.schoolName,
