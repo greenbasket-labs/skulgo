@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getValidationSchoolId } from "@/lib/validators";
 import { recordAudit } from "@/lib/audit";
+import { sendValidatorTelegramMessage } from "@/lib/telegram-validator";
 
 export async function POST(
   request: Request,
@@ -55,7 +56,7 @@ export async function POST(
     const validatorId = "V-" + String(nextNumber).padStart(3, "0");
 
     const profile = await tx.validatorProfile.create({
-      data: { userId: application.userId, validatorId, role: application.requestedRole },
+      data: { userId: application.userId, validatorId, role: application.requestedRole, telegramChatId: application.telegramChatId },
     });
 
     await tx.schoolMembership.upsert({
