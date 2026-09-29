@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   const selectedIds = studentIds.filter((id: string) => availableIds.includes(id));
   if (!selectedIds.length) return NextResponse.json({ error: "No published result is available." }, { status: 409 });
 
-  const feeSetting = await db.platformSetting.findUnique({ where: { key: "resultUnlockFee" } });
-  const feePerChild = Math.max(0, Number(feeSetting?.value ?? 200));
+  const feeRows = await db.$queryRaw<Array<{ value: string }>>`SELECT "value" FROM "PlatformSetting" WHERE "key" = ${"resultUnlockFee"} LIMIT 1`;
+  const feePerChild = Math.max(0, Number(feeRows[0]?.value ?? 200));
   const amount = feePerChild * selectedIds.length;
 
   const reference = "SKULGO-RESULT-" + Date.now().toString(36) + "-" + randomUUID().replace(/-/g, "").slice(0, 12);
