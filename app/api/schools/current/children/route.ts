@@ -16,7 +16,8 @@ export async function GET() {
   if (!parent) return NextResponse.json({ error: "Parent profile not found" }, { status: 404 });
 
   const membership = await db.schoolMembership.findUnique({ where: { id: user.membership.id }, select: { workspaceCode: true } });
-  const checkerSetting = await db.platformSetting.findUnique({ where: { key: "resultCheckerEnabled" } });
+  const checkerRows = await db.$queryRaw<Array<{ value: string }>>`SELECT "value" FROM "PlatformSetting" WHERE "key" = ${"resultCheckerEnabled"} LIMIT 1`;
+  const checkerEnabled = checkerRows[0]?.value === "true";
 
   const links = await db.parentStudent.findMany({
     where: {
@@ -38,5 +39,5 @@ export async function GET() {
     orderBy: { student: { lastName: "asc" } },
   });
 
-  return NextResponse.json({ children: links.map(link => link.student), resultCheckerEnabled: checkerSetting?.value === "true", resultCheckerId: checkerSetting?.value === "true" ? membership?.workspaceCode ?? null : null });
+  return NextResponse.json({ children: links.map(link => link.student), resultCheckerEnabled: checkerEnabled, resultCheckerId: checkerEnabled ? membership?.workspaceCode ?? null : null });
 }
