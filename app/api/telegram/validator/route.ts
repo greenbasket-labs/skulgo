@@ -220,17 +220,12 @@ export async function POST(request: Request) {
       requestedSolution: requestedSolution || undefined,
     });
 
-    const finding = await db.validatorFinding.create({
-      data: {
-        validatorProfile: { connect: { id: data.validatorProfileId } },
-        problem: data.problem,
-        impact: data.impact,
-        requestedSolution,
-        severity: classification.severity,
-        disposition: classification.disposition,
-        rationale: classification.rationale,
-      },
-    });
+    await db.$executeRaw`
+      INSERT INTO "ValidatorFinding"
+        ("id", "validatorProfileId", "problem", "impact", "requestedSolution", "severity", "disposition", "rationale", "createdAt")
+      VALUES
+        (${crypto.randomUUID()}, ${data.validatorProfileId}, ${data.problem}, ${data.impact}, ${requestedSolution}, ${classification.severity}, ${classification.disposition}, ${classification.rationale}, CURRENT_TIMESTAMP)
+    `;
 
     await db.validatorBotSession.update({
       where: { id: session.id },
@@ -240,8 +235,8 @@ export async function POST(request: Request) {
     await send(
       chatId,
       "✅ Finding recorded.\n\n" +
-        "Urgency: " + finding.severity + "\n" +
-        "Direction: " + finding.disposition + "\n\n" +
+        "Urgency: " + classification.severity + "\n" +
+        "Direction: " + classification.disposition + "\n\n" +
         classification.rationale +
         "\n\nThis is a validation signal, not an automatic promise to build. Real repeated evidence can strengthen the case."
     );
