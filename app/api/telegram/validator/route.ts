@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getValidationSchoolId, isValidatorRole } from "@/lib/validators";
-import { classifyValidatorFinding, validatorBrainIntro } from "@/lib/validator-brain";
+import { classifyValidatorFinding, validatorBrainIntro, answerValidatorGroupMessage } from "@/lib/validator-brain";
 
 const TOKEN = process.env.TELEGRAM_VALIDATOR_BOT_TOKEN;
 const SECRET = process.env.TELEGRAM_VALIDATOR_WEBHOOK_SECRET;
@@ -44,6 +44,32 @@ export async function POST(request: Request) {
     session = await db.validatorBotSession.create({
       data: { telegramChatId: chatId, state: "IDLE" },
     });
+  }
+
+
+  const chatType = message?.chat?.type;
+  const isGroup = chatType === "group" || chatType === "supergroup";
+
+  if (isGroup && text.startsWith("/")) {
+    if (text === "/apply" || text === "/start" || text === "/pain" || text === "/help") {
+      await send(chatId, "Please open a private chat with the SkulGo Validator Bot to use " + text + ".");
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (isGroup && !callback) {
+    const addressedToBot =
+      /@skulgovalidatorbot\b/i.test(text) ||
+      /^(how|what|why|can|does|is|where|help|problem|pain|bug)\b/i.test(text);
+
+    if (addressedToBot) {
+      const groupAnswer = answerValidatorGroupMessage(
+        text.replace(/@skulgovalidatorbot\b/ig, "").trim()
+      );
+      if (groupAnswer) await send(chatId, "🤖 " + groupAnswer);
+    }
+
+    return NextResponse.json({ ok: true });
   }
 
   if (callback?.data?.startsWith("role:")) {
