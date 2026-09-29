@@ -126,7 +126,7 @@ model ValidatorBotSession {
   createdAt DateTime @default(now())
 }
 
-model PlatformSetting {
+model ValidatorFinding {\n  id String @id @default(cuid())\n  validatorProfileId String\n  validatorProfile ValidatorProfile @relation(fields:[validatorProfileId],references:[id],onDelete:Cascade)\n  problem String\n  impact String?\n  requestedSolution String?\n  severity ValidatorFindingSeverity\n  disposition ValidatorFindingDisposition\n  rationale String\n  createdAt DateTime @default(now())\n  @@index([severity,createdAt])\n  @@index([disposition,createdAt])\n  @@index([validatorProfileId,createdAt])\n}\n\nmodel PlatformSetting {
   key String @id
   value String
   createdAt DateTime @default(now())
