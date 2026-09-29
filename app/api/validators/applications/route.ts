@@ -27,6 +27,25 @@ export async function POST(request: Request) {
   const requestedRole = typeof body?.requestedRole === "string" ? body.requestedRole.toUpperCase() : "";
   const schoolExperience = typeof body?.schoolExperience === "string" ? body.schoolExperience.trim() : "";
   const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+  const introducedByAccountIdRaw =
+    typeof body?.introducedByAccountId === "string"
+      ? body.introducedByAccountId.trim().toUpperCase()
+      : "";
+  let introducedByAccountId: string | null = null;
+
+  if (introducedByAccountIdRaw && introducedByAccountIdRaw !== "NONE") {
+    const introducer = await db.user.findUnique({
+      where: { referralCode: introducedByAccountIdRaw },
+      select: { id: true, referralCode: true },
+    });
+    if (!introducer) {
+      return NextResponse.json({ error: "Introducer SkulGo Account ID not found." }, { status: 400 });
+    }
+    if (introducer.id === user.id) {
+      return NextResponse.json({ error: "You cannot introduce yourself." }, { status: 400 });
+    }
+    introducedByAccountId = introducer.referralCode;
+  }
 
   if (!isValidatorRole(requestedRole)) return NextResponse.json({ error: "Choose a valid validator role." }, { status: 400 });
   if (!schoolExperience) return NextResponse.json({ error: "Tell us about your real school experience or relationship." }, { status: 400 });
@@ -39,7 +58,7 @@ export async function POST(request: Request) {
   if (pending) return NextResponse.json({ error: "You already have a validator application under review." }, { status: 409 });
 
   const application = await db.validatorApplication.create({
-    data: { userId: user.id, requestedRole, schoolExperience, reason },
+    data: { userId: user.id, requestedRole, schoolExperience, reason, introducedByAccountId },
   });
   return NextResponse.json({ ok: true, applicationId: application.id, status: application.status }, { status: 201 });
 }
