@@ -177,6 +177,32 @@ export function classifyValidatorFinding(input: {
   return { severity, disposition, rationale };
 }
 
+export function answerValidatorGroupMessage(message: string) {
+  const text = message.trim();
+  const lower = text.toLowerCase();
+  if (!text) return null;
+
+  if (/how.*(attendance|mark attendance|record attendance)|attendance.*how/i.test(lower))
+    return "SkulGo attendance follows the class-teacher workflow. The teacher records attendance for the assigned class during the configured attendance window. If you are testing it, check whether the real school duty is completed without duplicate entry or record risk.";
+
+  if (/how.*(result|score)|result.*(work|generate|publish)|score.*(enter|record)/i.test(lower))
+    return "SkulGo connects assessment records to results. Teachers enter CA/Exam scores for their assigned work, results are generated from those records, and published results are then available to the roles allowed to see them. If you are validating a problem, describe what happens in the real school before suggesting a new feature.";
+
+  if (/how.*(fee|payment)|fee.*(work|record)|payment.*(record|work)/i.test(lower))
+    return "SkulGo keeps fees and payments as connected school records: fee definition, student fee record, payment and balance. Test the real school duty and record rather than assuming a larger accounting system is needed.";
+
+  if (/what.*(skulgo|validation)|what is skulgo|how does skulgo/i.test(lower))
+    return "SkulGo is a lightweight connected school record book for Nigerian schools. Its core flow is People → Classes → Subjects → Attendance → Scores → Results → Fees. Validation is about finding real school problems and testing evidence, not collecting feature ideas.";
+
+  if (/feature|add|build|can skulgo/i.test(lower))
+    return "Before proposing a new feature, describe the real school problem: who is affected, how often it happens, what the current workaround is, and what goes wrong. Then we can check whether an existing SkulGo record or workflow can solve it first.";
+
+  if (/problem|pain|bug|error|not working|doesn't work|mistake|manual|difficult|hard|delay|duplicate/i.test(lower))
+    return "That may be useful validation evidence. Give a concrete example, who is affected, how often it happens, and what the school currently does instead. If you are an approved Validator, use /pain to record it formally.";
+
+  return null;
+}
+
 export function validatorBrainIntro() {
   return [
     "You are helping validate SkulGo, a lightweight connected school record book for Nigerian schools.",
