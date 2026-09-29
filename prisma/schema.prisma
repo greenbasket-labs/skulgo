@@ -83,6 +83,20 @@ enum ValidatorApplicationStatus {
   REJECTED
 }
 
+enum ValidatorFindingSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ValidatorFindingDisposition {
+  PAIN_KILLER
+  INTENDED
+  PLANNED
+  NOT_ENOUGH_EVIDENCE
+}
+
 model ValidatorProfile {
   id String @id @default(cuid())
   userId String @unique
@@ -126,7 +140,23 @@ model ValidatorBotSession {
   createdAt DateTime @default(now())
 }
 
-model ValidatorFinding {\n  id String @id @default(cuid())\n  validatorProfileId String\n  validatorProfile ValidatorProfile @relation(fields:[validatorProfileId],references:[id],onDelete:Cascade)\n  problem String\n  impact String?\n  requestedSolution String?\n  severity ValidatorFindingSeverity\n  disposition ValidatorFindingDisposition\n  rationale String\n  createdAt DateTime @default(now())\n  @@index([severity,createdAt])\n  @@index([disposition,createdAt])\n  @@index([validatorProfileId,createdAt])\n}\n\nmodel PlatformSetting {
+model ValidatorFinding {
+  id String @id @default(cuid())
+  validatorProfileId String
+  validatorProfile ValidatorProfile @relation(fields:[validatorProfileId],references:[id],onDelete:Cascade)
+  problem String
+  impact String?
+  requestedSolution String?
+  severity ValidatorFindingSeverity
+  disposition ValidatorFindingDisposition
+  rationale String
+  createdAt DateTime @default(now())
+  @@index([severity,createdAt])
+  @@index([disposition,createdAt])
+  @@index([validatorProfileId,createdAt])
+}
+
+model PlatformSetting {
   key String @id
   value String
   createdAt DateTime @default(now())
