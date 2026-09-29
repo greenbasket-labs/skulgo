@@ -31,7 +31,7 @@ export async function GET() {
   const schoolId = user.membership.schoolId;
   const [subscription, rows] = await Promise.all([
     db.schoolSubscription.findUnique({ where: { schoolId } }),
-    db.platformSetting.findMany({ where: { key: { in: Object.keys(defaults) } } }),
+    db.$queryRaw<Array<{ key: string; value: string }>>`SELECT "key", "value" FROM "PlatformSetting" WHERE "key" = ANY(${Object.keys(defaults)})`,
   ]);
   if (!subscription) return NextResponse.json({ error: "School plan not found" }, { status: 404 });
   const settings = { ...defaults, ...Object.fromEntries(rows.map(row => [row.key, row.value])) };
