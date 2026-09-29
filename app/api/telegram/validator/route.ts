@@ -222,7 +222,7 @@ export async function POST(request: Request) {
 
     const finding = await db.validatorFinding.create({
       data: {
-        validatorProfileId: data.validatorProfileId,
+        validatorProfile: { connect: { id: data.validatorProfileId } },
         problem: data.problem,
         impact: data.impact,
         requestedSolution,
