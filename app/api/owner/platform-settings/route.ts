@@ -20,7 +20,7 @@ const defaults = {
 
 export async function GET() {
   await requireOwner();
-  const rows = await db.platformSetting.findMany();
+  const rows = await db.$queryRaw<Array<{ key: string; value: string }>>`SELECT "key", "value" FROM "PlatformSetting"`;
   const settings = { ...defaults, ...Object.fromEntries(rows.map((row) => [row.key, row.value])) };
   return NextResponse.json(settings);
 }
@@ -63,11 +63,12 @@ export async function PUT(request: Request) {
 
   await db.$transaction(
     Object.entries(values).map(([key, value]) =>
-      db.platformSetting.upsert({
-        where: { key },
-        update: { value },
-        create: { key, value },
-      })
+      db.$executeRaw`
+        INSERT INTO "PlatformSetting" ("key", "value", "createdAt", "updatedAt")
+        VALUES (${key}, ${value}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT ("key") DO UPDATE
+        SET "value" = EXCLUDED."value", "updatedAt" = CURRENT_TIMESTAMP
+      `
     )
   );
 
