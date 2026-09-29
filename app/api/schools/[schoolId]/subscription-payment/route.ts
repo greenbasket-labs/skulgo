@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ sch
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret) return NextResponse.json({ error: "Paystack is not configured yet." }, { status: 503);
+  if (!secret) return NextResponse.json({ error: "Paystack is not configured yet." }, { status: 503 });
   const body = await request.json().catch(() => null);
   const tier = String(body?.tier ?? "") as keyof typeof tiers;
   const plan = String(body?.plan ?? "") as "MONTHLY" | "TERM" | "YEARLY";
