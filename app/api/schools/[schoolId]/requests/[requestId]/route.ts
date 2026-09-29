@@ -176,9 +176,7 @@ export async function PATCH(
     });
 
     if (subscription && !subscription.startedAt) {
-      const rows = await tx.platformSetting.findMany({
-        where: { key: { in: ["trialEnabled", "trialDays"] } },
-      });
+      const rows = await tx.$queryRaw<Array<{ key: string; value: string }>>`SELECT "key", "value" FROM "PlatformSetting" WHERE "key" IN (${"trialEnabled"}, ${"trialDays"})`;
       const settings = Object.fromEntries(rows.map(row => [row.key, row.value]));
       const trialEnabled = settings.trialEnabled !== "false";
       const trialDays = Math.max(0, Number(settings.trialDays ?? "14") || 0);
