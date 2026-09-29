@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getValidationSchoolId, isValidatorRole } from "@/lib/validators";
+import { classifyValidatorFinding, validatorBrainIntro } from "@/lib/validator-brain";
 
 const TOKEN = process.env.TELEGRAM_VALIDATOR_BOT_TOKEN;
 const SECRET = process.env.TELEGRAM_VALIDATOR_WEBHOOK_SECRET;
@@ -87,10 +88,136 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (text === "/pain") {
+    const profile = await db.validatorProfile.findUnique({
+      where: { telegramChatId: chatId },
+      select: { id: true, validatorId: true },
+    });
+
+    if (!profile) {
+      await send(chatId, "You must be an approved SkulGo Validator before submitting a validation finding.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await db.validatorBotSession.update({
+      where: { id: session.id },
+      data: {
+        state: "PAIN_PROBLEM",
+        data: JSON.stringify({ validatorProfileId: profile.id, validatorId: profile.validatorId }),
+      },
+    });
+
+    await send(
+      chatId,
+      "🔎 Validation finding\n\n" +
+        "Do not start with a feature idea. Tell me the real school problem you observed.\n\n" +
+        "Example: “The class teacher records attendance on paper first, then enters it again later, so names are sometimes missed.”"
+    );
+    return NextResponse.json({ ok: true });
+  }
+
   if (text === "/help") {
     await send(
       chatId,
-      "SkulGo Validators test SkulGo through real school roles.\n\n/apply — start an application\n\nYour SkulGo Account ID identifies your SkulGo account. Your validator role should match your real-world school experience."
+      validatorBrainIntro() + "\n\n/apply — start an application\n/pain — report a real validation finding\n/help — show this guidance\n\nYour SkulGo Account ID identifies your SkulGo account. Your validator role should match your real-world school experience."
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (session.state === "PAIN_PROBLEM") {
+    const data = session.data ? JSON.parse(session.data) : null;
+    if (!data?.validatorProfileId) {
+      await send(chatId, "Please restart a validation finding with /pain.");
+      return NextResponse.json({ ok: true });
+    }
+    if (!text) {
+      await send(chatId, "Please describe the real school problem you observed.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await db.validatorBotSession.update({
+      where: { id: session.id },
+      data: {
+        state: "PAIN_IMPACT",
+        data: JSON.stringify({ ...data, problem: text }),
+      },
+    });
+
+    await send(
+      chatId,
+      "Who is affected, and what happens because of the problem? Include frequency if you know it."
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (session.state === "PAIN_IMPACT") {
+    const data = session.data ? JSON.parse(session.data) : null;
+    if (!data?.validatorProfileId || !data?.problem) {
+      await send(chatId, "Please restart a validation finding with /pain.");
+      return NextResponse.json({ ok: true });
+    }
+    if (!text) {
+      await send(chatId, "Please describe the impact, who is affected, and how often it happens.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await db.validatorBotSession.update({
+      where: { id: session.id },
+      data: {
+        state: "PAIN_SOLUTION",
+        data: JSON.stringify({ ...data, impact: text }),
+      },
+    });
+
+    await send(
+      chatId,
+      "What do you think SkulGo should do? This is only your observation/request; do not worry about deciding whether it will be built."
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (session.state === "PAIN_SOLUTION") {
+    const data = session.data ? JSON.parse(session.data) : null;
+    if (!data?.validatorProfileId || !data?.problem || !data?.impact) {
+      await send(chatId, "Please restart a validation finding with /pain.");
+      return NextResponse.json({ ok: true });
+    }
+    if (!text) {
+      await send(chatId, "Please describe what you think SkulGo should do, or type NONE if you do not know.");
+      return NextResponse.json({ ok: true });
+    }
+
+    const requestedSolution = text.toUpperCase() === "NONE" ? null : text;
+    const classification = classifyValidatorFinding({
+      problem: data.problem,
+      impact: data.impact,
+      requestedSolution: requestedSolution || undefined,
+    });
+
+    const finding = await db.validatorFinding.create({
+      data: {
+        validatorProfileId: data.validatorProfileId,
+        problem: data.problem,
+        impact: data.impact,
+        requestedSolution,
+        severity: classification.severity,
+        disposition: classification.disposition,
+        rationale: classification.rationale,
+      },
+    });
+
+    await db.validatorBotSession.update({
+      where: { id: session.id },
+      data: { state: "IDLE", data: null },
+    });
+
+    await send(
+      chatId,
+      "✅ Finding recorded.\n\n" +
+        "Urgency: " + finding.severity + "\n" +
+        "Direction: " + finding.disposition + "\n\n" +
+        classification.rationale +
+        "\n\nThis is a validation signal, not an automatic promise to build. Real repeated evidence can strengthen the case."
     );
     return NextResponse.json({ ok: true });
   }
