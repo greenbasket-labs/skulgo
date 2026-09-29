@@ -16,7 +16,8 @@
     "build:prod": "npm install --include=dev && npm run postinstall && npm run db:push:prod && npm run db:backfill:subscriptions && next build",
     "postinstall": "prisma generate --schema prisma/schema.production.prisma",
     "db:backfill:subscriptions": "node scripts/backfill-school-subscriptions.js",
-    "testdata:gbg": "node scripts/seed-gbg-test-students.js"
+    "testdata:gbg": "node scripts/seed-gbg-test-students.js",
+    "telegram:setup": "node scripts/setup-validator-bot.js"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
