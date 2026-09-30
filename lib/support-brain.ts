@@ -44,7 +44,6 @@ function includesAny(text: string, words: string[]) {
 export function answerSkulGoSupport(context: SupportReplyContext): string {
   const text = [context.subject ?? "", context.message].join(" ").trim();
   const lower = text.toLowerCase();
-  const verified = verification ? `\n\nVerified before answering: ${verification.checks.join(" ")}` : "";
 
   if (includesAny(lower, ["hello", "hi", "good morning", "good afternoon", "good evening"])) {
     return "Hello 👋 I’m the SkulGo Support Bot. I can help explain how the current SkulGo school workflows work, including people, classes, subjects, attendance, scores, results, fees, roles, offline work and school settings. Tell me what you are trying to do or what went wrong.";
