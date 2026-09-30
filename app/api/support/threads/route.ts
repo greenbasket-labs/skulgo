@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
-import { answerSkulGoSupport, verifySupportContext } from "@/lib/support-brain";
+import { verifySupportContext } from "@/lib/support-brain";
 
 export async function GET(request: Request) {
   const owner = request.headers.get("x-skulgo-owner") === "1";
@@ -56,8 +56,6 @@ export async function POST(request: Request) {
 
   const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, `${subject} ${message}`);
   if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });
-  const botReply = answerSkulGoSupport({ subject, message, verification, history: [] });
-  const botMessageId = randomUUID();
 
   await db.$transaction([
     db.supportThread.create({
@@ -68,9 +66,6 @@ export async function POST(request: Request) {
         subject,
         messages: { create: { id: messageId, senderUserId: user.id, senderType: "USER", body: message } },
       },
-    }),
-    db.supportMessage.create({
-      data: { id: botMessageId, threadId, senderUserId: null, senderType: "BOT", body: botReply },
     }),
     db.auditLog.create({
       data: {
@@ -84,5 +79,5 @@ export async function POST(request: Request) {
     }),
   ]);
 
-  return NextResponse.json({ ok: true, threadId, botMessage: botReply });
+  return NextResponse.json({ ok: true, threadId });
 }
