@@ -8,9 +8,8 @@ if (!token || !appUrl) {
 
 const webhookUrl = new URL("/api/telegram/validator", appUrl).toString();
 const commands = [
-  { command: "start", description: "Start SkulGo Validator" },
-  { command: "apply", description: "Apply to become a validator" },
-  { command: "help", description: "How SkulGo validation works" },
+  { command: "start", description: "Start SkulGo Support Bot" },
+  { command: "help", description: "How SkulGo Support works" },
 ];
 
 const webhookResponse = await fetch("https://api.telegram.org/bot" + token + "/setWebhook", {
