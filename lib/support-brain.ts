@@ -41,9 +41,10 @@ function includesAny(text: string, words: string[]) {
   return words.some(word => text.includes(word));
 }
 
-export function answerSkulGoSupport(context: SupportReplyContext): string {
+export function answerSkulGoSupport(context: SupportReplyContext, verification?: SupportVerification): string {
   const text = [context.subject ?? "", context.message].join(" ").trim();
   const lower = text.toLowerCase();
+  const verified = verification ? `\n\nVerified before answering: ${verification.checks.join(" ")}` : "";
 
   if (includesAny(lower, ["hello", "hi", "good morning", "good afternoon", "good evening"])) {
     return "Hello 👋 I’m the SkulGo Support Bot. I can help explain how the current SkulGo school workflows work, including people, classes, subjects, attendance, scores, results, fees, roles, offline work and school settings. Tell me what you are trying to do or what went wrong.";
@@ -109,6 +110,74 @@ export function answerSkulGoSupport(context: SupportReplyContext): string {
     "SkulGo's core flow is People -> Classes -> Subjects -> Attendance -> Scores -> Results -> Fees. " +
     "Tell me the exact task or problem you are facing, and I’ll explain the relevant current workflow. " +
     "If the issue is not covered by the current product knowledge, I’ll tell you instead of guessing.";
+}
+
+
+export type SupportVerification = {
+  schoolName: string;
+  role: string;
+  checks: string[];
+};
+
+export async function verifySupportContext(
+  db: {
+    school: {
+      findUnique: (args: any) => Promise<any>;
+    };
+    schoolClass: { count: (args: any) => Promise<number> };
+    classTeacher: { count: (args: any) => Promise<number> };
+    teacherAssignment: { count: (args: any) => Promise<number> };
+    assessment: { count: (args: any) => Promise<number> };
+    result: { count: (args: any) => Promise<number> };
+    feeDefinition: { count: (args: any) => Promise<number> };
+    feeRecord: { count: (args: any) => Promise<number> };
+  },
+  schoolId: string,
+  role: string,
+  message: string,
+): Promise<SupportVerification | null> {
+  const school = await db.school.findUnique({
+    where: { id: schoolId },
+    select: { name: true, abbr: true },
+  });
+  if (!school) return null;
+
+  const lower = message.toLowerCase();
+  const checks: string[] = [
+    `Authenticated school: ${school.name} (${school.abbr})`,
+    `Current school role: ${role}`,
+  ];
+
+  if (includesAny(lower, ["attendance", "absent", "present", "mark attendance"])) {
+    const [classes, classTeachers] = await Promise.all([
+      db.schoolClass.count({ where: { schoolId } }),
+      db.classTeacher.count({ where: { schoolId } }),
+    ]);
+    checks.push(`Attendance structure verified: ${classes} class(es), ${classTeachers} class-teacher assignment(s).`);
+  } else if (includesAny(lower, ["score", "scores", "ca", "exam", "assessment"])) {
+    const [assignments, assessments] = await Promise.all([
+      db.teacherAssignment.count({ where: { schoolId } }),
+      db.assessment.count({ where: { schoolId } }),
+    ]);
+    checks.push(`Assessment workflow verified: ${assignments} teacher assignment(s), ${assessments} saved assessment record(s).`);
+  } else if (includesAny(lower, ["result", "report card", "publish"])) {
+    const results = await db.result.count({ where: { schoolId } });
+    checks.push(`Result workflow verified: ${results} result record(s) exist in this school.`);
+  } else if (includesAny(lower, ["fee", "fees", "payment", "balance", "cashier"])) {
+    const [definitions, records] = await Promise.all([
+      db.feeDefinition.count({ where: { schoolId } }),
+      db.feeRecord.count({ where: { schoolId } }),
+    ]);
+    checks.push(`Fee workflow verified: ${definitions} fee definition(s), ${records} student fee record(s).`);
+  } else {
+    const [classes, assignments] = await Promise.all([
+      db.schoolClass.count({ where: { schoolId } }),
+      db.teacherAssignment.count({ where: { schoolId } }),
+    ]);
+    checks.push(`Current school structure verified: ${classes} class(es), ${assignments} teacher assignment(s).`);
+  }
+
+  return { schoolName: school.name, role, checks };
 }
 
 export function supportKnowledgeSummary() {
