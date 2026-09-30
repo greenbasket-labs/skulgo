@@ -1,3 +1,5 @@
+import { SKULGO_KNOWLEDGE, SKULGO_KNOWLEDGE_TEXT } from "@/lib/skulgo-brain";
+
 export type SupportReplyContext = {
   subject?: string;
   message: string;
@@ -184,5 +186,5 @@ export async function verifySupportContext(
 }
 
 export function supportKnowledgeSummary() {
-  return KNOWLEDGE.join(" ");
+  return SKULGO_KNOWLEDGE_TEXT + "\n" + KNOWLEDGE.join(" ");
 }
