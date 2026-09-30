@@ -23,7 +23,7 @@ export default async function OwnerMessage({ params }: { params: Promise<{ id: s
       <div className="grid">
         {thread.messages.map(message => (
           <div className="card" key={message.id}>
-            <strong>{message.sender.name}</strong>
+            <strong>{message.senderType === "BOT" ? "🤖 SkulGo Support Bot" : message.sender?.name ?? "SkulGo Support"}</strong>
             <p>{message.body}</p>
             <small className="muted">{message.createdAt.toLocaleString("en-NG")}</small>
           </div>
