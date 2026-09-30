@@ -240,6 +240,94 @@ For local development, SkulGo continues to use SQLite. Production uses PostgreSQ
 
 Offline is a SkulGo-wide behavior. The shared offline layer stores queued actions and cached records locally, then synchronizes when internet returns. Offline attendance and offline score entry have been proven.
 
+## Support Bot / Live School Support
+
+SkulGo Support is a live school-to-SkulGo conversation, not only a contact form.
+
+### Current support behavior
+
+- School Admin can open Support from the school workspace.
+- A school can start a support thread with a subject and message.
+- The SkulGo Support Bot responds automatically using the current documented SkulGo product rules and workflows.
+- Existing conversations remain in the thread.
+- School replies receive another bot response.
+- The support page refreshes the conversation automatically so it behaves like a live support conversation.
+- Support messages remain school-scoped and important support actions are recorded in AuditLog.
+- Bot messages are stored as support messages with senderType = "BOT" and do not require a User record.
+
+### Support Bot knowledge rule
+
+The Support Bot must understand SkulGo as a product, not as a generic chatbot.
+
+Its knowledge should stay aligned with:
+
+- this README;
+- actual current repository behavior;
+- current school roles and access rules;
+- the connected school record flow;
+- offline-first behavior;
+- school-specific configuration;
+- current MVP boundaries;
+- documented product decisions.
+
+The bot must not invent features, policies, prices, permissions or workflows.
+
+If the current product knowledge does not establish an answer, the bot should say that it does not have enough confirmed information and ask the school to describe the exact issue or wait for the SkulGo team rather than guessing.
+
+### Support Bot vs human support
+
+The bot handles common product/workflow questions and helps narrow down problems.
+
+It is not a replacement for human review of:
+
+- account/security incidents;
+- suspected data loss or corruption;
+- payment disputes;
+- privacy/access incidents;
+- production bugs that cannot be explained from current product behavior;
+- requests requiring an actual SkulGo team decision.
+
+When such an issue is raised, the bot should collect the useful facts and make clear that human review may be required.
+
+### One SkulGo product brain
+
+Do not create conflicting descriptions of SkulGo in different bots.
+
+The Validator Bot and Support Bot may have different conversation purposes, but their underlying product facts must remain consistent.
+
+Shared facts should cover:
+
+- identity and motto;
+- Personal account -> School connection -> Duty -> School work;
+- People -> Classes -> Subjects -> Attendance -> Scores -> Results -> Fees;
+- role permissions;
+- school tenant isolation;
+- attendance and assessment workflows;
+- results and publishing;
+- fees and payments;
+- offline behavior;
+- school-specific settings;
+- teacher resources;
+- product boundaries;
+- known planned items;
+- affordability-conscious development.
+
+When a product rule changes, update the authoritative product documentation and the relevant bot knowledge together.
+
+### Support development rule
+
+Keep Support lightweight.
+
+Do not turn Support into:
+
+- a social chat platform;
+- a large ticketing/CRM system;
+- a notification infrastructure;
+- a general-purpose AI assistant;
+- an autonomous agent that changes school records.
+
+The bot should explain, guide and collect information. It must not silently perform privileged school actions.
+
 ## Developer / AI handover
 
 ### Important: do not restart the project
