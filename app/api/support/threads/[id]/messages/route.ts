@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
-import { answerSkulGoSupport } from "@/lib/support-brain";
+import { answerSkulGoSupport, verifySupportContext } from "@/lib/support-brain";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -47,8 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const thread = await db.supportThread.findFirst({ where: { id, schoolId: user.membership.schoolId } });
   if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
 
-  const messageId = randomUUID();
-  const botReply = answerSkulGoSupport({ message });
+  const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, message);\n  if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });\n\n  const messageId = randomUUID();\n  const botReply = `🔎 Verified first\\n\\n${answerSkulGoSupport({ message })}\\n\\n${verification.checks.join(" ")}`;
   const botMessageId = randomUUID();
 
   await db.$transaction([
