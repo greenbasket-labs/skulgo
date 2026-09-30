@@ -314,6 +314,19 @@ Shared facts should cover:
 
 When a product rule changes, update the authoritative product documentation and the relevant bot knowledge together.
 
+### Validator Bot and Validator Community
+
+SkulGo also has a Validator Community and Validator Bot.
+
+- The Validator Community is for real-world school testing, discussion and evidence.
+- The Validator Bot handles private validator onboarding and formal validation findings.
+- The Telegram validator group can receive useful SkulGo workflow questions and the bot may answer when directly addressed or when a message clearly asks for help.
+- Joining the community does not automatically make someone an approved Validator.
+- Validator findings should describe real school problems, affected people, impact and evidence rather than only feature ideas.
+- The Validator Bot classifies findings as CRITICAL, HIGH, MEDIUM or LOW and as PAIN_KILLER, INTENDED, PLANNED or NOT_ENOUGH_EVIDENCE.
+- Do not turn validation into a spam/reward system. Useful contribution and real evidence matter more than the number of messages submitted.
+- Validator and Support knowledge should remain consistent with the README and actual code.
+
 ### Support development rule
 
 Keep Support lightweight.
