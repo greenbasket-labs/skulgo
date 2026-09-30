@@ -53,6 +53,10 @@ export function answerSkulGoSupport(context: SupportReplyContext): string {
     return "For attendance, the class teacher records the assigned class during the school's configured attendance window. Drafts save automatically, and attendance can be entered offline and synchronized when internet returns. If you are seeing a specific problem, tell me the class, what you expected, and what actually happened.";
   }
 
+  if (includesAny(lower, ["overall", "total", "average"]) && includesAny(lower, ["student", "result", "performance", "come out", "score"])) {
+    return "Yes. SkulGo can show a student's overall result from the subject results that exist for that term. The current report-card calculation is: Total = sum of the subject totals; Maximum = number of result subjects × 100; Average = total ÷ number of result subjects; Overall Grade = based on the school's grading bands (the current default is A 70–100, B 60–69, C 50–59, D 45–49, E 40–44, F 0–39). The current report-card also displays a Position value from the generated subject result positions. So the school first needs the student's subject assessments generated into result records, then Admin publishes the results before students/parents can see the final result.";
+  }
+
   if (includesAny(lower, ["score", "scores", "ca", "exam", "assessment"])) {
     return "Scores are entered by the teacher through the teacher's assigned class/subject work. SkulGo supports CA and Exam records, and results are generated from those saved assessments. If a score is missing, wrong or cannot be saved, tell me the class, subject and exact behavior.";
   }
