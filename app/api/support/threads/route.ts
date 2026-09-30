@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
-import { answerSkulGoSupport } from "@/lib/support-brain";
+import { answerSkulGoSupport, verifySupportContext } from "@/lib/support-brain";
 
 export async function GET(request: Request) {
   const owner = request.headers.get("x-skulgo-owner") === "1";
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   const threadId = randomUUID();
   const messageId = randomUUID();
 
-  const botReply = answerSkulGoSupport({ subject, message });
+  const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, `${subject} ${message}`);\n  if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });\n  const botReply = `🔎 Verified first\\n\\n${answerSkulGoSupport({ subject, message })}\\n\\n${verification.checks.join(" ")}`;
   const botMessageId = randomUUID();
 
   await db.$transaction([
