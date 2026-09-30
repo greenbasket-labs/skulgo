@@ -41,7 +41,7 @@ function includesAny(text: string, words: string[]) {
   return words.some(word => text.includes(word));
 }
 
-export function answerSkulGoSupport(context: SupportReplyContext, verification?: SupportVerification): string {
+export function answerSkulGoSupport(context: SupportReplyContext): string {
   const text = [context.subject ?? "", context.message].join(" ").trim();
   const lower = text.toLowerCase();
   const verified = verification ? `\n\nVerified before answering: ${verification.checks.join(" ")}` : "";
