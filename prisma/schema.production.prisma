@@ -633,8 +633,9 @@ model SupportMessage {
   id String @id @default(cuid())
   threadId String
   thread SupportThread @relation(fields:[threadId],references:[id],onDelete:Cascade)
-  senderUserId String
-  sender User @relation("SupportMessageSender",fields:[senderUserId],references:[id],onDelete:Cascade)
+  senderUserId String?
+  sender User? @relation("SupportMessageSender",fields:[senderUserId],references:[id],onDelete:Cascade)
+  senderType String @default("USER")
   body String
   createdAt DateTime @default(now())
   @@index([threadId,createdAt])
