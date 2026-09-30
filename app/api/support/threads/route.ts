@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
   const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, `${subject} ${message}`);
   if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });
-  const botReply = `🔎 Verified first\n\n${answerSkulGoSupport({ subject, message })}\n\n${verification.checks.join(" ")}`;
+  const botReply = answerSkulGoSupport({ subject, message });
   const botMessageId = randomUUID();
 
   await db.$transaction([
