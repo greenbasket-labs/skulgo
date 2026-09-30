@@ -81,8 +81,8 @@ export default function AttendancePage() {
   const markedCount = students.filter(student => marks[student.id] !== undefined).length;
   const presentCount = students.filter(student => marks[student.id] === true).length;
   const absentCount = students.filter(student => marks[student.id] === false).length;
-  const maleCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "MALE").length;
-  const femaleCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "FEMALE").length;
+  const maleCount = students.filter(student => ["M", "MALE"].includes(String(student.gender ?? "").toUpperCase())).length;
+  const femaleCount = students.filter(student => ["F", "FEMALE"].includes(String(student.gender ?? "").toUpperCase())).length;
   const malePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "MALE" && marks[student.id] === true).length;
   const femalePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "FEMALE" && marks[student.id] === true).length;
 
