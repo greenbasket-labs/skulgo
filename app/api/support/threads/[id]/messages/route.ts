@@ -50,8 +50,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, message);
   if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });
 
+  const recentMessages = await db.supportMessage.findMany({
+    where: { threadId: id },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: { senderType: true, body: true },
+  });
+
   const messageId = randomUUID();
-  const botReply = answerSkulGoSupport({ message });
+  const botReply = answerSkulGoSupport({
+    message,
+    history: recentMessages.reverse() as Array<{ senderType: "USER" | "BOT"; body: string }>,
+    verification,
+  });
   const botMessageId = randomUUID();
 
   await db.$transaction([
