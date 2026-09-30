@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 export default function Register() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [introducedBy, setIntroducedBy] = useState("");
+  const DEFAULT_REFERRAL_CODE = "SKGA6UBY5";
+  const [introducedBy, setIntroducedBy] = useState(DEFAULT_REFERRAL_CODE);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   useEffect(() => {
