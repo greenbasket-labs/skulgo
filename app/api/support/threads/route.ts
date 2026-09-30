@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
+import { answerSkulGoSupport } from "@/lib/support-brain";
 
 export async function GET(request: Request) {
   const owner = request.headers.get("x-skulgo-owner") === "1";
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
   const threadId = randomUUID();
   const messageId = randomUUID();
 
+  const botReply = answerSkulGoSupport({ subject, message });
+  const botMessageId = randomUUID();
+
   await db.$transaction([
     db.supportThread.create({
       data: {
@@ -60,8 +64,11 @@ export async function POST(request: Request) {
         schoolId: user.membership.schoolId,
         createdById: user.id,
         subject,
-        messages: { create: { id: messageId, senderUserId: user.id, body: message } },
+        messages: { create: { id: messageId, senderUserId: user.id, senderType: "USER", body: message } },
       },
+    }),
+    db.supportMessage.create({
+      data: { id: botMessageId, threadId, senderUserId: null, senderType: "BOT", body: botReply },
     }),
     db.auditLog.create({
       data: {
@@ -75,5 +82,5 @@ export async function POST(request: Request) {
     }),
   ]);
 
-  return NextResponse.json({ ok: true, threadId });
+  return NextResponse.json({ ok: true, threadId, botMessage: botReply });
 }
