@@ -5,7 +5,25 @@ export type SupportReplyContext = {
   message: string;
   role?: string;
   schoolName?: string;
+  verification?: { schoolName?: string; role?: string };
+  history?: Array<{ senderType: "USER" | "BOT"; body: string }>;
 };
+
+export async function verifySupportContext(
+  db: { school: { findUnique: Function } },
+  schoolId: string,
+  role: string,
+  _message: string
+) {
+  const school = await db.school.findUnique({
+    where: { id: schoolId },
+    select: { name: true },
+  });
+
+  if (!school) return null;
+
+  return { schoolName: school.name, role };
+}
 
 const PRODUCT = [
   ...SKULGO_VALIDATOR_KNOWLEDGE.identity ? [SKULGO_VALIDATOR_KNOWLEDGE.identity] : [],
@@ -41,6 +59,11 @@ function has(lower: string, ...terms: string[]) {
 
 export function answerSkulGoSupport(context: SupportReplyContext): string {
   const text = [context.subject ?? "", context.message].join(" ").trim();
+  const verifiedRole = context.verification?.role ?? context.role;
+  const verifiedSchool = context.verification?.schoolName ?? context.schoolName;
+  void verifiedRole;
+  void verifiedSchool;
+  void context.history;
   const lower = text.toLowerCase();
 
   if (!text) return "Tell me what you are trying to do or what went wrong.";
