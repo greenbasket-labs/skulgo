@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
+import { answerSkulGoSupport } from "@/lib/support-brain";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const messageId = randomUUID();
     await db.$transaction([
       db.supportMessage.create({
-        data: { id: messageId, threadId: id, senderUserId: user.id, body: message },
+        data: { id: messageId, threadId: id, senderUserId: user.id, senderType: "USER", body: message },
       }),
       db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
       db.auditLog.create({
@@ -47,9 +48,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!thread) return NextResponse.json({ error: "Support request not found." }, { status: 404 });
 
   const messageId = randomUUID();
+  const botReply = answerSkulGoSupport({ message });
+  const botMessageId = randomUUID();
+
   await db.$transaction([
     db.supportMessage.create({
-      data: { id: messageId, threadId: id, senderUserId: user.id, body: message },
+      data: { id: messageId, threadId: id, senderUserId: user.id, senderType: "USER", body: message },
+    }),
+    db.supportMessage.create({
+      data: { id: botMessageId, threadId: id, senderUserId: null, senderType: "BOT", body: botReply },
     }),
     db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
     db.auditLog.create({
@@ -64,5 +71,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }),
   ]);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, botMessage: botReply });
 }
