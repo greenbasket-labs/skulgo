@@ -83,8 +83,8 @@ export default function AttendancePage() {
   const absentCount = students.filter(student => marks[student.id] === false).length;
   const maleCount = students.filter(student => ["M", "MALE"].includes(String(student.gender ?? "").toUpperCase())).length;
   const femaleCount = students.filter(student => ["F", "FEMALE"].includes(String(student.gender ?? "").toUpperCase())).length;
-  const malePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "MALE" && marks[student.id] === true).length;
-  const femalePresentCount = students.filter(student => String(student.gender ?? "").toUpperCase() === "FEMALE" && marks[student.id] === true).length;
+  const malePresentCount = students.filter(student => ["M", "MALE"].includes(String(student.gender ?? "").toUpperCase()) && marks[student.id] === true).length;
+  const femalePresentCount = students.filter(student => ["F", "FEMALE"].includes(String(student.gender ?? "").toUpperCase()) && marks[student.id] === true).length;
 
   const timeLeft = attendanceSession
     ? `${Math.floor(remainingMs / 60000).toString().padStart(2, "0")}:${Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, "0")}`
@@ -512,8 +512,8 @@ export default function AttendancePage() {
                     <strong>{student.firstName} {student.lastName}</strong>
                     <p className="muted">{student.admissionId}</p>
                     <div className="grid grid-2">
-                      <button className="button" aria-pressed={present === true} disabled={locked} onClick={() => void save(student, true)}>Present</button>
-                      <button className="button" aria-pressed={present === false} disabled={locked} onClick={() => void save(student, false)}>Absent</button>
+                      <button className="button" aria-pressed={present === true} disabled={locked} onClick={() => void save(student, true)}>{present === true ? "✓" : "Present"}</button>
+                      <button className="button" aria-pressed={present === false} disabled={locked} onClick={() => void save(student, false)}>{present === false ? "✕" : "Absent"}</button>
                     </div>
                   </div>
                 );
