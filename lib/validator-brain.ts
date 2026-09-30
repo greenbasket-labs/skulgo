@@ -1,3 +1,5 @@
+import { skulgoBrainIntro } from "@/lib/skulgo-brain";
+
 export type ValidatorSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type ValidatorDisposition =
   | "PAIN_KILLER"
@@ -205,7 +207,7 @@ export function answerValidatorGroupMessage(message: string) {
 
 export function validatorBrainIntro() {
   return [
-    "You are helping validate SkulGo, a lightweight connected school record book for Nigerian schools.",
+    skulgoBrainIntro(),
     "Do not treat every suggestion as a feature request.",
     "Look for a real school pain first.",
     "A useful implementation should save time, protect a record, reduce a mistake, or make an existing record useful to the right person.",
