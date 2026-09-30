@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireOwner } from "@/lib/owner";
-import { answerSkulGoSupport, verifySupportContext } from "@/lib/support-brain";
+import { verifySupportContext } from "@/lib/support-brain";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,27 +50,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const verification = await verifySupportContext(db, user.membership.schoolId, user.membership.role, message);
   if (!verification) return NextResponse.json({ error: "Could not verify your school support context." }, { status: 409 });
 
-  const recentMessages = await db.supportMessage.findMany({
-    where: { threadId: id },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-    select: { senderType: true, body: true },
-  });
-
   const messageId = randomUUID();
-  const botReply = answerSkulGoSupport({
-    message,
-    history: recentMessages.reverse() as Array<{ senderType: "USER" | "BOT"; body: string }>,
-    verification,
-  });
-  const botMessageId = randomUUID();
-
   await db.$transaction([
     db.supportMessage.create({
       data: { id: messageId, threadId: id, senderUserId: user.id, senderType: "USER", body: message },
-    }),
-    db.supportMessage.create({
-      data: { id: botMessageId, threadId: id, senderUserId: null, senderType: "BOT", body: botReply },
     }),
     db.supportThread.update({ where: { id }, data: { status: "OPEN" } }),
     db.auditLog.create({
@@ -85,5 +68,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }),
   ]);
 
-  return NextResponse.json({ ok: true, botMessage: botReply });
+  return NextResponse.json({ ok: true });
 }
