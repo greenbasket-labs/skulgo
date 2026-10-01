@@ -758,8 +758,8 @@ export default function FeesPage() {
             <h2>{role === "PARENT" ? "Children's Fees" : "My Fees"}</h2>
             <p className="muted">
               {role === "PARENT"
-                ? "Approved fees for your children are shown below, including amounts paid and outstanding balances."
-                : "Your approved school fees are shown below, including the amount paid and outstanding balance."}
+                ? "Approved school fees for your children are shown below, including payments made and the remaining balance."
+                : "Your approved school fees are shown below, including payments made and the remaining balance."}
             </p>
             {!payOptions.length ? (
               <p className="muted" style={{ marginTop: 14 }}>
@@ -772,11 +772,14 @@ export default function FeesPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                       <div>
                         <strong>{fee.student.firstName} {fee.student.lastName}</strong>
-                        <p className="muted" style={{ margin: "4px 0 0" }}>{fee.student.admissionId}</p>
+                        <p className="muted" style={{ margin: "4px 0 0" }}>Admission ID: {fee.student.admissionId}</p>
                       </div>
-                      <strong>{money(fee.totalFee)}</strong>
                     </div>
                     <div className="grid grid-2" style={{ marginTop: 12 }}>
+                      <div>
+                        <p className="muted">Total Fees</p>
+                        <div className="stat">{money(fee.totalFee)}</div>
+                      </div>
                       <div>
                         <p className="muted">Amount Paid</p>
                         <div className="stat">{money(fee.totalPaid)}</div>
@@ -785,48 +788,67 @@ export default function FeesPage() {
                         <p className="muted">Outstanding Balance</p>
                         <div className="stat">{money(Math.max(0, fee.balance))}</div>
                       </div>
+                      <div>
+                        <p className="muted">Payment Status</p>
+                        <div className="stat">{fee.balance <= 0 ? "Paid in full" : fee.totalPaid > 0 ? "Partially paid" : "Outstanding"}</div>
+                      </div>
                     </div>
-                    <p className="muted" style={{ marginTop: 10 }}>
-                      <strong>Payment Status:</strong> {fee.balance <= 0 ? "Paid in full" : fee.totalPaid > 0 ? "Partially paid" : "Outstanding"}
-                    </p>
+
                     {fee.balance > 0 ? (
-                      <p className="muted" style={{ marginTop: 12 }}>
-                        Online payment is paused for now. Please pay outside SkulGo using the school payment account below, or pay cash at the school cashier.
-                      </p>
-                    ) : (
-                      <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
-                    )}
-                    {fee.balance > 0 && paymentProviders.some(item => item.provider === "MONIEPOINT" && item.accountName && item.accountNumber) && (
-                      <div style={{ marginTop: 14, padding: 14, border: "1px solid #e5e7eb", borderRadius: 8 }}>
-                        <strong>Pay outside SkulGo</strong>
-                        <p className="muted" style={{ margin: "6px 0 10px" }}>
-                          You can pay by cash or bank transfer using the school's account below, then take the receipt or payment evidence to the school cashier. The cashier will confirm the payment using your child's Admission ID before the balance is updated.
-                        </p>
+                      <>
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+                          <p className="muted" style={{ margin: 0 }}>
+                            Online payment through SkulGo is currently unavailable.
+                          </p>
+                          <p className="muted" style={{ margin: "6px 0 0" }}>
+                            Please pay using the school's account details below or make a cash payment at the school cashier.
+                          </p>
+                        </div>
+
                         {(() => {
                           const account = paymentProviders.find(item => item.provider === "MONIEPOINT" && item.accountName && item.accountNumber);
                           if (!account) return null;
                           return (
-                            <div className="grid grid-2">
-                              <div><p className="muted">Account name</p><strong>{account.accountName}</strong></div>
-                              <div><p className="muted">Account number</p><strong>{account.accountNumber}</strong></div>
+                            <div style={{ marginTop: 14, padding: 14, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                              <strong>School Payment Account</strong>
+                              <div className="grid grid-2" style={{ marginTop: 10 }}>
+                                <div>
+                                  <p className="muted">Account Name</p>
+                                  <strong>{account.accountName}</strong>
+                                </div>
+                                <div>
+                                  <p className="muted">Account Number</p>
+                                  <strong>{account.accountNumber}</strong>
+                                </div>
+                              </div>
                             </div>
                           );
                         })()}
-                        <p className="muted" style={{ margin: "10px 0 0" }}>
-                          <strong>Bring to cashier:</strong> payment receipt/evidence and the child's Admission ID.
+
+                        <div style={{ marginTop: 14 }}>
+                          <strong>After Payment</strong>
+                          <p className="muted" style={{ margin: "6px 0 0" }}>
+                            For bank transfers, please present your payment receipt or transaction evidence to the school cashier.
+                            The cashier will verify the payment using your child's Admission ID and update the payment record.
+                          </p>
+                          <p className="muted" style={{ margin: "6px 0 0" }}>
+                            <strong>Please bring:</strong> payment receipt or transaction evidence and your child's Admission ID.
+                          </p>
+                        </div>
+
+                        <p className="muted" style={{ marginTop: 12 }}>
+                          Payments made outside SkulGo are recorded by the school cashier after verification.
                         </p>
-                      </div>
+                      </>
+                    ) : (
+                      <p className="muted" style={{ marginTop: 14 }}>No outstanding balance.</p>
                     )}
-                    <p className="muted" style={{ marginTop: 10 }}>
-                      Online payment is paused. Outside payments are recorded by the school cashier after confirmation.
-                    </p>
                   </div>
                 ))}
               </div>
             )}
           </div>
         )}
-
         {message && <p>{message}</p>}
       </section>
     </main>
