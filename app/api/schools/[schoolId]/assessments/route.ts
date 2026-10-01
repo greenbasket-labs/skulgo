@@ -200,7 +200,13 @@ export async function POST(
     caMax,
     examMax,
     exam: currentExam,
-    ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])),
+    ...Object.fromEntries(
+      entered.map((field) => {
+        const key = saveTimes[field as keyof typeof saveTimes];
+        const existingSavedAt = existing?.[key as keyof typeof existing] as Date | null | undefined;
+        return [key, existingSavedAt ?? now];
+      }),
+    ),
   };
 
   const assessment = existing
