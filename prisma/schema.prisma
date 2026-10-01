@@ -467,6 +467,7 @@ model Assessment {
   term String
   ca Float?
   caMax Int @default(40)
+  examMax Int @default(60)
   ca1 Float?
   ca1Max Int @default(10)
   ca2 Float?
@@ -476,6 +477,9 @@ model Assessment {
   ca4 Float?
   ca4Max Int @default(10)
   exam Float?
+  submitted Boolean @default(false)
+  submittedAt DateTime?
+  submittedById String?
   ca1SavedAt DateTime?
   ca2SavedAt DateTime?
   ca3SavedAt DateTime?
