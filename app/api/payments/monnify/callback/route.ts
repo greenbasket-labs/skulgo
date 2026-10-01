@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 async function getMonnifyToken(apiKey: string, secretKey: string, baseUrl: string) {
   const credentials = Buffer.from(`${apiKey}:${secretKey}`).toString("base64");
@@ -24,8 +25,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
   }
 
-  const apiKey = process.env.MONNIFY_API_KEY;
-  const secretKey = process.env.MONNIFY_SECRET_KEY;
+  const providerRows = await db.paymentProvider.findMany({ where: { provider: "MONIEPOINT", enabled: true, status: "VERIFIED" } });
+  const provider = providerRows.find(row => row.apiKeyEncrypted && row.secretKeyEncrypted);
+  const apiKey = decryptProviderSecret(provider?.apiKeyEncrypted);
+  const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
   if (!apiKey || !secretKey) {
     return NextResponse.json({ error: "Moniepoint online payment is not configured." }, { status: 503 });
   }
