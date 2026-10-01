@@ -542,7 +542,7 @@ export default function ScoresPage() {
     <main className="workspace-main">
       <div className="workspace-header">
         <p className="muted">
-          Teacher workspace · {online ? "Online" : "Offline"}
+          {online ? "" : "Offline"}
         </p>
         <h1>Scores</h1>
         <p className="muted">
@@ -551,9 +551,7 @@ export default function ScoresPage() {
           {assignment.class.arm ? " · " + assignment.class.arm : ""}
         </p>
         <p className="muted">
-          {pending
-            ? pending + " item(s) waiting to sync"
-            : "Saved records sync automatically."}
+          {pending ? "" : ""}
         </p>
       </div>
 
@@ -602,7 +600,7 @@ export default function ScoresPage() {
         </div>
 
         <p className="muted" style={{ marginBottom: 0, marginTop: 12 }}>
-          Admin sets these boxes for the school. Scores save automatically. Each entered score can be corrected for 24 hours, then submission locks the records.
+          Scores save automatically.
         </p>
       </div>
 
@@ -640,7 +638,7 @@ export default function ScoresPage() {
                     </p>
                   </div>
                   <span className="muted">
-                    {submitted ? "Submitted · Locked" : "Draft"}
+                    {submitted ? "Submitted · Locked" : ""}
                   </span>
                 </div>
 
