@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 function allowedStudent(schoolId: string, userId: string, role: "STUDENT" | "PARENT", studentId: string) {
   if (role === "STUDENT") {
@@ -72,9 +73,9 @@ export async function POST(
     return NextResponse.json({ error: "Moniepoint online payment is not enabled for this school yet." }, { status: 409 });
   }
 
-  const apiKey = process.env.MONNIFY_API_KEY;
-  const secretKey = process.env.MONNIFY_SECRET_KEY;
-  const contractCode = process.env.MONNIFY_CONTRACT_CODE;
+  const apiKey = decryptProviderSecret(provider.apiKeyEncrypted);
+  const secretKey = decryptProviderSecret(provider.secretKeyEncrypted);
+  const contractCode = decryptProviderSecret(provider.contractCodeEncrypted);
   if (!apiKey || !secretKey || !contractCode) {
     return NextResponse.json({ error: "Moniepoint online payment is not configured yet." }, { status: 503 });
   }
