@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 function allowedStudentIds(schoolId: string, userId: string, role: "STUDENT" | "PARENT", requestedStudentId: string) {
   if (role === "STUDENT") {
@@ -64,7 +65,7 @@ export async function POST(
     return NextResponse.json({ error: "Online payment is not enabled for this school yet." }, { status: 409 });
   }
 
-  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  const secretKey = decryptProviderSecret(provider.secretKeyEncrypted);
   if (!secretKey) {
     return NextResponse.json({ error: "Online payment is not configured yet." }, { status: 503 });
   }
