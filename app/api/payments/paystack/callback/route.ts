@@ -4,10 +4,12 @@ import { recordAudit } from "@/lib/audit";
 import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function GET(request: NextRequest) {
+  const schoolId = request.nextUrl.searchParams.get("schoolId")?.trim();
   const reference = request.nextUrl.searchParams.get("reference")?.trim();
   if (!reference) return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
 
-  const referenceProvider = await db.paymentProvider.findFirst({ where: { provider: "PAYSTACK", enabled: true, status: "VERIFIED" } });
+  if (!schoolId) return NextResponse.json({ error: "School reference is required." }, { status: 400 });
+  const referenceProvider = await db.paymentProvider.findUnique({ where: { schoolId_provider: { schoolId, provider: "PAYSTACK" } } });
   const secretKey = decryptProviderSecret(referenceProvider?.secretKeyEncrypted);
   if (!secretKey) return NextResponse.json({ error: "Paystack payment is not configured for this school." }, { status: 503 });
 
