@@ -553,6 +553,7 @@ model PaymentProvider {
   secretKeyEncrypted String?
   apiKeyEncrypted String?
   contractCodeEncrypted String?
+  webhookSecretEncrypted String?
   verifiedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
