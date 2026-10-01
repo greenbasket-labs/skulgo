@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 
 type Band = { min: number; grade: string };
+type AssessmentComponent = {
+  key: "ca1" | "ca2" | "ca3" | "ca4" | "exam";
+  name: string;
+  maxScore: number;
+  enabled: boolean;
+  type: "CA" | "EXAM";
+  sortOrder: number;
+};
+type AssessmentSetup = Record<string, { components: AssessmentComponent[] }>;
 
 type Settings = {
   resultHeading: string;
@@ -89,6 +98,12 @@ export default function SettingsPage() {
   const [schoolId, setSchoolId] = useState("");
   const [message, setMessage] = useState("Loading...");
   const [saving, setSaving] = useState(false);
+  const [assessmentSetup, setAssessmentSetup] = useState<AssessmentSetup>({
+    "First Term": { components: [] },
+    "Second Term": { components: [] },
+    "Third Term": { components: [] },
+  });
+  const [assessmentTerm, setAssessmentTerm] = useState("First Term");
 
   useEffect(() => {
     void load();
@@ -108,6 +123,7 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error(data?.error || "Unable to load settings.");
       setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
       setBands(Array.isArray(data.gradingBands) ? data.gradingBands : DEFAULT_BANDS);
+      if (data.assessmentSetup) setAssessmentSetup(data.assessmentSetup as AssessmentSetup);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load settings.");
@@ -130,7 +146,7 @@ export default function SettingsPage() {
     const response = await fetch(`/api/schools/${schoolId}/settings`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings, gradingBands: bands }),
+      body: JSON.stringify({ settings, gradingBands: bands, assessmentSetup }),
     });
     const data = await response.json().catch(() => ({}));
 
@@ -218,6 +234,92 @@ export default function SettingsPage() {
             </label>
           ))}
         </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 18 }}>
+        <h2>Assessment setup</h2>
+        <p className="muted">
+          Set the score boxes once for the whole school. Teachers only enter marks; they cannot change the maximums.
+          Enabled boxes must total exactly 100.
+        </p>
+
+        <label className="grid" style={{ maxWidth: 320, marginBottom: 14 }}>
+          <span>Term</span>
+          <select value={assessmentTerm} onChange={e => setAssessmentTerm(e.target.value)}>
+            <option>First Term</option>
+            <option>Second Term</option>
+            <option>Third Term</option>
+          </select>
+        </label>
+
+        <div className="grid">
+          {(assessmentSetup[assessmentTerm]?.components ?? []).map((component, index) => (
+            <div className="grid grid-2" key={component.key} style={{ alignItems: "end" }}>
+              <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={component.enabled}
+                  disabled={component.key === "exam"}
+                  onChange={e => setAssessmentSetup(current => ({
+                    ...current,
+                    [assessmentTerm]: {
+                      components: current[assessmentTerm].components.map(item =>
+                        item.key === component.key ? { ...item, enabled: e.target.checked } : item
+                      ),
+                    },
+                  }))}
+                />
+                <span>{component.key === "exam" ? "Exam" : component.key.toUpperCase()}</span>
+              </label>
+
+              <div className="grid grid-2">
+                <input
+                  value={component.name}
+                  disabled={!component.enabled}
+                  onChange={e => setAssessmentSetup(current => ({
+                    ...current,
+                    [assessmentTerm]: {
+                      components: current[assessmentTerm].components.map(item =>
+                        item.key === component.key ? { ...item, name: e.target.value } : item
+                      ),
+                    },
+                  }))}
+                  placeholder={component.key === "exam" ? "Exam" : "e.g. Test 1"}
+                />
+                <label className="grid">
+                  <span>Maximum</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={component.maxScore}
+                    disabled={!component.enabled}
+                    onChange={e => setAssessmentSetup(current => ({
+                      ...current,
+                      [assessmentTerm]: {
+                        components: current[assessmentTerm].components.map(item =>
+                          item.key === component.key ? { ...item, maxScore: Number(e.target.value) } : item
+                        ),
+                      },
+                    }))}
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <strong>
+            Total: {(assessmentSetup[assessmentTerm]?.components ?? [])
+              .filter(item => item.enabled)
+              .reduce((sum, item) => sum + Number(item.maxScore || 0), 0)}/100
+          </strong>
+        </div>
+        <p className="muted">
+          Example: CA1 /10 + CA2 /20 + CA3 /10 + Exam /60. You can enable or disable CA boxes as needed.
+          Once scores exist for a term, SkulGo locks that term's structure.
+        </p>
       </section>
 
       <section className="card" style={{ marginTop: 18 }}>
