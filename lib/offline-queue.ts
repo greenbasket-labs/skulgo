@@ -16,12 +16,47 @@ export type OfflineRecord<T = unknown> = {
 };
 
 const ACTIONS_KEY = "skulgo_offline_queue_v4";
+const LEGACY_ACTIONS_KEY = "skulgo_offline_queue_v3";
 const RECORDS_KEY = "skulgo_offline_records_v2";
 
 function readActions(): OfflineAction[] {
   try {
-    const parsed = JSON.parse(localStorage.getItem(ACTIONS_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.filter(item => item && typeof item.scopeKey === "string") : [];
+    const current = JSON.parse(localStorage.getItem(ACTIONS_KEY) || "[]");
+    if (Array.isArray(current) && current.length) {
+      return current.filter(item => item && typeof item.scopeKey === "string");
+    }
+
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_ACTIONS_KEY) || "[]");
+    if (!Array.isArray(legacy)) return [];
+
+    const migrated = legacy
+      .filter(item => item && typeof item.scopeKey === "string")
+      .map(item => {
+        if (
+          item.method === "POST" &&
+          typeof item.url === "string" &&
+          item.url.includes("/assessments") &&
+          item.body &&
+          typeof item.body === "object" &&
+          !Array.isArray(item.body)
+        ) {
+          return {
+            ...item,
+            body: {
+              ...(item.body as Record<string, unknown>),
+              clientMutationAt:
+                Number((item.body as Record<string, unknown>).clientMutationAt) ||
+                Number(item.createdAt) ||
+                Date.now(),
+            },
+          };
+        }
+        return item;
+      });
+
+    writeActions(migrated);
+    localStorage.removeItem(LEGACY_ACTIONS_KEY);
+    return migrated;
   } catch {
     return [];
   }
