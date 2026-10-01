@@ -89,7 +89,7 @@ export async function POST(
   }
 
   const origin = request.headers.get("origin") || new URL(request.url).origin;
-  const callbackUrl = new URL("/api/payments/paystack/callback", origin).toString();
+  const callbackUrl = new URL(`/api/payments/paystack/callback?schoolId=${encodeURIComponent(schoolId)}`, origin).toString();
 
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
