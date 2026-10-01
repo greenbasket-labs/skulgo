@@ -137,6 +137,8 @@ export async function POST(
   const now = new Date();
   const caMax = requestedCaMax ?? existing?.caMax ?? 40;
 
+  const saveTimes = { ca1: "ca1SavedAt", ca2: "ca2SavedAt", ca3: "ca3SavedAt", ca4: "ca4SavedAt", exam: "examSavedAt" } as const;
+
   for (const field of entered) {
     const savedAt = existing?.[saveTimes[field as keyof typeof saveTimes] as keyof typeof existing] as Date | null | undefined;
     if (savedAt && !withinCorrectionWindow(savedAt)) return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
@@ -145,7 +147,6 @@ export async function POST(
     if (!Number.isFinite(value) || value < 0 || value > max) return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
   }
 
-  const saveTimes = { ca1: "ca1SavedAt", ca2: "ca2SavedAt", ca3: "ca3SavedAt", ca4: "ca4SavedAt", exam: "examSavedAt" } as const;
   const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
   for (const field of entered) current[field as keyof typeof current] = Number(body[field]);
   const normalizedCa1 = current.ca1 === null ? 0 : (current.ca1 / caMax) * 40;
