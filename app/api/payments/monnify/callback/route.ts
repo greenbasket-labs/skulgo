@@ -17,16 +17,16 @@ async function getMonnifyToken(apiKey: string, secretKey: string, baseUrl: strin
 }
 
 export async function GET(request: NextRequest) {
+  const schoolId = request.nextUrl.searchParams.get("schoolId")?.trim();
   const paymentReference =
     request.nextUrl.searchParams.get("paymentReference")?.trim() ||
     request.nextUrl.searchParams.get("paymentreference")?.trim();
 
-  if (!paymentReference) {
+  if (!schoolId || !paymentReference) {
     return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
   }
 
-  const providerRows = await db.paymentProvider.findMany({ where: { provider: "MONIEPOINT", enabled: true, status: "VERIFIED" } });
-  const provider = providerRows.find(row => row.apiKeyEncrypted && row.secretKeyEncrypted);
+  const provider = await db.paymentProvider.findUnique({ where: { schoolId_provider: { schoolId, provider: "MONIEPOINT" } } });
   const apiKey = decryptProviderSecret(provider?.apiKeyEncrypted);
   const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
   if (!apiKey || !secretKey) {
