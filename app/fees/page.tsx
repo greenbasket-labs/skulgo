@@ -301,8 +301,8 @@ export default function FeesPage() {
 
     void refreshQueue();
 
-    const onOnline = () => { setOnline(true); refreshQueue(); };
-    const onOffline = () => setOnline(false);
+    const onOnline = () => { refreshQueue(); };
+    const onOffline = () => { /* Keep the page usable offline. */ };
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);    return () => {      window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
@@ -792,27 +792,9 @@ export default function FeesPage() {
                       <strong>Payment Status:</strong> {fee.balance <= 0 ? "Paid in full" : fee.totalPaid > 0 ? "Partially paid" : "Outstanding"}
                     </p>
                     {fee.balance > 0 ? (
-                      <div className="grid grid-2" style={{ marginTop: 12 }}>
-                        <input
-                          inputMode="decimal"
-                          value={selectedStudentId === fee.studentId ? amount : ""}
-                          onChange={event => {
-                            setSelectedStudentId(fee.studentId);
-                            setAmount(event.target.value);
-                          }}
-                          placeholder="Amount to pay"
-                          aria-label={`Amount to pay for ${fee.student.firstName} ${fee.student.lastName}`}
-                        />
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.status === "VERIFIED") ? (
-                            <button className="button" type="button" onClick={() => void startOnlinePayment(fee.studentId)} disabled={busy}>
-                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Moniepoint"}
-                            </button>
-                          ) : (
-                            <span className="muted">Online Moniepoint payment is not enabled by the school yet.</span>
-                          )}
-                        </div>
-                      </div>
+                      <p className="muted" style={{ marginTop: 12 }}>
+                        Online payment is paused for now. Please pay outside SkulGo using the school payment account below, or pay cash at the school cashier.
+                      </p>
                     ) : (
                       <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
                     )}
