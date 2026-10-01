@@ -16,13 +16,6 @@ function remainingMs(savedAt: Date | null | undefined) {
   return Math.max(0, savedAt.getTime() + CORRECTION_WINDOW_MS - Date.now());
 }
 
-function inferCaMax(value: number) {
-  if (value <= 10) return 10;
-  if (value <= 20) return 20;
-  if (value <= 30) return 30;
-  if (value <= 40) return 40;
-  return null;
-}
 
 export async function GET(
   request: NextRequest,
@@ -75,6 +68,7 @@ export async function GET(
   const assessments = await db.assessment.findMany({
     where: {
       schoolId,
+      ...(user.membership.role !== "TEACHER" ? { submitted: true } : {}),
       ...(classId ? { classId } : {}),
       ...(subjectId ? { subjectId } : {}),
       ...(term ? { term } : {}),
@@ -121,71 +115,94 @@ export async function POST(
   if (!teacher?.approved) return NextResponse.json({ error: "Teacher is not approved" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
+  const action = String(body?.action ?? "").trim();
   const studentId = String(body?.studentId ?? "");
   const classId = String(body?.classId ?? "");
   const subjectId = String(body?.subjectId ?? "");
   const term = String(body?.term ?? "").trim();
-  const caMaxRaw = body?.caMax === undefined || body?.caMax === null || String(body.caMax).trim() === "" ? null : Number(body.caMax);
-  const requestedCaMax = caMaxRaw === null ? null : ([10, 20, 30, 40].includes(caMaxRaw) ? caMaxRaw : null);
-  const caMaxField = (field: string) => field === "ca1" ? "ca1Max" : field === "ca2" ? "ca2Max" : field === "ca3" ? "ca3Max" : "ca4Max";
-  const entered = SCORE_FIELDS.filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
-  if (!studentId || !classId || !subjectId || !term || !entered.length || (caMaxRaw !== null && requestedCaMax === null)) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
+  const caMax = Number(body?.caMax);
+  const examMax = Number(body?.examMax);
+  const entered = ["ca", "exam"].filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
 
-  const [student, schoolClass, subject, assigned] = await Promise.all([
-    db.student.findFirst({ where: { id: studentId, schoolId, classId } }),
-    db.schoolClass.findFirst({ where: { id: classId, schoolId } }),
-    db.subject.findFirst({ where: { id: subjectId, schoolId } }),
-    db.teacherAssignment.findFirst({ where: { schoolId, teacherId: teacher.id, classId, subjectId } }),
-  ]);
+  if (!studentId || !classId || !subjectId || !term) {
+    return NextResponse.json({ error: "Class, subject, term and student are required." }, { status: 400 });
+  }
 
-  if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
-  if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
-  if (!subject) return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+  const assigned = await db.teacherAssignment.findFirst({
+    where: { schoolId, teacherId: teacher.id, classId, subjectId },
+    select: { id: true },
+  });
   if (!assigned) return NextResponse.json({ error: "You are not assigned to this class and subject" }, { status: 403 });
+
+  if (action === "submit") {
+    if (![10, 20, 30, 40].includes(caMax) || examMax !== 100 - caMax) {
+      return NextResponse.json({ error: "CA and Exam maximums must add up to 100." }, { status: 400 });
+    }
+
+    const now = new Date();
+    const result = await db.assessment.updateMany({
+      where: { schoolId, classId, subjectId, term, submitted: false },
+      data: { caMax, examMax, submitted: true, submittedAt: now, submittedById: teacher.id },
+    });
+
+    await recordAudit({
+      schoolId,
+      actorUserId: user.id,
+      action: "SUBMIT",
+      entity: "ASSESSMENT",
+      entityId: classId + ":" + subjectId + ":" + term,
+      details: { classId, subjectId, term, caMax, examMax, count: result.count },
+    });
+
+    return NextResponse.json({ submitted: true, count: result.count, caMax, examMax, submittedAt: now });
+  }
+
+  if (!entered.length) {
+    return NextResponse.json({ error: "Enter a CA or exam score before saving." }, { status: 400 });
+  }
+  if (![10, 20, 30, 40].includes(caMax) || examMax !== 100 - caMax) {
+    return NextResponse.json({ error: "CA and Exam maximums must add up to 100." }, { status: 400 });
+  }
+
+  const student = await db.student.findFirst({ where: { id: studentId, schoolId, classId } });
+  if (!student) return NextResponse.json({ error: "Student does not belong to this school/class" }, { status: 404 });
 
   const existing = await db.assessment.findUnique({
     where: { studentId_subjectId_term: { studentId, subjectId, term } },
   });
 
-  const now = new Date();
-  const caMax = requestedCaMax ?? existing?.caMax ?? 40;
+  if (existing?.submitted) {
+    return NextResponse.json({ error: "These scores have already been submitted and locked." }, { status: 409 });
+  }
 
-  const saveTimes = { ca1: "ca1SavedAt", ca2: "ca2SavedAt", ca3: "ca3SavedAt", ca4: "ca4SavedAt", exam: "examSavedAt" } as const;
+  const now = new Date();
+  const saveTimes = { ca: "ca1SavedAt", exam: "examSavedAt" } as const;
 
   for (const field of entered) {
     const savedAt = existing?.[saveTimes[field as keyof typeof saveTimes] as keyof typeof existing] as Date | null | undefined;
-    if (savedAt && !withinCorrectionWindow(savedAt)) return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
+    if (savedAt && !withinCorrectionWindow(savedAt)) {
+      return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
+    }
+
     const value = Number(body[field]);
-    const max = field === "exam" ? 60 : inferCaMax(value);
-    if (!Number.isFinite(value) || value < 0 || max === null) {
-      return NextResponse.json({
-        error: field === "exam" ? "EXAM must be 0-60" : "CA must be 0-40",
-      }, { status: 400 });
+    const max = field === "ca" ? caMax : examMax;
+    if (!Number.isFinite(value) || value < 0 || value > max) {
+      return NextResponse.json({ error: field.toUpperCase() + " must be between 0 and " + max + "." }, { status: 400 });
     }
   }
 
-  const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
-  const currentMax = {
-    ca1Max: existing?.ca1Max ?? 10,
-    ca2Max: existing?.ca2Max ?? 10,
-    ca3Max: existing?.ca3Max ?? 10,
-    ca4Max: existing?.ca4Max ?? 10,
-  };
-  for (const field of entered) {
-    current[field as keyof typeof current] = Number(body[field]);
-    if (field !== "exam") currentMax[caMaxField(field) as keyof typeof currentMax] = inferCaMax(Number(body[field])) ?? 40;
-  }
-  const caTotal = (current.ca1 ?? 0) + (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
-  if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40. Remaining CA is " + Math.max(0, 40 - (caTotal - Number(body.ca1 ?? 0) - Number(body.ca2 ?? 0) - Number(body.ca3 ?? 0) - Number(body.ca4 ?? 0))) + "." }, { status: 400 });
+  const currentCa = body.ca === undefined ? existing?.ca ?? null : Number(body.ca);
+  const currentExam = body.exam === undefined ? existing?.exam ?? null : Number(body.exam);
+
   const data = {
-    classId, ca: caTotal, caMax,
-    ca1: current.ca1, ca1Max: currentMax.ca1Max,
-    ca2: current.ca2, ca2Max: currentMax.ca2Max,
-    ca3: current.ca3, ca3Max: currentMax.ca3Max,
-    ca4: current.ca4, ca4Max: currentMax.ca4Max,
-    exam: current.exam,
-    ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now]))
+    classId,
+    ca: currentCa,
+    caMax,
+    examMax,
+    exam: currentExam,
+    ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])),
   };
+
   const assessment = existing
     ? await db.assessment.update({ where: { id: existing.id }, data })
     : await db.assessment.create({ data: { schoolId, studentId, subjectId, term, ...data } });
@@ -196,7 +213,7 @@ export async function POST(
     action: existing ? "UPDATE" : "CREATE",
     entity: "ASSESSMENT",
     entityId: assessment.id,
-    details: { studentId, classId, subjectId, term, caMax, entered: Object.fromEntries(entered.map(field => [field, Number(body[field])])), caTotal },
+    details: { studentId, classId, subjectId, term, caMax, examMax, entered: Object.fromEntries(entered.map(field => [field, Number(body[field])])) },
   });
 
   const total = assessment.ca !== null && assessment.exam !== null
