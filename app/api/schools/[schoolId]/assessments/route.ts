@@ -66,10 +66,6 @@ function componentFor(setup: { components: AssessmentComponent[] }, key: string)
   return setup.components.find(item => item.key === key && item.enabled);
 }
 
-function caTotalFromRecord(item: { ca1: number | null; ca2: number | null; ca3: number | null; ca4: number | null }) {
-  return [item.ca1, item.ca2, item.ca3, item.ca4].reduce((sum, value) => sum + (value ?? 0), 0);
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
