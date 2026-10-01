@@ -317,7 +317,7 @@ export default function ScoresPage() {
     saveTimers.current[key] = window.setTimeout(() => {
       delete saveTimers.current[key];
       void saveField(student, field, value);
-    }, 1000);
+    }, 7500);
   }
 
   async function saveField(
