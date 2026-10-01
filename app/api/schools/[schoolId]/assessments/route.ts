@@ -121,6 +121,14 @@ export async function GET(
   });
 
   const school = await db.school.findUnique({ where: { id: schoolId }, select: { schoolSettings: true } });
+  const requestedSetup = request.nextUrl.searchParams.get("setup") === "true";
+  if (requestedSetup) {
+    const setupTerm = term ?? "First Term";
+    return NextResponse.json({
+      assessments: assessments.map(item => item),
+      assessmentSetup: parseSetup(school?.schoolSettings ?? null, setupTerm),
+    });
+  }
   return NextResponse.json(assessments.map(item => {
     const setup = parseSetup(school?.schoolSettings ?? null, item.term);
     const enabledCa = setup.components.filter(component => component.type === "CA" && component.enabled);
