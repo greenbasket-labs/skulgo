@@ -237,7 +237,7 @@ export async function POST(
   const currentCa4 = body.ca4 === undefined ? existing?.ca4 ?? null : Number(body.ca4);
   const currentExam = body.exam === undefined ? existing?.exam ?? null : Number(body.exam);
   const caTotal = currentCa1 !== null || currentCa2 !== null || currentCa3 !== null || currentCa4 !== null
-    ? [currentCa1, currentCa2, currentCa3, currentCa4].reduce((sum, value) => sum + (value ?? 0), 0)
+    ? [currentCa1, currentCa2, currentCa3, currentCa4].reduce<number>((sum, value) => sum + (value ?? 0), 0)
     : null;
 
   const data = {
