@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function POST(request: NextRequest) {
-  const secretHash = process.env.FLW_SECRET_HASH;
   const receivedHash = request.headers.get("verif-hash");
-
-  if (secretHash && receivedHash !== secretHash) {
+  const providers = await db.paymentProvider.findMany({ where: { provider: "FLUTTERWAVE", enabled: true, status: "VERIFIED" } });
+  const secretHashes = providers.map(row => decryptProviderSecret(row.webhookSecretEncrypted)).filter(Boolean) as string[];
+  if (secretHashes.length && (!receivedHash || !secretHashes.includes(receivedHash))) {
     return NextResponse.json({ error: "Invalid webhook signature." }, { status: 401 });
   }
 
@@ -18,8 +19,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  const secretKey = process.env.FLW_SECRET_KEY;
-  if (!secretKey) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
+  const secretKeys = providers.map(row => decryptProviderSecret(row.secretKeyEncrypted)).filter(Boolean) as string[];
+  if (!secretKeys.length) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
+  const secretKey = secretKeys[0];
 
   const transactionId = String(event.id ?? "");
   if (!transactionId) return NextResponse.json({ received: true });
