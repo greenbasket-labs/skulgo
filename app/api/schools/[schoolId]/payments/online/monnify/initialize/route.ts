@@ -44,6 +44,14 @@ export async function POST(
   { params }: { params: Promise<{ schoolId: string }> }
 ) {
   const { schoolId } = await params;
+
+  // Online fee collection is intentionally paused while SkulGo uses the
+  // school cashier flow for outside payments.
+  return NextResponse.json(
+    { error: "Online school-fee payments are temporarily paused. Please pay outside SkulGo and bring the receipt or payment evidence to the school cashier." },
+    { status: 503 },
+  );
+
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
