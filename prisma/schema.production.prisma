@@ -551,6 +551,10 @@ model PaymentProvider {
   accountName String?
   accountNumberLast4 String?
   merchantReference String?
+  secretKeyEncrypted String?
+  apiKeyEncrypted String?
+  contractCodeEncrypted String?
+  webhookSecretEncrypted String?
   verifiedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
