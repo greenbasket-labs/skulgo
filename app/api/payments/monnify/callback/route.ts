@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (String(metadata.schoolId) !== schoolId) return NextResponse.json({ error: "Payment school does not match the callback." }, { status: 409 });
-  const schoolId = String(metadata.schoolId);
+    const verifiedSchoolId = String(metadata.schoolId);
     const studentId = String(metadata.studentId);
     const userId = String(metadata.userId);
     const amount = Number(transaction.amountPaid);
@@ -69,11 +69,11 @@ export async function GET(request: NextRequest) {
 
     const existing = await db.payment.findFirst({ where: { reference: paymentReference } });
     if (!existing) {
-      const fee = await db.feeRecord.findFirst({ where: { schoolId, studentId } });
+      const fee = await db.feeRecord.findFirst({ where: { schoolId: verifiedSchoolId, studentId } });
       if (!fee) return NextResponse.json({ error: "Student fee record not found." }, { status: 404 });
 
       const paid = await db.payment.aggregate({
-        where: { schoolId, studentId },
+        where: { schoolId: verifiedSchoolId, studentId },
         _sum: { amount: true },
       });
       const currentPaid = paid._sum.amount ?? 0;
@@ -83,12 +83,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Verified payment exceeds the student's outstanding balance." }, { status: 409 });
       }
 
-      const student = await db.student.findFirst({ where: { id: studentId, schoolId } });
+      const student = await db.student.findFirst({ where: { id: studentId, schoolId: verifiedSchoolId } });
       if (!student) return NextResponse.json({ error: "Student not found." }, { status: 404 });
 
       const payment = await db.payment.create({
         data: {
-          schoolId,
+          schoolId: verifiedSchoolId,
           studentId,
           amount,
           reference: paymentReference,
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       });
 
       await recordAudit({
-        schoolId,
+        schoolId: verifiedSchoolId,
         actorUserId: userId,
         action: "CREATE",
         entity: "PAYMENT",
