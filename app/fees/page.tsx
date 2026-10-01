@@ -86,7 +86,6 @@ export default function FeesPage() {
   const [cashierTeller, setCashierTeller] = useState("");
   const [cashierMethod, setCashierMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
   const [cashierFee, setCashierFee] = useState<Fee | null>(null);
-  const [online, setOnline] = useState(true);
   const [waiting, setWaiting] = useState(0);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -227,36 +226,43 @@ export default function FeesPage() {
     finally { setBusy(false); }
   }
 
-  async function setPaymentProvider(provider: string, enabled: boolean) {
+  async function savePaymentAccount(provider: string) {
     if (!schoolId || role !== "ADMIN") return;
-    const response = await fetch(`/api/schools/${schoolId}/payments/providers`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        provider,
-        enabled,
-        accountName: providerAccountName,
-        accountNumber: providerAccountNumber,
-        accountNumberLast4: providerAccountLast4,
-        merchantReference: providerMerchantReference,
-        ...(providerSecrets[provider] ?? {}),
-      }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setMessage(data?.error || "Unable to update payment provider.");
+    if (!providerAccountName.trim()) {
+      setMessage("Enter the payment account name.");
       return;
     }
-    setPaymentProviders(current => current.map(item => item.provider === provider
-      ? { ...item, enabled, status: data.status, accountName: data.accountName, accountNumberLast4: data.accountNumberLast4, merchantReference: data.merchantReference }
-      : item));
-    setMessage(provider + " payment option " + (enabled ? "enabled" : "disabled") + ".");
-    if (enabled) {
+    if (!providerAccountNumber.trim()) {
+      setMessage("Enter the payment account number.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/payments/providers`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          enabled: false,
+          accountName: providerAccountName,
+          accountNumber: providerAccountNumber,
+          accountNumberLast4: providerAccountLast4,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Unable to save the school payment account.");
+      setPaymentProviders(current => current.map(item => item.provider === provider
+        ? { ...item, enabled: false, status: data.status, accountName: data.accountName, accountNumber: data.accountNumber, accountNumberLast4: data.accountNumberLast4 }
+        : item));
       setProviderAccountName("");
       setProviderAccountNumber("");
       setProviderAccountLast4("");
-      setProviderMerchantReference("");
-      setProviderSecrets(current => ({ ...current, [provider]: { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" } }));
+      setMessage("School payment account saved. Parents and students can now see where to pay outside SkulGo.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to save the school payment account.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -288,8 +294,6 @@ export default function FeesPage() {
 
   useEffect(() => {
     void load();
-    setOnline(navigator.onLine);
-
     const scopeKey = user?.id && user.membership?.id ? `${user.id}:${user.membership.id}` : "";
     if (scopeKey) {
       startOfflineSync(scopeKey, result => setWaiting(result.remaining));
@@ -309,44 +313,6 @@ export default function FeesPage() {
     if (role === "STUDENT") return fees.slice(0, 1);
     return fees;
   }, [fees, role]);
-
-  async function startOnlinePayment(studentId: string) {
-    if (!schoolId || (role !== "STUDENT" && role !== "PARENT")) return;
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) {
-      setSelectedStudentId(studentId);
-      setMessage("Enter the amount you want to pay.");
-      return;
-    }
-
-    const fee = fees.find(item => item.studentId === studentId);
-    if (!fee) {
-      setMessage("Fee record not found.");
-      return;
-    }
-    if (value > fee.balance) {
-      setMessage(`Maximum payment is ${money(fee.balance)}.`);
-      return;
-    }
-
-    setSelectedStudentId(studentId);
-    setBusy(true);
-    setMessage("");
-    try {
-      const endpoint = `/api/schools/${schoolId}/payments/online/monnify/initialize`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, amount: value }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || "Unable to start online payment.");
-      window.location.assign(data.authorizationUrl);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to start online payment.");
-      setBusy(false);
-    }
-  }
 
   async function findCashierStudent() {
     if (!schoolId || role !== "CASHIER") return;
@@ -739,41 +705,33 @@ export default function FeesPage() {
             </div>
 
             <div className="card" style={{ marginBottom: 18 }}>
-              <h2>Payment options</h2>
+              <h2>School payment account</h2>
               <p className="muted">
-                Online payment uses the school's own Moniepoint account. Cash and bank-transfer payments are verified and recorded by the school cashier.
+                Online payment is paused for now. Save the school's account details so parents and students know where to pay outside SkulGo. The school cashier confirms the payment before the student's balance is updated.
               </p>
               <div className="grid">
-                {paymentProviders.map(item => {
-                  const secret = providerSecrets[item.provider] ?? { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" };
-                  return (
-                    <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        <div>
-                          <strong>Moniepoint</strong>
-                          <p className="muted" style={{ margin: "4px 0 0" }}>
-                            {item.enabled ? ("Enabled" + (item.accountName ? " · " + item.accountName : "")) : item.status === "VERIFIED" ? "Configured · disabled" : "Not configured"}
-                          </p>
-                        </div>
-                        <button className="button" type="button" onClick={() => void setPaymentProvider(item.provider, !item.enabled)}>
-                          {item.enabled ? "Disable" : "Save & enable"}
-                        </button>
+                {paymentProviders.map(item => (
+                  <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+                    <strong>Payment account</strong>
+                    {item.accountName && item.accountNumber ? (
+                      <div className="grid grid-2" style={{ marginTop: 10 }}>
+                        <div><p className="muted">Account name</p><strong>{item.accountName}</strong></div>
+                        <div><p className="muted">Account number</p><strong>{item.accountNumber}</strong></div>
                       </div>
-                      {!item.enabled && (
-                        <div className="grid" style={{ marginTop: 12 }}>
-                          <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="School payment account / business name" />
-                          <input inputMode="numeric" value={providerAccountNumber} onChange={event => setProviderAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 20))} placeholder="School payment account number" />
-                          <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
-                          <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Moniepoint account / merchant reference (optional)" />
-                          <input value={secret.apiKey} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, apiKey: event.target.value } }))} placeholder="School Monnify API key" type="password" />
-                          <input value={secret.contractCode} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, contractCode: event.target.value } }))} placeholder="Monnify contract code" />
-                          <input value={secret.secretKey} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, secretKey: event.target.value } }))} placeholder="School Monnify secret key" type="password" />
-                          <input value={secret.webhookSecret} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, webhookSecret: event.target.value } }))} placeholder="Webhook secret (if provided)" type="password" />
-                        </div>
-                      )}
+                    ) : <p className="muted" style={{ marginTop: 8 }}>No school payment account saved yet.</p>}
+                    <div className="grid" style={{ marginTop: 12 }}>
+                      <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="Payment account name" />
+                      <input inputMode="numeric" value={providerAccountNumber} onChange={event => setProviderAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 20))} placeholder="Payment account number" />
+                      <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
+                      <button className="button" type="button" onClick={() => void savePaymentAccount(item.provider)} disabled={busy}>
+                        {busy ? "Saving…" : "Save account details"}
+                      </button>
                     </div>
-                  );
-                })}
+                    <p className="muted" style={{ marginTop: 10 }}>
+                      Parents/students will use this account for payment outside SkulGo and bring the receipt or payment evidence to the cashier.
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 <div className="card" style={{ marginBottom: 18 }}>
@@ -858,14 +816,14 @@ export default function FeesPage() {
                     ) : (
                       <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
                     )}
-                    {fee.balance > 0 && paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.accountName && item.accountNumber) && (
+                    {fee.balance > 0 && paymentProviders.some(item => item.provider === "MONIEPOINT" && item.accountName && item.accountNumber) && (
                       <div style={{ marginTop: 14, padding: 14, border: "1px solid #e5e7eb", borderRadius: 8 }}>
                         <strong>Pay outside SkulGo</strong>
                         <p className="muted" style={{ margin: "6px 0 10px" }}>
                           You can pay by cash or bank transfer using the school's account below, then take the receipt or payment evidence to the school cashier. The cashier will confirm the payment using your child's Admission ID before the balance is updated.
                         </p>
                         {(() => {
-                          const account = paymentProviders.find(item => item.provider === "MONIEPOINT" && item.enabled && item.accountName && item.accountNumber);
+                          const account = paymentProviders.find(item => item.provider === "MONIEPOINT" && item.accountName && item.accountNumber);
                           if (!account) return null;
                           return (
                             <div className="grid grid-2">
@@ -880,7 +838,7 @@ export default function FeesPage() {
                       </div>
                     )}
                     <p className="muted" style={{ marginTop: 10 }}>
-                      Online payment is recorded only after the payment provider confirms the transaction. Outside payments are recorded by the school cashier after confirmation.
+                      Online payment is paused. Outside payments are recorded by the school cashier after confirmation.
                     </p>
                   </div>
                 ))}
