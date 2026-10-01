@@ -72,6 +72,7 @@ export default function FeesPage() {
   const [providerAccountName, setProviderAccountName] = useState("");
   const [providerAccountLast4, setProviderAccountLast4] = useState("");
   const [providerMerchantReference, setProviderMerchantReference] = useState("");
+  const [providerSecrets, setProviderSecrets] = useState<Record<string, { apiKey: string; secretKey: string; contractCode: string; webhookSecret: string }>>({});
 
   const [classSearch, setClassSearch] = useState("");
   const [selectedFeeClassId, setSelectedFeeClassId] = useState("");
@@ -236,6 +237,7 @@ export default function FeesPage() {
         accountName: providerAccountName,
         accountNumberLast4: providerAccountLast4,
         merchantReference: providerMerchantReference,
+        ...(providerSecrets[provider] ?? {}),
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -251,6 +253,7 @@ export default function FeesPage() {
       setProviderAccountName("");
       setProviderAccountLast4("");
       setProviderMerchantReference("");
+      setProviderSecrets(current => ({ ...current, [provider]: { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" } }));
     }
   }
 
@@ -742,12 +745,14 @@ export default function FeesPage() {
 
             <div className="card" style={{ marginBottom: 18 }}>
               <h2>Payment options</h2>
-              <p className="muted">Only a verified school-owned payment account can be enabled. Never enter provider secret keys here.</p>
+              <p className="muted">Each school connects its own payment account. Provider credentials are encrypted by SkulGo and are never displayed back to users.</p>
               <div className="grid">
                 <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="Verified account / business name" />
                 <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
                 <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Merchant ID / account reference (optional)" />
-                {paymentProviders.map(item => (
+                {paymentProviders.map(item => {
+                  const secret = providerSecrets[item.provider] ?? { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" };
+                  return (
                   <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div>
@@ -764,8 +769,41 @@ export default function FeesPage() {
                         {item.enabled ? "Disable" : "Verify & enable"}
                       </button>
                     </div>
+                    {!item.enabled && (
+                      <div className="grid" style={{ marginTop: 12 }}>
+                        {item.provider === "MONIEPOINT" && (
+                          <>
+                            <input
+                              value={secret.apiKey}
+                              onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, apiKey: event.target.value } }))}
+                              placeholder="School Monnify API key"
+                              type="password"
+                            />
+                            <input
+                              value={secret.contractCode}
+                              onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, contractCode: event.target.value } }))}
+                              placeholder="Monnify contract code"
+                            />
+                          </>
+                        )}
+                        <input
+                          value={secret.secretKey}
+                          onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, secretKey: event.target.value } }))}
+                          placeholder={item.provider === "PAYSTACK" ? "School Paystack secret key" : item.provider === "FLUTTERWAVE" ? "School Flutterwave secret key" : "School Monnify secret key"}
+                          type="password"
+                        />
+                        {(item.provider === "FLUTTERWAVE" || item.provider === "MONIEPOINT") && (
+                          <input
+                            value={secret.webhookSecret}
+                            onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, webhookSecret: event.target.value } }))}
+                            placeholder={item.provider === "FLUTTERWAVE" ? "Flutterwave webhook secret hash" : "Webhook secret (if provided)"}
+                            type="password"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
+                )})}
               </div>
             </div>
             <div className="card" style={{ marginBottom: 18 }}>
