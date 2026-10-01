@@ -4,14 +4,14 @@ import { recordAudit } from "@/lib/audit";
 import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function GET(request: NextRequest) {
+  const schoolId = request.nextUrl.searchParams.get("schoolId")?.trim();
   const txRef = request.nextUrl.searchParams.get("tx_ref")?.trim();
   const transactionId = request.nextUrl.searchParams.get("transaction_id")?.trim();
   const status = request.nextUrl.searchParams.get("status")?.trim();
 
-  if (!txRef) return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
+  if (!schoolId || !txRef) return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
 
-  const providerRows = await db.paymentProvider.findMany({ where: { provider: "FLUTTERWAVE", enabled: true, status: "VERIFIED" } });
-  const provider = providerRows.find(row => row.secretKeyEncrypted);
+  const provider = await db.paymentProvider.findUnique({ where: { schoolId_provider: { schoolId, provider: "FLUTTERWAVE" } } });
   const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
   if (!secretKey) return NextResponse.json({ error: "Flutterwave payment is not configured." }, { status: 503 });
 
