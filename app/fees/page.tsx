@@ -852,4 +852,4 @@ export default function FeesPage() {
                             </button>
                           ) : (
                             <span className="muted">Online Moniepoint payment is not enabled by the school yet.</span>
-                          )}}
+                          )}
