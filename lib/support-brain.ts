@@ -90,7 +90,7 @@ export function answerSkulGoSupport(context: SupportReplyContext): string {
   }
 
   if (includesAny(lower, ["account", "school connection", "membership", "access", "login", "multiple school"])) {
-    return SKULGO_KNOWLEDGE.peopleAndAccess.account + " " + SKULGO_KNOWLEDGE.peopleAndAccess.membership + " " + SKULGO_KNOWLEDGE.peopleAndAccess.multipleSchools + " " + SKULGO_KNOWLEDGE.peopleAndAccess.history;
+    return SKULGO_KNOWLEDGE.peopleAndAccess.account + " " + SKULGO_KNOWLEDGE.peopleAndAccess.schoolConnection + " " + SKULGO_KNOWLEDGE.peopleAndAccess.multipleSchools + " " + SKULGO_KNOWLEDGE.peopleAndAccess.history;
   }
 
   if (includesAny(lower, ["offline", "internet", "sync", "connection"])) {
