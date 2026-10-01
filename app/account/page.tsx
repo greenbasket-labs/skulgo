@@ -56,9 +56,6 @@ export default async function AccountPage() {
 
       <section className="card" style={{ marginBottom: 18 }}>
         <h2>SkulGo Account ID</h2>
-        <p className="muted">
-          Your unique SkulGo identity. Share it when you want someone to connect with your account.
-        </p>
         {accountId ? (
           <AccountIdCopy accountId={accountId} />
         ) : (
