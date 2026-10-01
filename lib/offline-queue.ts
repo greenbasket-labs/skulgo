@@ -53,6 +53,14 @@ function actionDedupeKey(action: { url: string; method: string; body: unknown })
     if (studentId && date && session) return `attendance:${studentId}:${date}:${session}`;
   }
 
+  if (action.method === "POST" && action.url.includes("/assessments")) {
+    const { studentId, classId, subjectId, term, ca, exam } = body;
+    if (studentId && classId && subjectId && term) {
+      const field = ca !== undefined ? "ca" : exam !== undefined ? "exam" : "other";
+      return `assessment:${studentId}:${classId}:${subjectId}:${term}:${field}`;
+    }
+  }
+
   return null;
 }
 
