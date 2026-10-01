@@ -303,7 +303,11 @@ export default function ScoresPage() {
     });
   }
 
-  function scheduleSave(student: Student, field: ScoreField) {
+  function scheduleSave(
+    student: Student,
+    field: ScoreField,
+    value: string,
+  ) {
     const key = student.id + ":" + assignment?.id + ":" + term + ":" + field;
 
     if (saveTimers.current[key]) {
@@ -312,15 +316,18 @@ export default function ScoresPage() {
 
     saveTimers.current[key] = window.setTimeout(() => {
       delete saveTimers.current[key];
-      void saveField(student, field);
+      void saveField(student, field, value);
     }, 1000);
   }
 
-  async function saveField(student: Student, field: ScoreField) {
+  async function saveField(
+    student: Student,
+    field: ScoreField,
+    rawValue: string,
+  ) {
     if (!schoolId || !assignment || submitted) return;
 
-    const score = scores[student.id] ?? emptyScore();
-    const value = score[field].trim();
+    const value = rawValue.trim();
     if (!value) return;
 
     const component = components.find(
@@ -662,7 +669,7 @@ export default function ScoresPage() {
                               Number(value) >= 0 &&
                               Number(value) <= component.maxScore
                             ) {
-                              scheduleSave(student, field);
+                              scheduleSave(student, field, value);
                             }
                           }}
                         />
