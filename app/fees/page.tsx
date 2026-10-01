@@ -72,8 +72,6 @@ export default function FeesPage() {
   const [providerAccountName, setProviderAccountName] = useState("");
   const [providerAccountNumber, setProviderAccountNumber] = useState("");
   const [providerAccountLast4, setProviderAccountLast4] = useState("");
-  const [providerMerchantReference, setProviderMerchantReference] = useState("");
-  const [providerSecrets, setProviderSecrets] = useState<Record<string, { apiKey: string; secretKey: string; contractCode: string; webhookSecret: string }>>({});
 
   const [classSearch, setClassSearch] = useState("");
   const [selectedFeeClassId, setSelectedFeeClassId] = useState("");
