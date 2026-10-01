@@ -309,7 +309,7 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
-  async function startOnlinePayment(studentId: string, provider: "PAYSTACK" | "MONIEPOINT" | "FLUTTERWAVE") {
+  async function startOnlinePayment(studentId: string) {
     if (!schoolId || (role !== "STUDENT" && role !== "PARENT")) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) {
@@ -332,11 +332,7 @@ export default function FeesPage() {
     setBusy(true);
     setMessage("");
     try {
-      const endpoint = provider === "MONIEPOINT"
-        ? `/api/schools/${schoolId}/payments/online/monnify/initialize`
-        : provider === "FLUTTERWAVE"
-          ? `/api/schools/${schoolId}/payments/online/flutterwave/initialize`
-          : `/api/schools/${schoolId}/payments/online/initialize`;
+      const endpoint = `/api/schools/${schoolId}/payments/online/monnify/initialize`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -745,68 +741,42 @@ export default function FeesPage() {
 
             <div className="card" style={{ marginBottom: 18 }}>
               <h2>Payment options</h2>
-              <p className="muted">Each school connects its own payment account. Provider credentials are encrypted by SkulGo and are never displayed back to users.</p>
+              <p className="muted">
+                Online payment uses the school's own Moniepoint account. Cash and bank-transfer payments are verified and recorded by the school cashier.
+              </p>
               <div className="grid">
-                <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="Verified account / business name" />
-                <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
-                <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Merchant ID / account reference (optional)" />
                 {paymentProviders.map(item => {
                   const secret = providerSecrets[item.provider] ?? { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" };
                   return (
-                  <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div>
-                        <strong>{item.provider === "PAYSTACK" ? "Paystack" : item.provider === "FLUTTERWAVE" ? "Flutterwave" : "Moniepoint"}</strong>
-                        <p className="muted" style={{ margin: "4px 0 0" }}>
-                          {item.enabled ? ("Enabled" + (item.accountName ? " · " + item.accountName : "")) : item.status === "VERIFIED" ? "Verified · disabled" : "Not verified"}
-                        </p>
+                    <div key={item.provider} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                        <div>
+                          <strong>Moniepoint</strong>
+                          <p className="muted" style={{ margin: "4px 0 0" }}>
+                            {item.enabled ? ("Enabled" + (item.accountName ? " · " + item.accountName : "")) : item.status === "VERIFIED" ? "Configured · disabled" : "Not configured"}
+                          </p>
+                        </div>
+                        <button className="button" type="button" onClick={() => void setPaymentProvider(item.provider, !item.enabled)}>
+                          {item.enabled ? "Disable" : "Save & enable"}
+                        </button>
                       </div>
-                      <button
-                        className="button"
-                        type="button"
-                        onClick={() => void setPaymentProvider(item.provider, !item.enabled)}
-                      >
-                        {item.enabled ? "Disable" : "Verify & enable"}
-                      </button>
+                      {!item.enabled && (
+                        <div className="grid" style={{ marginTop: 12 }}>
+                          <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="School payment account / business name" />
+                          <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
+                          <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Moniepoint account / merchant reference (optional)" />
+                          <input value={secret.apiKey} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, apiKey: event.target.value } }))} placeholder="School Monnify API key" type="password" />
+                          <input value={secret.contractCode} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, contractCode: event.target.value } }))} placeholder="Monnify contract code" />
+                          <input value={secret.secretKey} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, secretKey: event.target.value } }))} placeholder="School Monnify secret key" type="password" />
+                          <input value={secret.webhookSecret} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, webhookSecret: event.target.value } }))} placeholder="Webhook secret (if provided)" type="password" />
+                        </div>
+                      )}
                     </div>
-                    {!item.enabled && (
-                      <div className="grid" style={{ marginTop: 12 }}>
-                        {item.provider === "MONIEPOINT" && (
-                          <>
-                            <input
-                              value={secret.apiKey}
-                              onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, apiKey: event.target.value } }))}
-                              placeholder="School Monnify API key"
-                              type="password"
-                            />
-                            <input
-                              value={secret.contractCode}
-                              onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, contractCode: event.target.value } }))}
-                              placeholder="Monnify contract code"
-                            />
-                          </>
-                        )}
-                        <input
-                          value={secret.secretKey}
-                          onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, secretKey: event.target.value } }))}
-                          placeholder={item.provider === "PAYSTACK" ? "School Paystack secret key" : item.provider === "FLUTTERWAVE" ? "School Flutterwave secret key" : "School Monnify secret key"}
-                          type="password"
-                        />
-                        {(item.provider === "FLUTTERWAVE" || item.provider === "MONIEPOINT") && (
-                          <input
-                            value={secret.webhookSecret}
-                            onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, webhookSecret: event.target.value } }))}
-                            placeholder={item.provider === "FLUTTERWAVE" ? "Flutterwave webhook secret hash" : "Webhook secret (if provided)"}
-                            type="password"
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )})}
+                  );
+                })}
               </div>
             </div>
-            <div className="card" style={{ marginBottom: 18 }}>
+<div className="card" style={{ marginBottom: 18 }}>
               <h2>Fee definitions</h2>
               {!feeDefinitions.length ? <p className="muted">No fees created yet.</p> : (
                 <div className="grid">
@@ -876,56 +846,10 @@ export default function FeesPage() {
                           aria-label={`Amount to pay for ${fee.student.firstName} ${fee.student.lastName}`}
                         />
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {paymentProviders.some(item => item.provider === "PAYSTACK" && item.enabled && item.status === "VERIFIED") && (
-                            <button
-                              className="button"
-                              type="button"
-                              onClick={() => void startOnlinePayment(fee.studentId, "PAYSTACK")}
-                              disabled={busy}
-                            >
-                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Paystack"}
-                            </button>
-                          )}
-                          {paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.status === "VERIFIED") && (
-                            <button
-                              className="button"
-                              type="button"
-                              onClick={() => void startOnlinePayment(fee.studentId, "MONIEPOINT")}
-                              disabled={busy}
-                            >
+                          {paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.status === "VERIFIED") ? (
+                            <button className="button" type="button" onClick={() => void startOnlinePayment(fee.studentId)} disabled={busy}>
                               {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Moniepoint"}
                             </button>
-                          )}
-                          {paymentProviders.some(item => item.provider === "FLUTTERWAVE" && item.enabled && item.status === "VERIFIED") && (
-                            <button
-                              className="button"
-                              type="button"
-                              onClick={() => void startOnlinePayment(fee.studentId, "FLUTTERWAVE")}
-                              disabled={busy}
-                            >
-                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Flutterwave"}
-                            </button>
-                          )}
-                          {!paymentProviders.some(item => (item.provider === "PAYSTACK" || item.provider === "MONIEPOINT") && item.enabled && item.status === "VERIFIED") && (
-                            <span className="muted">Online payment is not enabled by the school yet.</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
-                    )}
-                    <p className="muted" style={{ marginTop: 10 }}>
-                      Online payment is recorded only after the payment provider confirms the transaction.
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {message && <p>{message}</p>}
-      </section>
-    </main>
-  );
-}
+                          ) : (
+                            <span className="muted">Online Moniepoint payment is not enabled by the school yet.</span>
+                          )}}
