@@ -5,23 +5,27 @@ import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function POST(request: NextRequest) {
   const receivedHash = request.headers.get("verif-hash");
-  const providers = await db.paymentProvider.findMany({ where: { provider: "FLUTTERWAVE", enabled: true, status: "VERIFIED" } });
-  const secretHashes = providers.map(row => decryptProviderSecret(row.webhookSecretEncrypted)).filter(Boolean) as string[];
-  if (secretHashes.length && (!receivedHash || !secretHashes.includes(receivedHash))) {
+  const rawBody = await request.text();
+  const payload = JSON.parse(rawBody || "{}");
+  const event = payload.data;
+  const metadata = event?.meta ?? event?.metadata ?? {};
+  const schoolId = String(metadata.schoolId ?? "").trim();
+  if (!schoolId) return NextResponse.json({ received: true });
+
+  const provider = await db.paymentProvider.findUnique({
+    where: { schoolId_provider: { schoolId, provider: "FLUTTERWAVE" } },
+  });
+  const secretHash = decryptProviderSecret(provider?.webhookSecretEncrypted);
+  if (secretHash && receivedHash !== secretHash) {
     return NextResponse.json({ error: "Invalid webhook signature." }, { status: 401 });
   }
-
-  const payload = await request.json().catch(() => null);
   if (payload?.event !== "charge.completed") return NextResponse.json({ received: true });
-
-  const event = payload.data;
   if (!event || event.status !== "successful" || event.currency !== "NGN") {
     return NextResponse.json({ received: true });
   }
 
-  const secretKeys = providers.map(row => decryptProviderSecret(row.secretKeyEncrypted)).filter(Boolean) as string[];
-  if (!secretKeys.length) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
-  const secretKey = secretKeys[0];
+  const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
+  if (!secretKey) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
 
   const transactionId = String(event.id ?? "");
   if (!transactionId) return NextResponse.json({ received: true });
