@@ -46,6 +46,36 @@ const DEFAULT_GRADING_BANDS = [
   { min: 0, grade: "F" },
 ];
 
+const DEFAULT_ASSESSMENT_SETUP = {
+  "First Term": {
+    components: [
+      { key: "ca1", name: "CA", maxScore: 40, enabled: true, type: "CA", sortOrder: 1 },
+      { key: "ca2", name: "CA 2", maxScore: 0, enabled: false, type: "CA", sortOrder: 2 },
+      { key: "ca3", name: "CA 3", maxScore: 0, enabled: false, type: "CA", sortOrder: 3 },
+      { key: "ca4", name: "CA 4", maxScore: 0, enabled: false, type: "CA", sortOrder: 4 },
+      { key: "exam", name: "Exam", maxScore: 60, enabled: true, type: "EXAM", sortOrder: 5 },
+    ],
+  },
+  "Second Term": {
+    components: [
+      { key: "ca1", name: "CA", maxScore: 40, enabled: true, type: "CA", sortOrder: 1 },
+      { key: "ca2", name: "CA 2", maxScore: 0, enabled: false, type: "CA", sortOrder: 2 },
+      { key: "ca3", name: "CA 3", maxScore: 0, enabled: false, type: "CA", sortOrder: 3 },
+      { key: "ca4", name: "CA 4", maxScore: 0, enabled: false, type: "CA", sortOrder: 4 },
+      { key: "exam", name: "Exam", maxScore: 60, enabled: true, type: "EXAM", sortOrder: 5 },
+    ],
+  },
+  "Third Term": {
+    components: [
+      { key: "ca1", name: "CA", maxScore: 40, enabled: true, type: "CA", sortOrder: 1 },
+      { key: "ca2", name: "CA 2", maxScore: 0, enabled: false, type: "CA", sortOrder: 2 },
+      { key: "ca3", name: "CA 3", maxScore: 0, enabled: false, type: "CA", sortOrder: 3 },
+      { key: "ca4", name: "CA 4", maxScore: 0, enabled: false, type: "CA", sortOrder: 4 },
+      { key: "exam", name: "Exam", maxScore: 60, enabled: true, type: "EXAM", sortOrder: 5 },
+    ],
+  },
+} as const;
+
 function parseSettings(value: string | null) {
   if (!value) return { ...DEFAULT_SETTINGS };
   try {
@@ -53,6 +83,19 @@ function parseSettings(value: string | null) {
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
+}
+
+function parseAssessmentSetup(value: unknown) {
+  if (!value || typeof value !== "object") return JSON.parse(JSON.stringify(DEFAULT_ASSESSMENT_SETUP));
+  const raw = value as Record<string, unknown>;
+  const setup: Record<string, { components: unknown[] }> = {};
+  for (const term of ["First Term", "Second Term", "Third Term"]) {
+    const item = raw[term];
+    setup[term] = item && typeof item === "object" && Array.isArray((item as any).components)
+      ? { components: (item as any).components }
+      : { components: JSON.parse(JSON.stringify(DEFAULT_ASSESSMENT_SETUP[term as keyof typeof DEFAULT_ASSESSMENT_SETUP].components)) };
+  }
+  return setup;
 }
 
 function parseBands(value: string | null) {
@@ -83,8 +126,10 @@ export async function GET(
 
   if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
 
+  const parsedSettings = parseSettings(school.schoolSettings) as Record<string, unknown>;
   return NextResponse.json({
-    settings: parseSettings(school.schoolSettings),
+    settings: parsedSettings,
+    assessmentSetup: parseAssessmentSetup(parsedSettings.assessmentSetup),
     gradingBands: parseBands(school.gradingBands),
     resultUnlockManagedBy: "SKULGO",
   });
@@ -183,6 +228,56 @@ export async function PATCH(
     }
   }
 
+  let nextAssessmentSetup = parseAssessmentSetup(currentSettings.assessmentSetup);
+
+  if (body?.assessmentSetup !== undefined) {
+    nextAssessmentSetup = parseAssessmentSetup(body.assessmentSetup);
+
+    for (const termName of ["First Term", "Second Term", "Third Term"]) {
+      const components = (nextAssessmentSetup as any)[termName].components
+        .map((item: any, index: number) => ({
+          key: String(item.key ?? ""),
+          name: String(item.name ?? "").trim(),
+          maxScore: Number(item.maxScore),
+          enabled: Boolean(item.enabled),
+          type: String(item.type ?? ""),
+          sortOrder: Number(item.sortOrder ?? index + 1),
+        }))
+        .filter((item: any) => ["ca1", "ca2", "ca3", "ca4", "exam"].includes(item.key));
+
+      if (components.length !== 5) {
+        return NextResponse.json({ error: "Each term must contain CA1-CA4 and Exam setup." }, { status: 400 });
+      }
+
+      const enabled = components.filter((item: any) => item.enabled);
+      const exam = components.find((item: any) => item.key === "exam");
+      const ca = components.filter((item: any) => item.key !== "exam" && item.enabled);
+      if (!exam?.enabled || exam.maxScore <= 0) {
+        return NextResponse.json({ error: termName + ": Exam must be enabled with a maximum score." }, { status: 400 });
+      }
+      if (ca.length === 0) {
+        return NextResponse.json({ error: termName + ": At least one CA box must be enabled." }, { status: 400 });
+      }
+      if (enabled.some((item: any) => item.maxScore <= 0 || item.maxScore > 100 || !item.name)) {
+        return NextResponse.json({ error: termName + ": every enabled box needs a name and maximum score between 1 and 100." }, { status: 400 });
+      }
+      const total = enabled.reduce((sum: number, item: any) => sum + item.maxScore, 0);
+      if (total !== 100) {
+        return NextResponse.json({ error: termName + ": enabled CA and Exam maximums must total exactly 100." }, { status: 400 });
+      }
+
+      const existingCount = await db.assessment.count({ where: { schoolId, term: termName } });
+      const old = parseAssessmentSetup(currentSettings.assessmentSetup) as any;
+      if (existingCount > 0 && JSON.stringify(old[termName]) !== JSON.stringify((nextAssessmentSetup as any)[termName])) {
+        return NextResponse.json({ error: termName + ": assessment setup is locked because scores already exist." }, { status: 409 });
+      }
+
+      (nextAssessmentSetup as any)[termName] = {
+        components: components.sort((a: any, b: any) => a.sortOrder - b.sortOrder),
+      };
+    }
+  }
+
   let nextBands = parseBands(current.gradingBands);
   if (body?.gradingBands !== undefined) {
     if (!Array.isArray(body.gradingBands) || body.gradingBands.length < 1) {
@@ -212,7 +307,7 @@ export async function PATCH(
   const saved = await db.school.update({
     where: { id: schoolId },
     data: {
-      schoolSettings: JSON.stringify(nextSettings),
+      schoolSettings: JSON.stringify({ ...nextSettings, assessmentSetup: nextAssessmentSetup }),
       gradingBands: JSON.stringify(nextBands),
     },
     select: { schoolSettings: true, gradingBands: true },
@@ -225,7 +320,8 @@ export async function PATCH(
     entity: "SCHOOL_SETTINGS",
     entityId: schoolId,
     details: {
-      settings: nextSettings,
+      settings: { ...nextSettings, assessmentSetup: nextAssessmentSetup },
+      assessmentSetup: nextAssessmentSetup,
       gradingBands: nextBands,
       resultUnlockManagedBy: "SKULGO",
     },
