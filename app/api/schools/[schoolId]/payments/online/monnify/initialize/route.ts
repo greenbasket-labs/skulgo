@@ -97,7 +97,7 @@ export async function POST(
 
   const baseUrl = process.env.MONNIFY_BASE_URL || "https://api.monnify.com";
   const origin = request.headers.get("origin") || new URL(request.url).origin;
-  const redirectUrl = new URL("/api/payments/monnify/callback", origin).toString();
+  const redirectUrl = new URL(`/api/payments/monnify/callback?schoolId=${encodeURIComponent(schoolId)}`, origin).toString();
   const paymentReference = `SKG-${schoolId.slice(0, 8)}-${studentId.slice(0, 8)}-${Date.now()}`;
 
   try {
