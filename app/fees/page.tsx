@@ -68,8 +68,9 @@ export default function FeesPage() {
   const [feeSectionId, setFeeSectionId] = useState("");
   const [feeClassId, setFeeClassId] = useState("");
   const [feeAmount, setFeeAmount] = useState("");
-  const [paymentProviders, setPaymentProviders] = useState<{ provider: string; enabled: boolean; status?: string; accountName?: string | null; accountNumberLast4?: string | null; merchantReference?: string | null }[]>([]);
+  const [paymentProviders, setPaymentProviders] = useState<{ provider: string; enabled: boolean; status?: string; accountName?: string | null; accountNumber?: string | null; accountNumberLast4?: string | null; merchantReference?: string | null }[]>([]);
   const [providerAccountName, setProviderAccountName] = useState("");
+  const [providerAccountNumber, setProviderAccountNumber] = useState("");
   const [providerAccountLast4, setProviderAccountLast4] = useState("");
   const [providerMerchantReference, setProviderMerchantReference] = useState("");
   const [providerSecrets, setProviderSecrets] = useState<Record<string, { apiKey: string; secretKey: string; contractCode: string; webhookSecret: string }>>({});
@@ -235,6 +236,7 @@ export default function FeesPage() {
         provider,
         enabled,
         accountName: providerAccountName,
+        accountNumber: providerAccountNumber,
         accountNumberLast4: providerAccountLast4,
         merchantReference: providerMerchantReference,
         ...(providerSecrets[provider] ?? {}),
@@ -251,6 +253,7 @@ export default function FeesPage() {
     setMessage(provider + " payment option " + (enabled ? "enabled" : "disabled") + ".");
     if (enabled) {
       setProviderAccountName("");
+      setProviderAccountNumber("");
       setProviderAccountLast4("");
       setProviderMerchantReference("");
       setProviderSecrets(current => ({ ...current, [provider]: { apiKey: "", secretKey: "", contractCode: "", webhookSecret: "" } }));
@@ -759,6 +762,7 @@ export default function FeesPage() {
                       {!item.enabled && (
                         <div className="grid" style={{ marginTop: 12 }}>
                           <input value={providerAccountName} onChange={event => setProviderAccountName(event.target.value)} placeholder="School payment account / business name" />
+                          <input inputMode="numeric" value={providerAccountNumber} onChange={event => setProviderAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 20))} placeholder="School payment account number" />
                           <input inputMode="numeric" value={providerAccountLast4} onChange={event => setProviderAccountLast4(event.target.value.replace(/\D/g, "").slice(-4))} placeholder="Account last 4 digits (optional)" />
                           <input value={providerMerchantReference} onChange={event => setProviderMerchantReference(event.target.value)} placeholder="Moniepoint account / merchant reference (optional)" />
                           <input value={secret.apiKey} onChange={event => setProviderSecrets(current => ({ ...current, [item.provider]: { ...secret, apiKey: event.target.value } }))} placeholder="School Monnify API key" type="password" />
@@ -854,8 +858,29 @@ export default function FeesPage() {
                     ) : (
                       <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
                     )}
+                    {fee.balance > 0 && paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.accountName && item.accountNumber) && (
+                      <div style={{ marginTop: 14, padding: 14, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                        <strong>Pay outside SkulGo</strong>
+                        <p className="muted" style={{ margin: "6px 0 10px" }}>
+                          You can pay by cash or bank transfer using the school's account below, then take the receipt or payment evidence to the school cashier. The cashier will confirm the payment using your child's Admission ID before the balance is updated.
+                        </p>
+                        {(() => {
+                          const account = paymentProviders.find(item => item.provider === "MONIEPOINT" && item.enabled && item.accountName && item.accountNumber);
+                          if (!account) return null;
+                          return (
+                            <div className="grid grid-2">
+                              <div><p className="muted">Account name</p><strong>{account.accountName}</strong></div>
+                              <div><p className="muted">Account number</p><strong>{account.accountNumber}</strong></div>
+                            </div>
+                          );
+                        })()}
+                        <p className="muted" style={{ margin: "10px 0 0" }}>
+                          <strong>Bring to cashier:</strong> payment receipt/evidence and the child's Admission ID.
+                        </p>
+                      </div>
+                    )}
                     <p className="muted" style={{ marginTop: 10 }}>
-                      Online payment is recorded only after the payment provider confirms the transaction.
+                      Online payment is recorded only after the payment provider confirms the transaction. Outside payments are recorded by the school cashier after confirmation.
                     </p>
                   </div>
                 ))}
