@@ -245,9 +245,18 @@ export default function ScoresPage() {
         examSavedAt: null,
       };
 
-    setScores({
-      ...scores,
-      [studentId]: { ...current, [field]: value },
+    setScores((currentScores) => {
+      const current = currentScores[studentId] ?? {
+        ca: "",
+        exam: "",
+        caSavedAt: null,
+        examSavedAt: null,
+      };
+
+      return {
+        ...currentScores,
+        [studentId]: { ...current, [field]: value },
+      };
     });
   }
 
