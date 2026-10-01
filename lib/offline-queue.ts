@@ -15,7 +15,7 @@ export type OfflineRecord<T = unknown> = {
   updatedAt: number;
 };
 
-const ACTIONS_KEY = "skulgo_offline_queue_v3";
+const ACTIONS_KEY = "skulgo_offline_queue_v4";
 const RECORDS_KEY = "skulgo_offline_records_v2";
 
 function readActions(): OfflineAction[] {
@@ -75,7 +75,7 @@ export function queueAction(
     throw new Error("Offline actions require an active workspace scope");
   }
 
-  const body =
+  const baseBody =
     action.method === "POST" &&
     action.body &&
     typeof action.body === "object" &&
@@ -83,6 +83,15 @@ export function queueAction(
     !("reference" in action.body)
       ? { ...action.body, reference: `OFFLINE-${crypto.randomUUID()}` }
       : action.body;
+
+  const body =
+    action.method === "POST" &&
+    action.url.includes("/assessments") &&
+    baseBody &&
+    typeof baseBody === "object" &&
+    !Array.isArray(baseBody)
+      ? { ...(baseBody as Record<string, unknown>), clientMutationAt: Number((baseBody as Record<string, unknown>).clientMutationAt) || Date.now() }
+      : baseBody;
 
   const item: OfflineAction = {
     ...action,
