@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 function validSignature(rawBody: string, signature: string | null, secretKey: string) {
   if (!signature) return false;
@@ -13,7 +14,8 @@ function validSignature(rawBody: string, signature: string | null, secretKey: st
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const secretKey = process.env.MONNIFY_SECRET_KEY;
+  const providers = await db.paymentProvider.findMany({ where: { provider: "MONIEPOINT", enabled: true, status: "VERIFIED" } });
+  const secretKey = providers.length === 1 ? decryptProviderSecret(providers[0].secretKeyEncrypted) : null;
   if (!secretKey) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
 
   const signature = request.headers.get("monnify-signature");
