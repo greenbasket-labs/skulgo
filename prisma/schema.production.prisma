@@ -549,6 +549,7 @@ model PaymentProvider {
   enabled Boolean @default(false)
   status String @default("UNVERIFIED")
   accountName String?
+  accountNumber String?
   accountNumberLast4 String?
   merchantReference String?
   secretKeyEncrypted String?
