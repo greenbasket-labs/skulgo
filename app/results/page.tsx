@@ -36,6 +36,7 @@ type Assessment = {
   ca: number | null;
   exam: number | null;
   subject: { name: string };
+  assessmentSetup?: { components: Array<{ key: "ca1" | "ca2" | "ca3" | "ca4" | "exam"; name: string; maxScore: number; enabled: boolean; type: "CA" | "EXAM" }> };
 };
 
 type Result = {
@@ -298,12 +299,12 @@ export default function ResultsPage() {
                 <strong>{item.subject.name}</strong>
                 <p className="muted">{term}</p>
                 <div className="grid grid-2">
-                  <span>CA1 · {item.ca1 ?? "—"}/10</span>
-                  <span>CA2 · {item.ca2 ?? "—"}/10</span>
-                  <span>CA3 · {item.ca3 ?? "—"}/10</span>
-                  <span>CA4 · {item.ca4 ?? "—"}/10</span>
+                  {(item.assessmentSetup?.components ?? []).filter(component => component.enabled).map(component => (
+                    <span key={component.key}>
+                      {component.name} · {item[component.key] ?? "—"}/{component.maxScore}
+                    </span>
+                  ))}
                 </div>
-                <p className="muted">CA total: {item.ca === null ? "—" : item.ca + "/40"}</p>
                 {published ? (
                   <div>
                     <strong>Published result</strong>
