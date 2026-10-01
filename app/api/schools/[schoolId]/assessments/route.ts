@@ -5,7 +5,6 @@ import { percentage } from "@/lib/grading";
 import { recordAudit } from "@/lib/audit";
 
 const CORRECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
-const SCORE_FIELDS = ["ca1","ca2","ca3","ca4","exam"] as const;
 
 function withinCorrectionWindow(savedAt: Date | null | undefined) {
   return Boolean(savedAt && Date.now() - savedAt.getTime() < CORRECTION_WINDOW_MS);
@@ -122,6 +121,7 @@ export async function POST(
   const term = String(body?.term ?? "").trim();
   const caMax = Number(body?.caMax);
   const examMax = Number(body?.examMax);
+  const clientMutationAt = Number(body?.clientMutationAt);
   const entered = ["ca", "exam"].filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
 
   if (!studentId || !classId || !subjectId || !term) {
@@ -173,6 +173,19 @@ export async function POST(
 
   if (existing?.submitted) {
     return NextResponse.json({ error: "These scores have already been submitted and locked." }, { status: 409 });
+  }
+
+  // Never allow an older offline/browser mutation to overwrite a newer
+  // score that is already stored on the server.
+  if (
+    existing?.updatedAt &&
+    Number.isFinite(clientMutationAt) &&
+    existing.updatedAt.getTime() > clientMutationAt
+  ) {
+    return NextResponse.json(
+      { error: "This draft is older than the saved score. The older change was not applied." },
+      { status: 409 },
+    );
   }
 
   const now = new Date();
