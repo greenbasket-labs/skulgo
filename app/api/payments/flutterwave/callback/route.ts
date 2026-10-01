@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function GET(request: NextRequest) {
   const txRef = request.nextUrl.searchParams.get("tx_ref")?.trim();
@@ -9,8 +10,10 @@ export async function GET(request: NextRequest) {
 
   if (!txRef) return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
 
-  const secretKey = process.env.FLW_SECRET_KEY;
-  if (!secretKey) return NextResponse.json({ error: "Flutterwave online payment is not configured." }, { status: 503 });
+  const providerRows = await db.paymentProvider.findMany({ where: { provider: "FLUTTERWAVE", enabled: true, status: "VERIFIED" } });
+  const provider = providerRows.find(row => row.secretKeyEncrypted);
+  const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
+  if (!secretKey) return NextResponse.json({ error: "Flutterwave payment is not configured." }, { status: 503 });
 
   if (status !== "successful" || !transactionId) {
     return NextResponse.json({ error: "Payment was not completed." }, { status: 402 });
