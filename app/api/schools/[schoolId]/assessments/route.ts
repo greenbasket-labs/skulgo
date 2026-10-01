@@ -16,6 +16,14 @@ function remainingMs(savedAt: Date | null | undefined) {
   return Math.max(0, savedAt.getTime() + CORRECTION_WINDOW_MS - Date.now());
 }
 
+function inferCaMax(value: number) {
+  if (value <= 10) return 10;
+  if (value <= 20) return 20;
+  if (value <= 30) return 30;
+  if (value <= 40) return 40;
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ schoolId: string }> }
@@ -148,12 +156,12 @@ export async function POST(
     const savedAt = existing?.[saveTimes[field as keyof typeof saveTimes] as keyof typeof existing] as Date | null | undefined;
     if (savedAt && !withinCorrectionWindow(savedAt)) return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
     const value = Number(body[field]);
-    const max = field === "exam" ? 60 : (requestedCaMax ?? Number(existing?.[caMaxField(field) as keyof typeof existing] ?? 10));
-    const existingValue = existing?.[field as keyof typeof existing] as number | null | undefined;
-    if (field !== "exam" && existingValue != null && value > max) {
-      return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
+    const max = field === "exam" ? 60 : inferCaMax(value);
+    if (!Number.isFinite(value) || value < 0 || max === null) {
+      return NextResponse.json({
+        error: field === "exam" ? "EXAM must be 0-60" : "CA must be 0-40",
+      }, { status: 400 });
     }
-    if (!Number.isFinite(value) || value < 0 || value > max) return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
   }
 
   const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
@@ -165,7 +173,7 @@ export async function POST(
   };
   for (const field of entered) {
     current[field as keyof typeof current] = Number(body[field]);
-    if (field !== "exam") currentMax[caMaxField(field) as keyof typeof currentMax] = requestedCaMax ?? currentMax[caMaxField(field) as keyof typeof currentMax];
+    if (field !== "exam") currentMax[caMaxField(field) as keyof typeof currentMax] = inferCaMax(Number(body[field])) ?? 40;
   }
   const caTotal = (current.ca1 ?? 0) + (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
   if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40. Remaining CA is " + Math.max(0, 40 - (caTotal - Number(body.ca1 ?? 0) - Number(body.ca2 ?? 0) - Number(body.ca3 ?? 0) - Number(body.ca4 ?? 0))) + "." }, { status: 400 });
