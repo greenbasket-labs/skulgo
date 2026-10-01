@@ -297,8 +297,7 @@ export default function FeesPage() {
     const onOnline = () => { setOnline(true); refreshQueue(); };
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);    return () => {
-      window.removeEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);    return () => {      window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
   }, []);
@@ -597,8 +596,7 @@ export default function FeesPage() {
                 <input inputMode="decimal" value={feeAmount} onChange={event => setFeeAmount(event.target.value)} placeholder="Amount" />
                 <select value={feeTarget} onChange={event => {
                   const next = event.target.value as "SCHOOL" | "SECTION" | "CLASS";                  setFeeTarget(next); setFeeSectionId(""); setFeeClassId("");
-                }}>
-                  <option value="SCHOOL">Whole school</option>
+                }}>                  <option value="SCHOOL">Whole school</option>
                   <option value="SECTION">Section</option>
                   <option value="CLASS">Class</option>
                 </select>
@@ -831,27 +829,6 @@ export default function FeesPage() {
                     <p className="muted" style={{ marginTop: 10 }}>
                       <strong>Payment Status:</strong> {fee.balance <= 0 ? "Paid in full" : fee.totalPaid > 0 ? "Partially paid" : "Outstanding"}
                     </p>
-                    {fee.balance > 0 ? (
-                      <div className="grid grid-2" style={{ marginTop: 12 }}>
-                        <input
-                          inputMode="decimal"
-                          value={selectedStudentId === fee.studentId ? amount : ""}
-                          onChange={event => {
-                            setSelectedStudentId(fee.studentId);
-                            setAmount(event.target.value);
-                          }}
-                          placeholder="Amount to pay"
-                          aria-label={`Amount to pay for ${fee.student.firstName} ${fee.student.lastName}`}
-                        />
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.status === "VERIFIED") ? (
-                            <button className="button" type="button" onClick={() => void startOnlinePayment(fee.studentId)} disabled={busy}>
-                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Moniepoint"}
-                            </button>
-                          ) : (
-                            <span className="muted">Online Moniepoint payment is not enabled by the school yet.</span>
-                          )}
-                        </div>
                     {fee.balance > 0 ? (
                       <div className="grid grid-2" style={{ marginTop: 12 }}>
                         <input
