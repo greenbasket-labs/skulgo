@@ -506,7 +506,7 @@ export default function FeesPage() {
         <div className="card" style={{ marginBottom: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <strong>{online ? "Online" : "Offline"}</strong>
+              <strong>Outside payment</strong>
               <p className="muted" style={{ margin: "4px 0 0" }}>
                 {waiting ? `${waiting} payment(s) waiting to sync` : "Nothing waiting to sync"}
               </p>
