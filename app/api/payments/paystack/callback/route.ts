@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
+import { decryptProviderSecret } from "@/lib/payment-provider-secrets";
 
 export async function GET(request: NextRequest) {
   const reference = request.nextUrl.searchParams.get("reference")?.trim();
   if (!reference) return NextResponse.json({ error: "Payment reference is required" }, { status: 400 });
 
-  const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  if (!secretKey) return NextResponse.json({ error: "Online payment is not configured." }, { status: 503 });
+  const referenceProvider = await db.paymentProvider.findFirst({ where: { provider: "PAYSTACK", enabled: true, status: "VERIFIED" } });
+  const secretKey = decryptProviderSecret(referenceProvider?.secretKeyEncrypted);
+  if (!secretKey) return NextResponse.json({ error: "Paystack payment is not configured for this school." }, { status: 503 });
 
   const verifyResponse = await fetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
