@@ -76,7 +76,7 @@ const DEFAULT_ASSESSMENT_SETUP = {
   },
 } as const;
 
-function parseSettings(value: string | null) {
+function parseSettings(value: string | null): Record<string, any> {
   if (!value) return { ...DEFAULT_SETTINGS };
   try {
     return { ...DEFAULT_SETTINGS, ...(JSON.parse(value) as Record<string, unknown>) };
