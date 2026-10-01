@@ -113,8 +113,8 @@ export async function POST(
   const classId = String(body?.classId ?? "");
   const subjectId = String(body?.subjectId ?? "");
   const term = String(body?.term ?? "").trim();
-  const caMaxRaw = body?.caMax === undefined || body?.caMax === null || String(body.caMax).trim() === "" ? 40 : Number(body.caMax);\n  const caMax = [10, 20, 30, 40].includes(caMaxRaw) ? caMaxRaw : null;\n  const entered = SCORE_FIELDS.filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
-  if (!studentId || !classId || !subjectId || !term || !entered.length || caMax === null) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
+  const caMaxRaw = body?.caMax === undefined || body?.caMax === null || String(body.caMax).trim() === "" ? null : Number(body.caMax);\n  const requestedCaMax = caMaxRaw === null ? null : ([10, 20, 30, 40].includes(caMaxRaw) ? caMaxRaw : null);\n  const entered = SCORE_FIELDS.filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
+  if (!studentId || !classId || !subjectId || !term || !entered.length || (caMaxRaw !== null && requestedCaMax === null)) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
   for (const field of entered) {
     const value = Number(body[field]);
     const max = field === "exam" ? 60 : caMax;
@@ -137,7 +137,7 @@ export async function POST(
     where: { studentId_subjectId_term: { studentId, subjectId, term } },
   });
 
-  const now = new Date();
+  const now = new Date();\n  const caMax = requestedCaMax ?? existing?.caMax ?? 40;
 
   const saveTimes = { ca1: "ca1SavedAt", ca2: "ca2SavedAt", ca3: "ca3SavedAt", ca4: "ca4SavedAt", exam: "examSavedAt" } as const;
   for (const field of entered) {
@@ -146,7 +146,7 @@ export async function POST(
   }
   const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
   for (const field of entered) current[field as keyof typeof current] = Number(body[field]);
-  const normalizedCa1 = current.ca1 === null ? 0 : (current.ca1 / caMax) * 40;\n  const legacyOtherCa = (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);\n  const caTotal = entered.some(field => field !== "exam") || existing?.caMax === undefined ? normalizedCa1 + legacyOtherCa : (existing?.ca ?? normalizedCa1 + legacyOtherCa);
+  const normalizedCa1 = current.ca1 === null ? 0 : (current.ca1 / caMax) * 40;\n  const legacyOtherCa = (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);\n  const caTotal = normalizedCa1 + legacyOtherCa;
   if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40." }, { status: 400 });
   const data = { classId, ca: caTotal, caMax, ca1: current.ca1, ca2: current.ca2, ca3: current.ca3, ca4: current.ca4, exam: current.exam, ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])) };
   const assessment = existing
