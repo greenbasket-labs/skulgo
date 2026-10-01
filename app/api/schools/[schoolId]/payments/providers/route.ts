@@ -19,6 +19,7 @@ function publicProvider(row: any) {
     enabled: row.enabled,
     status: row.status,
     accountName: row.accountName,
+    accountNumber: row.accountNumber,
     accountNumberLast4: row.accountNumberLast4,
     merchantReference: row.merchantReference,
     verifiedAt: row.verifiedAt,
@@ -62,6 +63,7 @@ export async function PATCH(
   const provider = String(body?.provider ?? "") as Provider;
   const enabled = body?.enabled === true;
   const accountName = typeof body?.accountName === "string" ? body.accountName.trim() : "";
+  const accountNumber = typeof body?.accountNumber === "string" ? body.accountNumber.replace(/\D/g, "").slice(0, 20) : "";
   const accountNumberLast4 = typeof body?.accountNumberLast4 === "string"
     ? body.accountNumberLast4.replace(/\D/g, "").slice(-4)
     : "";
@@ -87,7 +89,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Payment account name must match the school name." }, { status: 400 });
     }
 
-    if (!accountNumberLast4 && !merchantReference) {
+    if (!accountNumber && !accountNumberLast4 && !merchantReference) {
       return NextResponse.json({ error: "Enter an account number last 4 digits or merchant reference." }, { status: 400 });
     }
   }
@@ -117,7 +119,8 @@ export async function PATCH(
     update: {
       enabled,
       ...(accountName ? { accountName } : {}),
-      ...(accountNumberLast4 || merchantReference ? {
+      ...(accountNumber || accountNumberLast4 || merchantReference ? {
+        ...(accountNumber ? { accountNumber } : {}),
         accountNumberLast4: accountNumberLast4 || null,
         merchantReference: merchantReference || null,
       } : {}),
@@ -133,6 +136,7 @@ export async function PATCH(
       provider,
       enabled,
       accountName: accountName || null,
+      accountNumber: accountNumber || null,
       accountNumberLast4: accountNumberLast4 || null,
       merchantReference: merchantReference || null,
       secretKeyEncrypted: secretKey ? encryptProviderSecret(secretKey) : null,
