@@ -219,10 +219,11 @@ export default function ScoresPage() {
             submitted: Boolean(record.submitted),
           };
 
-          setCaMax(record.caMax ?? 40);
           if (record.submitted) setSubmitted(true);
         }
 
+        const firstWithMax = records.find((record) => record.caMax != null);
+        if (firstWithMax) setCaMax(firstWithMax.caMax);
         setScores(next);
         cacheRecord(key, next);
         return;
@@ -310,6 +311,7 @@ export default function ScoresPage() {
       caMax,
       examMax,
       [field]: number,
+      clientMutationAt: Date.now(),
     };
 
     if (!navigator.onLine) {
