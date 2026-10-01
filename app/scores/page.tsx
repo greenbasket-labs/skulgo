@@ -79,6 +79,7 @@ export default function ScoresPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const saveTimers = useRef<Record<string, number>>({});
+  const dirtyFields = useRef<Set<string>>(new Set());
   const examMax = 100 - caMax;
   const hasScores = Object.values(scores).some(
     (score) => score.ca.trim() !== "" || score.exam.trim() !== "",
@@ -205,9 +206,14 @@ export default function ScoresPage() {
         const next: ScoreMap = {};
 
         for (const record of records) {
+          const current = scores[record.studentId];
           next[record.studentId] = {
-            ca: record.ca == null ? "" : String(record.ca),
-            exam: record.exam == null ? "" : String(record.exam),
+            ca: dirtyFields.current.has(record.studentId + ":ca")
+              ? current?.ca ?? ""
+              : record.ca == null ? "" : String(record.ca),
+            exam: dirtyFields.current.has(record.studentId + ":exam")
+              ? current?.exam ?? ""
+              : record.exam == null ? "" : String(record.exam),
             caSavedAt: record.ca1SavedAt ?? null,
             examSavedAt: record.examSavedAt ?? null,
             submitted: Boolean(record.submitted),
@@ -229,6 +235,7 @@ export default function ScoresPage() {
   }
 
   function setScore(studentId: string, field: "ca" | "exam", value: string) {
+    dirtyFields.current.add(studentId + ":" + field);
     const current =
       scores[studentId] ?? {
         ca: "",
@@ -334,13 +341,15 @@ export default function ScoresPage() {
         return;
       }
 
+      dirtyFields.current.delete(student.id + ":" + field);
       setScores((current) => ({
         ...current,
         [student.id]: {
           ...current[student.id],
-          [field]: json[field] == null ? String(number) : String(json[field]),
+          [field]: String(number),
           [field === "ca" ? "caSavedAt" : "examSavedAt"]:
             json[field === "ca" ? "ca1SavedAt" : "examSavedAt"] ??
+            current[student.id]?.[field === "ca" ? "caSavedAt" : "examSavedAt"] ??
             new Date().toISOString(),
         },
       }));
