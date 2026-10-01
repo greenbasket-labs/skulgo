@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid SkulGo payment metadata." }, { status: 400 });
   }
 
+  if (String(metadata.schoolId) !== schoolId) return NextResponse.json({ error: "Payment school does not match the callback." }, { status: 409 });
   const schoolId = String(metadata.schoolId);
   const studentId = String(metadata.studentId);
   const userId = String(metadata.userId);
