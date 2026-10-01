@@ -236,7 +236,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 18 }}>
+      <section id="assessment-setup" className="card" style={{ marginTop: 18 }}>
         <h2>Assessment setup</h2>
         <p className="muted">
           Set the score boxes once for the whole school. Teachers only enter marks; they cannot change the maximums.
