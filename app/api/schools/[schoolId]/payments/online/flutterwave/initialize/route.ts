@@ -79,7 +79,7 @@ export async function POST(
   }
 
   const origin = request.headers.get("origin") || new URL(request.url).origin;
-  const redirectUrl = new URL("/api/payments/flutterwave/callback", origin).toString();
+  const redirectUrl = new URL(`/api/payments/flutterwave/callback?schoolId=${encodeURIComponent(schoolId)}`, origin).toString();
   const txRef = `SKG-FLW-${schoolId.slice(0, 8)}-${studentId.slice(0, 8)}-${Date.now()}`;
 
   const response = await fetch("https://api.flutterwave.com/v3/payments", {
