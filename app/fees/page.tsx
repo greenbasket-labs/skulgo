@@ -747,6 +747,43 @@ export default function FeesPage() {
           </>
         )}
 
+        {(role === "STUDENT" || role === "PARENT") && (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <h2>{role === "PARENT" ? "Children's school fees" : "My school fees"}</h2>
+            <p className="muted">Approved school fees assigned to your student record are shown here with payments and the remaining balance.</p>
+            {!payOptions.length ? (
+              <p className="muted" style={{ marginTop: 14 }}>No approved fee has been assigned to this student record yet.</p>
+            ) : (
+              <div className="grid" style={{ marginTop: 14 }}>
+                {payOptions.map(fee => (
+                  <div key={fee.id} style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                      <div>
+                        <strong>{fee.student.firstName} {fee.student.lastName}</strong>
+                        <p className="muted" style={{ margin: "4px 0 0" }}>{fee.student.admissionId}</p>
+                      </div>
+                      <strong>{money(fee.totalFee)}</strong>
+                    </div>
+                    <div className="grid grid-2" style={{ marginTop: 12 }}>
+                      <div>
+                        <p className="muted">Paid</p>
+                        <div className="stat">{money(fee.totalPaid)}</div>
+                      </div>
+                      <div>
+                        <p className="muted">Balance</p>
+                        <div className="stat">{money(Math.max(0, fee.balance))}</div>
+                      </div>
+                    </div>
+                    <p className="muted" style={{ marginTop: 10 }}>
+                      {fee.balance <= 0 ? "Paid in full." : "Outstanding balance. Follow the school's available payment instructions to make payment."}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {message && <p>{message}</p>}
       </section>
     </main>
