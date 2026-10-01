@@ -214,7 +214,7 @@ export async function POST(
   }
 
   const now = new Date();
-  const saveTimes: Record<ScoreField, keyof typeof existing> = {
+  const saveTimes: Record<ScoreField, "ca1SavedAt" | "ca2SavedAt" | "ca3SavedAt" | "ca4SavedAt" | "examSavedAt"> = {
     ca1: "ca1SavedAt",
     ca2: "ca2SavedAt",
     ca3: "ca3SavedAt",
