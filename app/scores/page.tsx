@@ -33,11 +33,19 @@ type Data = {
   assignments: Assignment[];
 };
 
-type Score = {
-  ca: string;
-  exam: string;
-  caSavedAt?: string | null;
-  examSavedAt?: string | null;
+type ScoreField = "ca1" | "ca2" | "ca3" | "ca4" | "exam";
+
+type AssessmentComponent = {
+  key: ScoreField;
+  name: string;
+  maxScore: number;
+  enabled: boolean;
+  type: "CA" | "EXAM";
+  sortOrder: number;
+};
+
+type Score = Record<ScoreField, string> & {
+  savedAt: Partial<Record<ScoreField, string | null>>;
   submitted?: boolean;
 };
 
@@ -46,21 +54,63 @@ type ScoreMap = Record<string, Score>;
 type RecordItem = {
   studentId: string;
   ca: number | null;
-  caMax: number;
+  ca1: number | null;
+  ca2: number | null;
+  ca3: number | null;
+  ca4: number | null;
   exam: number | null;
-  examMax: number;
-  ca1SavedAt?: string | null;
-  examSavedAt?: string | null;
   submitted?: boolean;
+  ca1SavedAt?: string | null;
+  ca2SavedAt?: string | null;
+  ca3SavedAt?: string | null;
+  ca4SavedAt?: string | null;
+  examSavedAt?: string | null;
+};
+
+type SetupResponse = {
+  assessments: RecordItem[];
+  assessmentSetup: { components: AssessmentComponent[] };
 };
 
 const WINDOW = 24 * 60 * 60 * 1000;
-const CA_OPTIONS = [40, 30, 20, 10];
 
 function remaining(savedAt?: string | null) {
   return savedAt
     ? Math.max(0, new Date(savedAt).getTime() + WINDOW - Date.now())
     : null;
+}
+
+const emptyScore = (): Score => ({
+  ca1: "",
+  ca2: "",
+  ca3: "",
+  ca4: "",
+  exam: "",
+  savedAt: {
+    ca1: null,
+    ca2: null,
+    ca3: null,
+    ca4: null,
+    exam: null,
+  },
+});
+
+function savedAtFor(record: RecordItem, field: ScoreField) {
+  return field === "ca1"
+    ? record.ca1SavedAt
+    : field === "ca2"
+      ? record.ca2SavedAt
+      : field === "ca3"
+        ? record.ca3SavedAt
+        : field === "ca4"
+          ? record.ca4SavedAt
+          : record.examSavedAt;
+}
+
+function valueFor(record: RecordItem, field: ScoreField, singleCa: boolean) {
+  if (field === "ca1" && singleCa && record.ca1 == null && record.ca != null) return String(record.ca);
+  const value = record[field];
+  return value == null ? "" : String(value);
 }
 
 export default function ScoresPage() {
@@ -69,7 +119,7 @@ export default function ScoresPage() {
   const [selected, setSelected] = useState("");
   const [term, setTerm] = useState("First Term");
   const [scores, setScores] = useState<ScoreMap>({});
-  const [caMax, setCaMax] = useState(40);
+  const [components, setComponents] = useState<AssessmentComponent[]>([]);
   const [schoolId, setSchoolId] = useState("");
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
@@ -80,10 +130,6 @@ export default function ScoresPage() {
 
   const saveTimers = useRef<Record<string, number>>({});
   const dirtyFields = useRef<Set<string>>(new Set());
-  const examMax = 100 - caMax;
-  const hasScores = Object.values(scores).some(
-    (score) => score.ca.trim() !== "" || score.exam.trim() !== "",
-  );
 
   const assignment = useMemo(
     () =>
@@ -92,6 +138,14 @@ export default function ScoresPage() {
       null,
     [data, selected],
   );
+
+  const hasScores = Object.values(scores).some((score) =>
+    components.some((component) => score[component.key].trim() !== ""),
+  );
+
+  const enabledComponents = components
+    .filter((component) => component.enabled)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   async function load() {
     let me: any = null;
@@ -121,28 +175,18 @@ export default function ScoresPage() {
       return;
     }
 
-    let assignments: Data | null = null;
-
-    try {
-      const response = await fetch("/api/schools/current/my-assignments");
-      const json = await response.json().catch(() => ({}));
-      if (response.ok) {
-        assignments = json;
-        cacheRecord("skulgo:" + key + ":my-assignments", json);
-      }
-    } catch {
-      assignments = readCachedRecord<Data>("skulgo:" + key + ":my-assignments");
-    }
-
-    if (!assignments) {
-      assignments = readCachedRecord<Data>("skulgo:" + key + ":my-assignments");
-    }
-
-    if (!assignments) {
-      setMessage("Teacher assignments are not available on this device yet.");
+    if (me?.user?.membership?.role !== "TEACHER") {
+      setMessage("Teacher access required.");
       return;
     }
 
+    const response = await fetch("/api/teachers/me/assignments");
+    if (!response.ok) {
+      setMessage("Teaching assignments are not available on this device yet.");
+      return;
+    }
+
+    const assignments = await response.json();
     setData(assignments);
     setSchoolId(me?.user?.membership?.schoolId ?? "");
 
@@ -156,8 +200,7 @@ export default function ScoresPage() {
   async function loadStudents() {
     if (!schoolId || !assignment) return;
 
-    const key =
-      "skulgo-scores-students-" + schoolId + "-" + assignment.class.id;
+    const key = "skulgo-scores-students-" + schoolId + "-" + assignment.class.id;
 
     try {
       const response = await fetch("/api/schools/" + schoolId + "/students");
@@ -172,7 +215,7 @@ export default function ScoresPage() {
         return;
       }
     } catch {
-      // Use the local copy below.
+      // Use local copy below.
     }
 
     setStudents(readCachedRecord<Student[]>(key) ?? []);
@@ -198,32 +241,45 @@ export default function ScoresPage() {
           "&subjectId=" +
           encodeURIComponent(assignment.subject.id) +
           "&term=" +
-          encodeURIComponent(term),
+          encodeURIComponent(term) +
+          "&setup=true",
       );
 
       if (response.ok) {
-        const records = (await response.json()) as RecordItem[];
-        const next: ScoreMap = {};
+        const json = (await response.json()) as SetupResponse;
+        const nextComponents = Array.isArray(json.assessmentSetup?.components)
+          ? json.assessmentSetup.components
+          : [];
+        setComponents(nextComponents);
 
+        const records = Array.isArray(json.assessments)
+          ? json.assessments
+          : [];
+        const singleCa =
+          nextComponents.filter((item) => item.type === "CA" && item.enabled)
+            .length === 1 &&
+          nextComponents.some(
+            (item) => item.key === "ca1" && item.enabled,
+          );
+
+        const next: ScoreMap = {};
         for (const record of records) {
           const current = scores[record.studentId];
-          next[record.studentId] = {
-            ca: dirtyFields.current.has(record.studentId + ":ca")
-              ? current?.ca ?? ""
-              : record.ca == null ? "" : String(record.ca),
-            exam: dirtyFields.current.has(record.studentId + ":exam")
-              ? current?.exam ?? ""
-              : record.exam == null ? "" : String(record.exam),
-            caSavedAt: record.ca1SavedAt ?? null,
-            examSavedAt: record.examSavedAt ?? null,
-            submitted: Boolean(record.submitted),
-          };
+          const item = emptyScore();
+
+          for (const field of ["ca1", "ca2", "ca3", "ca4", "exam"] as ScoreField[]) {
+            item[field] = dirtyFields.current.has(record.studentId + ":" + field)
+              ? current?.[field] ?? ""
+              : valueFor(record, field, singleCa);
+            item.savedAt[field] = savedAtFor(record, field) ?? null;
+          }
+
+          item.submitted = Boolean(record.submitted);
+          next[record.studentId] = item;
 
           if (record.submitted) setSubmitted(true);
         }
 
-        const firstWithMax = records.find((record) => record.caMax != null);
-        if (firstWithMax) setCaMax(firstWithMax.caMax);
         setScores(next);
         cacheRecord(key, next);
         return;
@@ -235,24 +291,11 @@ export default function ScoresPage() {
     setScores(readCachedRecord<ScoreMap>(key) ?? {});
   }
 
-  function setScore(studentId: string, field: "ca" | "exam", value: string) {
+  function setScore(studentId: string, field: ScoreField, value: string) {
     dirtyFields.current.add(studentId + ":" + field);
-    const current =
-      scores[studentId] ?? {
-        ca: "",
-        exam: "",
-        caSavedAt: null,
-        examSavedAt: null,
-      };
 
     setScores((currentScores) => {
-      const current = currentScores[studentId] ?? {
-        ca: "",
-        exam: "",
-        caSavedAt: null,
-        examSavedAt: null,
-      };
-
+      const current = currentScores[studentId] ?? emptyScore();
       return {
         ...currentScores,
         [studentId]: { ...current, [field]: value },
@@ -260,9 +303,8 @@ export default function ScoresPage() {
     });
   }
 
-  function scheduleSave(student: Student, field: "ca" | "exam") {
-    const key =
-      student.id + ":" + assignment?.id + ":" + term + ":" + field;
+  function scheduleSave(student: Student, field: ScoreField) {
+    const key = student.id + ":" + assignment?.id + ":" + term + ":" + field;
 
     if (saveTimers.current[key]) {
       window.clearTimeout(saveTimers.current[key]);
@@ -274,40 +316,31 @@ export default function ScoresPage() {
     }, 1000);
   }
 
-  async function saveField(student: Student, field: "ca" | "exam") {
+  async function saveField(student: Student, field: ScoreField) {
     if (!schoolId || !assignment || submitted) return;
 
-    const score =
-      scores[student.id] ?? {
-        ca: "",
-        exam: "",
-        caSavedAt: null,
-        examSavedAt: null,
-      };
-
+    const score = scores[student.id] ?? emptyScore();
     const value = score[field].trim();
     if (!value) return;
 
-    const savedAt =
-      field === "ca" ? score.caSavedAt : score.examSavedAt;
+    const component = components.find(
+      (item) => item.key === field && item.enabled,
+    );
+    if (!component) return;
 
+    const savedAt = score.savedAt[field];
     if (savedAt && remaining(savedAt) === 0) {
-      setMessage(
-        field.toUpperCase() + " correction window expired.",
-      );
+      setMessage(component.name + " correction window expired.");
       return;
     }
 
     const number = Number(value);
-    const maximum = field === "ca" ? caMax : examMax;
-
-    if (
-      !Number.isFinite(number) ||
-      number < 0 ||
-      number > maximum
-    ) {
+    if (!Number.isFinite(number) || number < 0 || number > component.maxScore) {
       setMessage(
-        field.toUpperCase() + " must be between 0 and " + maximum + ".",
+        component.name +
+          " must be between 0 and " +
+          component.maxScore +
+          ".",
       );
       return;
     }
@@ -317,8 +350,6 @@ export default function ScoresPage() {
       classId: assignment.class.id,
       subjectId: assignment.subject.id,
       term,
-      caMax,
-      examMax,
       [field]: number,
       clientMutationAt: Date.now(),
     };
@@ -356,12 +387,15 @@ export default function ScoresPage() {
       setScores((current) => ({
         ...current,
         [student.id]: {
-          ...current[student.id],
+          ...(current[student.id] ?? emptyScore()),
           [field]: String(number),
-          [field === "ca" ? "caSavedAt" : "examSavedAt"]:
-            json[field === "ca" ? "ca1SavedAt" : "examSavedAt"] ??
-            current[student.id]?.[field === "ca" ? "caSavedAt" : "examSavedAt"] ??
-            new Date().toISOString(),
+          savedAt: {
+            ...(current[student.id]?.savedAt ?? {}),
+            [field]:
+              savedAtFor(json as RecordItem, field) ??
+              current[student.id]?.savedAt[field] ??
+              new Date().toISOString(),
+          },
         },
       }));
 
@@ -384,7 +418,6 @@ export default function ScoresPage() {
     const confirmed = window.confirm(
       "Submit these scores now? After submission, the scores will be locked for editing.",
     );
-
     if (!confirmed) return;
 
     setSubmitting(true);
@@ -392,12 +425,9 @@ export default function ScoresPage() {
 
     const body = {
       action: "submit",
-      studentId: "class",
       classId: assignment.class.id,
       subjectId: assignment.subject.id,
       term,
-      caMax,
-      examMax,
     };
 
     if (!navigator.onLine) {
@@ -460,7 +490,6 @@ export default function ScoresPage() {
       setOnline(true);
       startOfflineSync(scope, (result) => setPending(result.remaining));
     };
-
     const onOffline = () => setOnline(false);
 
     window.addEventListener("online", onOnline);
@@ -474,6 +503,8 @@ export default function ScoresPage() {
 
   useEffect(() => {
     setSubmitted(false);
+    setComponents([]);
+    setScores({});
     void loadStudents();
     void loadScores();
   }, [schoolId, assignment?.id, term, scope]);
@@ -551,60 +582,35 @@ export default function ScoresPage() {
           </label>
         </div>
 
-        <div className="grid grid-2" style={{ marginTop: 16 }}>
-          <label className="grid">
-            <span>CA maximum</span>
-            <select
-              value={caMax}
-              disabled={submitted || hasScores}
-              onChange={(event) => setCaMax(Number(event.target.value))}
-            >
-              {CA_OPTIONS.map((maximum) => (
-                <option key={maximum} value={maximum}>
-                  CA / {maximum}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="grid">
-            <span>Exam maximum</span>
-            <div
-              className="card"
-              style={{ padding: "10px 12px", minHeight: 44 }}
-            >
-              Exam / {examMax}
-            </div>
+        <div style={{ marginTop: 16 }}>
+          <strong>Assessment structure</strong>
+          <div className="grid grid-2" style={{ marginTop: 10 }}>
+            {enabledComponents.map((component) => (
+              <div className="card" key={component.key} style={{ padding: "10px 12px" }}>
+                {component.name} /{component.maxScore}
+              </div>
+            ))}
           </div>
         </div>
 
-        <p className="muted" style={{ marginBottom: 0 }}>
-          CA + Exam = 100. Scores save automatically. You can correct them
-          for 24 hours, or submit now to lock them.
-          {hasScores && !submitted ? " The grading structure is now fixed for this draft." : ""}
+        <p className="muted" style={{ marginBottom: 0, marginTop: 12 }}>
+          Admin sets these boxes for the school. Scores save automatically. Each entered score can be corrected for 24 hours, then submission locks the records.
         </p>
       </div>
 
-      {students.length === 0 ? (
+      {!enabledComponents.length ? (
+        <div className="card">
+          <strong>Assessment setup is not available.</strong>
+          <p className="muted">Ask the school Admin to configure the score boxes.</p>
+        </div>
+      ) : students.length === 0 ? (
         <div className="card">
           <strong>No students available.</strong>
         </div>
       ) : (
         <div className="grid">
           {students.map((student) => {
-            const score =
-              scores[student.id] ?? {
-                ca: "",
-                exam: "",
-                caSavedAt: null,
-                examSavedAt: null,
-              };
-
-            const caExpired =
-              Boolean(score.caSavedAt) && remaining(score.caSavedAt) === 0;
-            const examExpired =
-              Boolean(score.examSavedAt) &&
-              remaining(score.examSavedAt) === 0;
+            const score = scores[student.id] ?? emptyScore();
 
             return (
               <div className="card" key={student.id}>
@@ -631,51 +637,38 @@ export default function ScoresPage() {
                 </div>
 
                 <div className="grid grid-2">
-                  <label className="grid">
-                    <span>CA / {caMax}</span>
-                    <input
-                      inputMode="decimal"
-                      value={score.ca}
-                      disabled={submitted || caExpired}
-                      placeholder="Enter CA score"
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setScore(student.id, "ca", value);
+                  {enabledComponents.map((component) => {
+                    const field = component.key;
+                    const savedAt = score.savedAt[field];
+                    const expired = Boolean(savedAt) && remaining(savedAt) === 0;
 
-                        if (
-                          value !== "" &&
-                          Number.isFinite(Number(value)) &&
-                          Number(value) >= 0 &&
-                          Number(value) <= caMax
-                        ) {
-                          scheduleSave(student, "ca");
-                        }
-                      }}
-                    />
-                  </label>
+                    return (
+                      <label className="grid" key={field}>
+                        <span>
+                          {component.name} /{component.maxScore}
+                        </span>
+                        <input
+                          inputMode="decimal"
+                          value={score[field]}
+                          disabled={submitted || expired}
+                          placeholder="Enter score"
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setScore(student.id, field, value);
 
-                  <label className="grid">
-                    <span>Exam / {examMax}</span>
-                    <input
-                      inputMode="decimal"
-                      value={score.exam}
-                      disabled={submitted || examExpired}
-                      placeholder="Enter exam score"
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setScore(student.id, "exam", value);
-
-                        if (
-                          value !== "" &&
-                          Number.isFinite(Number(value)) &&
-                          Number(value) >= 0 &&
-                          Number(value) <= examMax
-                        ) {
-                          scheduleSave(student, "exam");
-                        }
-                      }}
-                    />
-                  </label>
+                            if (
+                              value !== "" &&
+                              Number.isFinite(Number(value)) &&
+                              Number(value) >= 0 &&
+                              Number(value) <= component.maxScore
+                            ) {
+                              scheduleSave(student, field);
+                            }
+                          }}
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -683,7 +676,7 @@ export default function ScoresPage() {
         </div>
       )}
 
-      {!submitted && (
+      {!submitted && enabledComponents.length > 0 && (
         <div
           className="card"
           style={{
