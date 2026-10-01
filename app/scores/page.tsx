@@ -1,44 +1,689 @@
 "use client";
-import { useEffect,useMemo,useRef,useState } from "react";
-import { cacheRecord,queueAction,queuedCount,readCachedRecord,startOfflineSync } from "@/lib/offline-queue";
-type Student={id:string;admissionId:string;firstName:string;lastName:string;classId?:string|null};
-type Assignment={id:string;class:{id:string;name:string;arm?:string|null;section:{name:string}};subject:{id:string;name:string}};
-type Data={teacher:{teacherCode:string};assignments:Assignment[]};
-type Score={ca1:string;ca2:string;ca3:string;ca4:string;exam:string;ca1SavedAt?:string|null;ca2SavedAt?:string|null;ca3SavedAt?:string|null;ca4SavedAt?:string|null;examSavedAt?:string|null};
-type CaMaxMap=Record<string,number>;
-type ScoreMap=Record<string,Score>;
-type RecordItem={studentId:string;caMax:number;ca1Max?:number;ca2Max?:number;ca3Max?:number;ca4Max?:number;ca1:number|null;ca2:number|null;ca3:number|null;ca4:number|null;exam:number|null;ca1SavedAt?:string|null;ca2SavedAt?:string|null;ca3SavedAt?:string|null;ca4SavedAt?:string|null;examSavedAt?:string|null};
-const W=24*60*60*1000; const CA=["ca1","ca2","ca3","ca4"] as const; const F=["ca1","ca2","ca3","ca4","exam"] as const;
-const rem=(s?:string|null)=>s?Math.max(0,new Date(s).getTime()+W-Date.now()):null;
-export default function ScoresPage(){
-const [data,setData]=useState<Data|null>(null),[students,setStudents]=useState<Student[]>([]),[selected,setSelected]=useState(""),[term,setTerm]=useState("First Term"),[scores,setScores]=useState<ScoreMap>({}),[caMax,setCaMax]=useState<CaMaxMap>({}),[schoolId,setSchoolId]=useState(""),[online,setOnline]=useState(true),[pending,setPending]=useState(0),[message,setMessage]=useState("Loading..."),[scope,setScope]=useState("");
-const saveTimers=useRef<Record<string,number>>({});
-const assignment=useMemo(()=>data?.assignments.find(x=>x.id===selected)??data?.assignments[0]??null,[data,selected]);
-async function load(){let me:any=null;try{const r=await fetch("/api/auth/me");const n=await r.json().catch(()=>({}));if(r.ok){me=n;cacheRecord("skulgo-current-me",n)}}catch{me=readCachedRecord<any>("skulgo-current-me")}if(!me)me=readCachedRecord<any>("skulgo-current-me");const sk=me?.user?.id&&me?.user?.membership?.id?me.user.id+":"+me.user.membership.id:"";setScope(sk);if(!sk){setMessage("This school workspace is not available on this device yet.");return}let d:any=null;try{const r=await fetch("/api/schools/current/my-assignments");const n=await r.json().catch(()=>({}));if(r.ok){d=n;cacheRecord("skulgo:"+sk+":my-assignments",n)}}catch{d=readCachedRecord<Data>("skulgo:"+sk+":my-assignments")}if(!d)d=readCachedRecord<Data>("skulgo:"+sk+":my-assignments");if(!d){setMessage("Teacher assignments are not available on this device yet.");return}setData(d);setSchoolId(me?.user?.membership?.schoolId??"");if(!selected&&d.assignments?.length)setSelected(d.assignments[0].id);setMessage("")}
-async function loadStudents(){if(!schoolId||!assignment)return;const k="skulgo-scores-students-"+schoolId+"-"+assignment.class.id;try{const r=await fetch("/api/schools/"+schoolId+"/students");if(r.ok){const b=await r.json();const f=b.filter((x:Student)=>!x.classId||x.classId===assignment.class.id);setStudents(f);cacheRecord(k,f);return}}catch{}setStudents(readCachedRecord<Student[]>(k)??[])}
-async function loadScores(){if(!schoolId||!assignment)return;const k="skulgo:"+scope+":assessments-"+assignment.id+"-"+term;try{const r=await fetch("/api/schools/"+schoolId+"/assessments?classId="+encodeURIComponent(assignment.class.id)+"&subjectId="+encodeURIComponent(assignment.subject.id)+"&term="+encodeURIComponent(term));if(r.ok){const b=await r.json() as RecordItem[];const n:ScoreMap={};for(const x of b){setCaMax(p=>({...p,[x.studentId+":ca1"]:x.ca1Max??10,[x.studentId+":ca2"]:x.ca2Max??10,[x.studentId+":ca3"]:x.ca3Max??10,[x.studentId+":ca4"]:x.ca4Max??10}));n[x.studentId]={ca1:x.ca1==null?"":String(x.ca1),ca2:x.ca2==null?"":String(x.ca2),ca3:x.ca3==null?"":String(x.ca3),ca4:x.ca4==null?"":String(x.ca4),exam:x.exam==null?"":String(x.exam),ca1SavedAt:x.ca1SavedAt??null,ca2SavedAt:x.ca2SavedAt??null,ca3SavedAt:x.ca3SavedAt??null,ca4SavedAt:x.ca4SavedAt??null,examSavedAt:x.examSavedAt??null};}setScores(n);cacheRecord(k,n);return}}catch{}setScores(readCachedRecord<ScoreMap>(k)??{})}
-function setScore(id:string,f:typeof F[number],v:string){const c=scores[id]??{ca1:"",ca2:"",ca3:"",ca4:"",exam:""};setScores({...scores,[id]:{...c,[f]:v}})}
-function setComponentMax(id:string,f:typeof CA[number],v:string){const n=Number(v);if(![10,20,30,40].includes(n))return;setCaMax(p=>({...p,[id+":"+f]:n}));}
-function componentMax(id:string,f:typeof CA[number]){return caMax[id+":"+f]??10}
-function inferCaMax(v:number){if(v<=10)return 10;if(v<=20)return 20;if(v<=30)return 30;if(v<=40)return 40;return null}
-function nextCaField(s:Score){
-  const empty=CA.find(f=>!s[f].trim());
-  if(empty)return empty;
-  return CA.slice().reverse().find(f=>s[f].trim())??null;
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  cacheRecord,
+  queueAction,
+  queuedCount,
+  readCachedRecord,
+  startOfflineSync,
+} from "@/lib/offline-queue";
+
+type Student = {
+  id: string;
+  admissionId: string;
+  firstName: string;
+  lastName: string;
+  classId?: string | null;
+};
+
+type Assignment = {
+  id: string;
+  class: {
+    id: string;
+    name: string;
+    arm?: string | null;
+    section: { name: string };
+  };
+  subject: { id: string; name: string };
+};
+
+type Data = {
+  teacher: { teacherCode: string };
+  assignments: Assignment[];
+};
+
+type Score = {
+  ca: string;
+  exam: string;
+  caSavedAt?: string | null;
+  examSavedAt?: string | null;
+  submitted?: boolean;
+};
+
+type ScoreMap = Record<string, Score>;
+
+type RecordItem = {
+  studentId: string;
+  ca: number | null;
+  caMax: number;
+  exam: number | null;
+  examMax: number;
+  ca1SavedAt?: string | null;
+  examSavedAt?: string | null;
+  submitted?: boolean;
+};
+
+const WINDOW = 24 * 60 * 60 * 1000;
+const CA_OPTIONS = [40, 30, 20, 10];
+
+function remaining(savedAt?: string | null) {
+  return savedAt
+    ? Math.max(0, new Date(savedAt).getTime() + WINDOW - Date.now())
+    : null;
 }
-function remainingCa(s:Score){return Math.max(0,40-CA.reduce((sum,f)=>sum+Number(s[f]||0),0))}
-function scheduleSave(st:Student,f:typeof F[number]){const key=st.id+":"+assignment?.id+":"+term+":"+f;if(saveTimers.current[key])window.clearTimeout(saveTimers.current[key]);saveTimers.current[key]=window.setTimeout(()=>{delete saveTimers.current[key];void saveField(st,f)},1200)}
-async function saveField(st:Student,f:typeof F[number]){if(!schoolId||!assignment)return;const s=scores[st.id]??{ca1:"",ca2:"",ca3:"",ca4:"",exam:""};const v=s[f].trim();if(!v){setMessage("Enter a score before saving.");return}const at=f==="exam"?s.examSavedAt:s[(f+"SavedAt") as keyof Score] as string|null|undefined;if(at&&rem(at)===0){setMessage(f.toUpperCase()+" correction window expired.");return}const n=Number(v),max=f==="exam"?60:componentMax(st.id,f);if(!Number.isFinite(n)||n<0||n>max){setMessage(f.toUpperCase()+" must be 0-"+max+".");return}if(f!=="exam"){const other=CA.filter(x=>x!==f).reduce((sum,x)=>sum+Number(s[x]||0),0);if(other+n>40){setMessage("CA total cannot exceed 40. Remaining CA is "+Math.max(0,40-other)+".");return}}const body:any={studentId:st.id,classId:assignment.class.id,subjectId:assignment.subject.id,term,[f]:n,...(f!=="exam"?{caMax:inferCaMax(n)}:{})};setMessage("Saving…");if(!navigator.onLine){queueAction({scopeKey:scope,url:"/api/schools/"+schoolId+"/assessments",method:"POST",body});setPending(queuedCount(scope));setMessage("Saved as draft on this device. It will sync automatically when internet returns.");return}try{const r=await fetch("/api/schools/"+schoolId+"/assessments",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const z=await r.json().catch(()=>({}));if(!r.ok){setMessage(z.error||"Score could not be saved.");return}setScores(p=>({...p,[st.id]:{...p[st.id],[f]:z[f]==null?String(n):String(z[f]),[f+"SavedAt"]:z[f+"SavedAt"]??new Date().toISOString()}}));setMessage("Saved. Draft updated automatically.")}catch{queueAction({scopeKey:scope,url:"/api/schools/"+schoolId+"/assessments",method:"POST",body});setPending(queuedCount(scope));setMessage("Connection dropped. Saved as draft on this device and queued for sync.")}}
-useEffect(()=>{setOnline(navigator.onLine);setPending(queuedCount(scope));void load();const on=()=>{setOnline(true);startOfflineSync(scope,r=>setPending(r.remaining))},off=()=>setOnline(false);window.addEventListener("online",on);window.addEventListener("offline",off);return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off)}},[scope]);
-useEffect(()=>{void loadStudents();void loadScores()},[schoolId,assignment?.id,term,scope]);
-if(!data)return <main className="workspace-main"><p className="muted">{message}</p></main>;
-if(!assignment)return <main className="workspace-main"><div className="card"><strong>No teaching assignment yet.</strong><p className="muted">Scores will appear here after Admin assigns a class and subject.</p></div></main>;
-return (
-<main className="workspace-main">
-<div className="workspace-header"><p className="muted">Teacher workspace · {online?"Online":"Offline"}</p><h1>Scores</h1><p className="muted">{assignment.subject.name} · {assignment.class.section.name} · {assignment.class.name}{assignment.class.arm?" · "+assignment.class.arm:""}</p><p className="muted">{pending?pending+" item(s) waiting to sync":"Saved records sync automatically."}</p></div>
-<div className="card" style={{marginBottom:18}}><div className="grid grid-2"><label className="grid"><span>Teaching assignment</span><select value={selected} onChange={e=>setSelected(e.target.value)}>{data.assignments.map(x=><option key={x.id} value={x.id}>{x.subject.name} · {x.class.section.name} · {x.class.name}{x.class.arm?" · "+x.class.arm:""}</option>)}</select></label><label className="grid"><span>Term</span><select value={term} onChange={e=>setTerm(e.target.value)}><option>First Term</option><option>Second Term</option><option>Third Term</option></select></label></div></div>
-{!students.length?<div className="card"><strong>No students available.</strong></div>:<div className="grid">{students.map(st=>{const s=scores[st.id]??{ca1:"",ca2:"",ca3:"",ca4:"",exam:""};const activeCa=nextCaField(s);const usedCa=40-remainingCa(s);const activeValue=activeCa?Number(s[activeCa]||""):0;const inferredMax=activeValue>0?inferCaMax(activeValue):null;const caSaved=Boolean(s.ca1SavedAt||s.ca2SavedAt||s.ca3SavedAt||s.ca4SavedAt);const examSaved=Boolean(s.examSavedAt);return <div className="card" key={st.id}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,marginBottom:14}}><div><strong>{st.firstName} {st.lastName}</strong><p className="muted" style={{margin:"4px 0 0"}}>{st.admissionId}</p></div><span className="muted">{caSaved||examSaved?"Saved":"Draft"}</span></div><div className="grid grid-2"><label className="grid"><span>CA · {usedCa}/40 used · {remainingCa(s)} remaining</span>{activeCa&&remainingCa(s)>0?<div><input inputMode="decimal" value={s[activeCa]} placeholder="Enter CA score" onChange={e=>{const raw=e.target.value;setScore(st.id,activeCa,raw);if(raw!==""&&Number.isFinite(Number(raw))&&Number(raw)>=0&&Number(raw)<=40)scheduleSave(st,activeCa)}}/>{inferredMax&&<small className="muted">/ {inferredMax}</small>}</div>:<span className="muted">CA is complete.</span>}</label><label className="grid"><span>Exam / 60</span><input inputMode="decimal" value={s.exam} disabled={Boolean(s.examSavedAt)&&rem(s.examSavedAt)===0} placeholder="Enter exam score" onChange={e=>{setScore(st.id,"exam",e.target.value);if(e.target.value!==""&&Number.isFinite(Number(e.target.value))&&Number(e.target.value)>=0&&Number(e.target.value)<=60)scheduleSave(st,"exam")}}/></label></div></div>})}</div>}
-{message&&<p>{message}</p>}
-</main>
-);
+
+export default function ScoresPage() {
+  const [data, setData] = useState<Data | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selected, setSelected] = useState("");
+  const [term, setTerm] = useState("First Term");
+  const [scores, setScores] = useState<ScoreMap>({});
+  const [caMax, setCaMax] = useState(40);
+  const [schoolId, setSchoolId] = useState("");
+  const [online, setOnline] = useState(true);
+  const [pending, setPending] = useState(0);
+  const [message, setMessage] = useState("Loading...");
+  const [scope, setScope] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const saveTimers = useRef<Record<string, number>>({});
+  const examMax = 100 - caMax;
+
+  const assignment = useMemo(
+    () =>
+      data?.assignments.find((item) => item.id === selected) ??
+      data?.assignments[0] ??
+      null,
+    [data, selected],
+  );
+
+  async function load() {
+    let me: any = null;
+
+    try {
+      const response = await fetch("/api/auth/me");
+      const json = await response.json().catch(() => ({}));
+      if (response.ok) {
+        me = json;
+        cacheRecord("skulgo-current-me", json);
+      }
+    } catch {
+      me = readCachedRecord<any>("skulgo-current-me");
+    }
+
+    if (!me) me = readCachedRecord<any>("skulgo-current-me");
+
+    const key =
+      me?.user?.id && me?.user?.membership?.id
+        ? me.user.id + ":" + me.user.membership.id
+        : "";
+
+    setScope(key);
+
+    if (!key) {
+      setMessage("This school workspace is not available on this device yet.");
+      return;
+    }
+
+    let assignments: Data | null = null;
+
+    try {
+      const response = await fetch("/api/schools/current/my-assignments");
+      const json = await response.json().catch(() => ({}));
+      if (response.ok) {
+        assignments = json;
+        cacheRecord("skulgo:" + key + ":my-assignments", json);
+      }
+    } catch {
+      assignments = readCachedRecord<Data>("skulgo:" + key + ":my-assignments");
+    }
+
+    if (!assignments) {
+      assignments = readCachedRecord<Data>("skulgo:" + key + ":my-assignments");
+    }
+
+    if (!assignments) {
+      setMessage("Teacher assignments are not available on this device yet.");
+      return;
+    }
+
+    setData(assignments);
+    setSchoolId(me?.user?.membership?.schoolId ?? "");
+
+    if (!selected && assignments.assignments?.length) {
+      setSelected(assignments.assignments[0].id);
+    }
+
+    setMessage("");
+  }
+
+  async function loadStudents() {
+    if (!schoolId || !assignment) return;
+
+    const key =
+      "skulgo-scores-students-" + schoolId + "-" + assignment.class.id;
+
+    try {
+      const response = await fetch("/api/schools/" + schoolId + "/students");
+      if (response.ok) {
+        const json = await response.json();
+        const filtered = json.filter(
+          (student: Student) =>
+            !student.classId || student.classId === assignment.class.id,
+        );
+        setStudents(filtered);
+        cacheRecord(key, filtered);
+        return;
+      }
+    } catch {
+      // Use the local copy below.
+    }
+
+    setStudents(readCachedRecord<Student[]>(key) ?? []);
+  }
+
+  async function loadScores() {
+    if (!schoolId || !assignment) return;
+
+    const key =
+      "skulgo:" +
+      scope +
+      ":assessments-" +
+      assignment.id +
+      "-" +
+      term;
+
+    try {
+      const response = await fetch(
+        "/api/schools/" +
+          schoolId +
+          "/assessments?classId=" +
+          encodeURIComponent(assignment.class.id) +
+          "&subjectId=" +
+          encodeURIComponent(assignment.subject.id) +
+          "&term=" +
+          encodeURIComponent(term),
+      );
+
+      if (response.ok) {
+        const records = (await response.json()) as RecordItem[];
+        const next: ScoreMap = {};
+
+        for (const record of records) {
+          next[record.studentId] = {
+            ca: record.ca == null ? "" : String(record.ca),
+            exam: record.exam == null ? "" : String(record.exam),
+            caSavedAt: record.ca1SavedAt ?? null,
+            examSavedAt: record.examSavedAt ?? null,
+            submitted: Boolean(record.submitted),
+          };
+
+          setCaMax(record.caMax ?? 40);
+          if (record.submitted) setSubmitted(true);
+        }
+
+        setScores(next);
+        cacheRecord(key, next);
+        return;
+      }
+    } catch {
+      // Use the local copy below.
+    }
+
+    setScores(readCachedRecord<ScoreMap>(key) ?? {});
+  }
+
+  function setScore(studentId: string, field: "ca" | "exam", value: string) {
+    const current =
+      scores[studentId] ?? {
+        ca: "",
+        exam: "",
+        caSavedAt: null,
+        examSavedAt: null,
+      };
+
+    setScores({
+      ...scores,
+      [studentId]: { ...current, [field]: value },
+    });
+  }
+
+  function scheduleSave(student: Student, field: "ca" | "exam") {
+    const key =
+      student.id + ":" + assignment?.id + ":" + term + ":" + field;
+
+    if (saveTimers.current[key]) {
+      window.clearTimeout(saveTimers.current[key]);
+    }
+
+    saveTimers.current[key] = window.setTimeout(() => {
+      delete saveTimers.current[key];
+      void saveField(student, field);
+    }, 1000);
+  }
+
+  async function saveField(student: Student, field: "ca" | "exam") {
+    if (!schoolId || !assignment || submitted) return;
+
+    const score =
+      scores[student.id] ?? {
+        ca: "",
+        exam: "",
+        caSavedAt: null,
+        examSavedAt: null,
+      };
+
+    const value = score[field].trim();
+    if (!value) return;
+
+    const savedAt =
+      field === "ca" ? score.caSavedAt : score.examSavedAt;
+
+    if (savedAt && remaining(savedAt) === 0) {
+      setMessage(
+        field.toUpperCase() + " correction window expired.",
+      );
+      return;
+    }
+
+    const number = Number(value);
+    const maximum = field === "ca" ? caMax : examMax;
+
+    if (
+      !Number.isFinite(number) ||
+      number < 0 ||
+      number > maximum
+    ) {
+      setMessage(
+        field.toUpperCase() + " must be between 0 and " + maximum + ".",
+      );
+      return;
+    }
+
+    const body = {
+      studentId: student.id,
+      classId: assignment.class.id,
+      subjectId: assignment.subject.id,
+      term,
+      caMax,
+      examMax,
+      [field]: number,
+    };
+
+    if (!navigator.onLine) {
+      queueAction({
+        scopeKey: scope,
+        url: "/api/schools/" + schoolId + "/assessments",
+        method: "POST",
+        body,
+      });
+      setPending(queuedCount(scope));
+      setMessage("Saved as draft on this device.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "/api/schools/" + schoolId + "/assessments",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMessage(json.error || "Score could not be saved.");
+        return;
+      }
+
+      setScores((current) => ({
+        ...current,
+        [student.id]: {
+          ...current[student.id],
+          [field]: json[field] == null ? String(number) : String(json[field]),
+          [field === "ca" ? "caSavedAt" : "examSavedAt"]:
+            json[field === "ca" ? "ca1SavedAt" : "examSavedAt"] ??
+            new Date().toISOString(),
+        },
+      }));
+
+      setMessage("Saved.");
+    } catch {
+      queueAction({
+        scopeKey: scope,
+        url: "/api/schools/" + schoolId + "/assessments",
+        method: "POST",
+        body,
+      });
+      setPending(queuedCount(scope));
+      setMessage("Connection dropped. Draft queued for sync.");
+    }
+  }
+
+  async function submitScores() {
+    if (!schoolId || !assignment || submitted || submitting) return;
+
+    const confirmed = window.confirm(
+      "Submit these scores now? After submission, the scores will be locked for editing.",
+    );
+
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    setMessage("Submitting scores...");
+
+    const body = {
+      action: "submit",
+      studentId: "class",
+      classId: assignment.class.id,
+      subjectId: assignment.subject.id,
+      term,
+      caMax,
+      examMax,
+    };
+
+    if (!navigator.onLine) {
+      queueAction({
+        scopeKey: scope,
+        url: "/api/schools/" + schoolId + "/assessments",
+        method: "POST",
+        body,
+      });
+      setPending(queuedCount(scope));
+      setMessage("Submission queued. It will lock when connection returns.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "/api/schools/" + schoolId + "/assessments",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMessage(json.error || "Scores could not be submitted.");
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitted(true);
+      setScores((current) => {
+        const next = { ...current };
+        for (const id of Object.keys(next)) {
+          next[id] = { ...next[id], submitted: true };
+        }
+        return next;
+      });
+      setMessage("Scores submitted and locked.");
+    } catch {
+      setMessage("Connection lost. Submission was not completed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    setPending(queuedCount(scope));
+    void load();
+
+    const onOnline = () => {
+      setOnline(true);
+      startOfflineSync(scope, (result) => setPending(result.remaining));
+    };
+
+    const onOffline = () => setOnline(false);
+
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [scope]);
+
+  useEffect(() => {
+    setSubmitted(false);
+    void loadStudents();
+    void loadScores();
+  }, [schoolId, assignment?.id, term, scope]);
+
+  if (!data) {
+    return (
+      <main className="workspace-main">
+        <p className="muted">{message}</p>
+      </main>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <main className="workspace-main">
+        <div className="card">
+          <strong>No teaching assignment yet.</strong>
+          <p className="muted">
+            Scores will appear here after Admin assigns a class and subject.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="workspace-main">
+      <div className="workspace-header">
+        <p className="muted">
+          Teacher workspace · {online ? "Online" : "Offline"}
+        </p>
+        <h1>Scores</h1>
+        <p className="muted">
+          {assignment.subject.name} · {assignment.class.section.name} ·{" "}
+          {assignment.class.name}
+          {assignment.class.arm ? " · " + assignment.class.arm : ""}
+        </p>
+        <p className="muted">
+          {pending
+            ? pending + " item(s) waiting to sync"
+            : "Saved records sync automatically."}
+        </p>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="grid grid-2">
+          <label className="grid">
+            <span>Teaching assignment</span>
+            <select
+              value={selected}
+              disabled={submitted}
+              onChange={(event) => setSelected(event.target.value)}
+            >
+              {data.assignments.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.subject.name} · {item.class.section.name} ·{" "}
+                  {item.class.name}
+                  {item.class.arm ? " · " + item.class.arm : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid">
+            <span>Term</span>
+            <select
+              value={term}
+              disabled={submitted}
+              onChange={(event) => setTerm(event.target.value)}
+            >
+              <option>First Term</option>
+              <option>Second Term</option>
+              <option>Third Term</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="grid grid-2" style={{ marginTop: 16 }}>
+          <label className="grid">
+            <span>CA maximum</span>
+            <select
+              value={caMax}
+              disabled={submitted}
+              onChange={(event) => setCaMax(Number(event.target.value))}
+            >
+              {CA_OPTIONS.map((maximum) => (
+                <option key={maximum} value={maximum}>
+                  CA / {maximum}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="grid">
+            <span>Exam maximum</span>
+            <div
+              className="card"
+              style={{ padding: "10px 12px", minHeight: 44 }}
+            >
+              Exam / {examMax}
+            </div>
+          </div>
+        </div>
+
+        <p className="muted" style={{ marginBottom: 0 }}>
+          CA + Exam = 100. Scores save automatically. You can correct them
+          for 24 hours, or submit now to lock them.
+        </p>
+      </div>
+
+      {students.length === 0 ? (
+        <div className="card">
+          <strong>No students available.</strong>
+        </div>
+      ) : (
+        <div className="grid">
+          {students.map((student) => {
+            const score =
+              scores[student.id] ?? {
+                ca: "",
+                exam: "",
+                caSavedAt: null,
+                examSavedAt: null,
+              };
+
+            const caExpired =
+              Boolean(score.caSavedAt) && remaining(score.caSavedAt) === 0;
+            const examExpired =
+              Boolean(score.examSavedAt) &&
+              remaining(score.examSavedAt) === 0;
+
+            return (
+              <div className="card" key={student.id}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 16,
+                    marginBottom: 14,
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {student.firstName} {student.lastName}
+                    </strong>
+                    <p className="muted" style={{ margin: "4px 0 0" }}>
+                      {student.admissionId}
+                    </p>
+                  </div>
+                  <span className="muted">
+                    {submitted ? "Submitted · Locked" : "Draft"}
+                  </span>
+                </div>
+
+                <div className="grid grid-2">
+                  <label className="grid">
+                    <span>CA / {caMax}</span>
+                    <input
+                      inputMode="decimal"
+                      value={score.ca}
+                      disabled={submitted || caExpired}
+                      placeholder="Enter CA score"
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setScore(student.id, "ca", value);
+
+                        if (
+                          value !== "" &&
+                          Number.isFinite(Number(value)) &&
+                          Number(value) >= 0 &&
+                          Number(value) <= caMax
+                        ) {
+                          scheduleSave(student, "ca");
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <label className="grid">
+                    <span>Exam / {examMax}</span>
+                    <input
+                      inputMode="decimal"
+                      value={score.exam}
+                      disabled={submitted || examExpired}
+                      placeholder="Enter exam score"
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setScore(student.id, "exam", value);
+
+                        if (
+                          value !== "" &&
+                          Number.isFinite(Number(value)) &&
+                          Number(value) >= 0 &&
+                          Number(value) <= examMax
+                        ) {
+                          scheduleSave(student, "exam");
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!submitted && (
+        <div
+          className="card"
+          style={{
+            marginTop: 18,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <strong>Ready to finish?</strong>
+            <p className="muted" style={{ margin: "4px 0 0" }}>
+              Submit when you are sure. Submission locks the scores.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void submitScores()}
+            disabled={submitting}
+          >
+            {submitting ? "Submitting..." : "Submit Scores"}
+          </button>
+        </div>
+      )}
+
+      {message && <p>{message}</p>}
+    </main>
+  );
 }
