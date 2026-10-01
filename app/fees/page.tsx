@@ -306,6 +306,43 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
+  async function startOnlinePayment(studentId: string) {
+    if (!schoolId || (role !== "STUDENT" && role !== "PARENT")) return;
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setSelectedStudentId(studentId);
+      setMessage("Enter the amount you want to pay.");
+      return;
+    }
+
+    const fee = fees.find(item => item.studentId === studentId);
+    if (!fee) {
+      setMessage("Fee record not found.");
+      return;
+    }
+    if (value > fee.balance) {
+      setMessage(`Maximum payment is ${money(fee.balance)}.`);
+      return;
+    }
+
+    setSelectedStudentId(studentId);
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/schools/${schoolId}/payments/online/initialize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, amount: value }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Unable to start online payment.");
+      window.location.assign(data.authorizationUrl);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to start online payment.");
+      setBusy(false);
+    }
+  }
+
   async function findCashierStudent() {
     if (!schoolId || role !== "CASHIER") return;
     const admissionId = cashierStudentCode.trim();
@@ -749,10 +786,16 @@ export default function FeesPage() {
 
         {(role === "STUDENT" || role === "PARENT") && (
           <div className="card" style={{ marginBottom: 18 }}>
-            <h2>{role === "PARENT" ? "Children's school fees" : "My school fees"}</h2>
-            <p className="muted">Approved school fees assigned to your student record are shown here with payments and the remaining balance.</p>
+            <h2>{role === "PARENT" ? "Children's Fees" : "My Fees"}</h2>
+            <p className="muted">
+              {role === "PARENT"
+                ? "Approved fees for your children are shown below, including amounts paid and outstanding balances."
+                : "Your approved school fees are shown below, including the amount paid and outstanding balance."}
+            </p>
             {!payOptions.length ? (
-              <p className="muted" style={{ marginTop: 14 }}>No approved fee has been assigned to this student record yet.</p>
+              <p className="muted" style={{ marginTop: 14 }}>
+                {role === "PARENT" ? "No approved child fee record is available yet." : "No approved fee record is available yet."}
+              </p>
             ) : (
               <div className="grid" style={{ marginTop: 14 }}>
                 {payOptions.map(fee => (
@@ -766,16 +809,43 @@ export default function FeesPage() {
                     </div>
                     <div className="grid grid-2" style={{ marginTop: 12 }}>
                       <div>
-                        <p className="muted">Paid</p>
+                        <p className="muted">Amount Paid</p>
                         <div className="stat">{money(fee.totalPaid)}</div>
                       </div>
                       <div>
-                        <p className="muted">Balance</p>
+                        <p className="muted">Outstanding Balance</p>
                         <div className="stat">{money(Math.max(0, fee.balance))}</div>
                       </div>
                     </div>
                     <p className="muted" style={{ marginTop: 10 }}>
-                      {fee.balance <= 0 ? "Paid in full." : "Outstanding balance. Follow the school's available payment instructions to make payment."}
+                      <strong>Payment Status:</strong> {fee.balance <= 0 ? "Paid in full" : fee.totalPaid > 0 ? "Partially paid" : "Outstanding"}
+                    </p>
+                    {fee.balance > 0 ? (
+                      <div className="grid grid-2" style={{ marginTop: 12 }}>
+                        <input
+                          inputMode="decimal"
+                          value={selectedStudentId === fee.studentId ? amount : ""}
+                          onChange={event => {
+                            setSelectedStudentId(fee.studentId);
+                            setAmount(event.target.value);
+                          }}
+                          placeholder="Amount to pay"
+                          aria-label={`Amount to pay for ${fee.student.firstName} ${fee.student.lastName}`}
+                        />
+                        <button
+                          className="button"
+                          type="button"
+                          onClick={() => void startOnlinePayment(fee.studentId)}
+                          disabled={busy}
+                        >
+                          {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay online"}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
+                    )}
+                    <p className="muted" style={{ marginTop: 10 }}>
+                      Online payment is recorded only after the payment provider confirms the transaction.
                     </p>
                   </div>
                 ))}
