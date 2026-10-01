@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { encryptProviderSecret } from "@/lib/payment-provider-secrets";
 import { getCurrentUser } from "@/lib/auth";
 
 const PROVIDERS = ["PAYSTACK", "FLUTTERWAVE", "MONIEPOINT"] as const;
@@ -9,6 +10,20 @@ async function adminMember(userId: string, schoolId: string) {
   return db.schoolMembership.findUnique({
     where: { schoolId_userId: { schoolId, userId } },
   });
+}
+
+function publicProvider(row: any) {
+  return {
+    id: row.id,
+    provider: row.provider,
+    enabled: row.enabled,
+    status: row.status,
+    accountName: row.accountName,
+    accountNumberLast4: row.accountNumberLast4,
+    merchantReference: row.merchantReference,
+    verifiedAt: row.verifiedAt,
+    credentialsConfigured: Boolean(row.secretKeyEncrypted || row.apiKeyEncrypted || row.contractCodeEncrypted),
+  };
 }
 
 export async function GET(
@@ -22,21 +37,12 @@ export async function GET(
   const member = await db.schoolMembership.findUnique({
     where: { schoolId_userId: { schoolId, userId: user.id } },
   });
-  if (!member?.active) {
-    return NextResponse.json({ error: "School access required" }, { status: 403 });
-  }
+  if (!member?.active) return NextResponse.json({ error: "School access required" }, { status: 403 });
 
-  const rows = await db.paymentProvider.findMany({
-    where: { schoolId },
-    orderBy: { provider: "asc" },
-  });
-
-  return NextResponse.json(
-    PROVIDERS.map(provider => rows.find(row => row.provider === provider) ?? {
-      provider,
-      enabled: false,
-    })
-  );
+  const rows = await db.paymentProvider.findMany({ where: { schoolId }, orderBy: { provider: "asc" } });
+  return NextResponse.json(PROVIDERS.map(provider => publicProvider(
+    rows.find(row => row.provider === provider) ?? { provider, enabled: false }
+  )));
 }
 
 export async function PATCH(
@@ -56,49 +62,73 @@ export async function PATCH(
   const provider = String(body?.provider ?? "") as Provider;
   const enabled = body?.enabled === true;
   const accountName = typeof body?.accountName === "string" ? body.accountName.trim() : "";
-  const accountNumberLast4 = typeof body?.accountNumberLast4 === "string" ? body.accountNumberLast4.replace(/\D/g, "").slice(-4) : "";
+  const accountNumberLast4 = typeof body?.accountNumberLast4 === "string"
+    ? body.accountNumberLast4.replace(/\D/g, "").slice(-4)
+    : "";
   const merchantReference = typeof body?.merchantReference === "string" ? body.merchantReference.trim() : "";
+
+  const secretKey = typeof body?.secretKey === "string" ? body.secretKey.trim() : "";
+  const apiKey = typeof body?.apiKey === "string" ? body.apiKey.trim() : "";
+  const contractCode = typeof body?.contractCode === "string" ? body.contractCode.trim() : "";
+  const webhookSecret = typeof body?.webhookSecret === "string" ? body.webhookSecret.trim() : "";
 
   if (!PROVIDERS.includes(provider)) {
     return NextResponse.json({ error: "Invalid payment provider" }, { status: 400 });
   }
 
-  if (enabled) {
-    const school = await db.school.findUnique({
-      where: { id: schoolId },
-      select: { name: true, email: true },
-    });
-    if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+  const school = await db.school.findUnique({ where: { id: schoolId }, select: { name: true } });
+  if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
 
-    if (!accountName) {
-      return NextResponse.json({ error: "Verify the provider account before enabling payments" }, { status: 400 });
-    }
+  if (enabled) {
+    if (!accountName) return NextResponse.json({ error: "Enter the payment account name." }, { status: 400 });
 
     const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const normalizedSchool = normalizeName(school.name);
-    const normalizedAccount = normalizeName(accountName);
-    const exactMatch = normalizedSchool === normalizedAccount;
-    if (!exactMatch) {
-      return NextResponse.json({ error: "Provider account name does not exactly match the school name" }, { status: 400 });
+    if (normalizeName(school.name) !== normalizeName(accountName)) {
+      return NextResponse.json({ error: "Payment account name must match the school name." }, { status: 400 });
     }
 
     if (!accountNumberLast4 && !merchantReference) {
-      return NextResponse.json({ error: "A verified account reference is required" }, { status: 400 });
+      return NextResponse.json({ error: "Enter an account number last 4 digits or merchant reference." }, { status: 400 });
     }
+  }
+
+  const existing = await db.paymentProvider.findUnique({
+    where: { schoolId_provider: { schoolId, provider } },
+  });
+
+  const secretChanged = Boolean(secretKey);
+  const apiKeyChanged = Boolean(apiKey);
+  const contractChanged = Boolean(contractCode);
+  const webhookChanged = Boolean(webhookSecret);
+
+  const credentialsRequired =
+    provider === "PAYSTACK" ? !secretKey && !existing?.secretKeyEncrypted :
+    provider === "FLUTTERWAVE" ? !secretKey && !existing?.secretKeyEncrypted :
+    (!apiKey && !existing?.apiKeyEncrypted) || (!secretKey && !existing?.secretKeyEncrypted) || (!contractCode && !existing?.contractCodeEncrypted);
+
+  if (enabled && credentialsRequired) {
+    return NextResponse.json({
+      error: provider === "MONIEPOINT"
+        ? "Enter the school's Moniepoint/Monnify API key, secret key and contract code."
+        : `Enter the school's ${provider === "PAYSTACK" ? "Paystack" : "Flutterwave"} secret key.`,
+    }, { status: 400 });
   }
 
   const row = await db.paymentProvider.upsert({
     where: { schoolId_provider: { schoolId, provider } },
     update: {
       enabled,
-      ...(accountName ? {
-        accountName,
+      ...(accountName ? { accountName } : {}),
+      ...(accountNumberLast4 || merchantReference ? {
         accountNumberLast4: accountNumberLast4 || null,
         merchantReference: merchantReference || null,
-        status: "VERIFIED",
-        verifiedAt: new Date(),
       } : {}),
-      ...(enabled ? {} : { status: "DISABLED" }),
+      ...(secretChanged ? { secretKeyEncrypted: encryptProviderSecret(secretKey) } : {}),
+      ...(apiKeyChanged ? { apiKeyEncrypted: encryptProviderSecret(apiKey) } : {}),
+      ...(contractChanged ? { contractCodeEncrypted: encryptProviderSecret(contractCode) } : {}),
+      ...(webhookChanged ? { webhookSecretEncrypted: encryptProviderSecret(webhookSecret) } : {}),
+      status: enabled ? "VERIFIED" : "DISABLED",
+      verifiedAt: enabled ? new Date() : null,
     },
     create: {
       schoolId,
@@ -107,19 +137,14 @@ export async function PATCH(
       accountName: accountName || null,
       accountNumberLast4: accountNumberLast4 || null,
       merchantReference: merchantReference || null,
+      secretKeyEncrypted: secretKey ? encryptProviderSecret(secretKey) : null,
+      apiKeyEncrypted: apiKey ? encryptProviderSecret(apiKey) : null,
+      contractCodeEncrypted: contractCode ? encryptProviderSecret(contractCode) : null,
+      webhookSecretEncrypted: webhookSecret ? encryptProviderSecret(webhookSecret) : null,
       status: enabled ? "VERIFIED" : "DISABLED",
       verifiedAt: enabled ? new Date() : null,
     },
   });
 
-  return NextResponse.json({
-    id: row.id,
-    provider: row.provider,
-    enabled: row.enabled,
-    status: row.status,
-    accountName: row.accountName,
-    accountNumberLast4: row.accountNumberLast4,
-    merchantReference: row.merchantReference,
-    verifiedAt: row.verifiedAt,
-  });
+  return NextResponse.json(publicProvider(row));
 }
