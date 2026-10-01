@@ -466,6 +466,7 @@ model Assessment {
   subject Subject @relation(fields:[subjectId],references:[id],onDelete:Cascade)
   term String
   ca Float?
+  caMax Int @default(40)
   ca1 Float?
   ca2 Float?
   ca3 Float?
