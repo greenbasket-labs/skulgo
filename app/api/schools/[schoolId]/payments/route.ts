@@ -64,12 +64,12 @@ export async function POST(
     return NextResponse.json({ error: "student or Admission ID and a positive amount are required" }, { status: 400 });
   }
 
-  if (!["ONLINE", "CASH", "BANK_TRANSFER"].includes(paymentMethod)) {
+  if (!["CASH", "BANK_TRANSFER"].includes(paymentMethod)) {
     return NextResponse.json({ error: "Unsupported payment method" }, { status: 400 });
   }
 
-  if (membership.role === "CASHIER" && paymentMethod === "ONLINE") {
-    return NextResponse.json({ error: "Cashiers record cash or manual bank-transfer payments" }, { status: 400 });
+  if (membership.role !== "CASHIER" && membership.role !== "ADMIN") {
+    return NextResponse.json({ error: "Online payments must be completed through the school payment checkout" }, { status: 403 });
   }
 
   if (membership.role === "CASHIER" && paymentMethod === "CASH" && !tellerNumber) {
