@@ -199,6 +199,10 @@ export async function syncOfflineQueue(scopeKey?: string) {
 
       if (response.ok) {
         synced += 1;
+      } else if (response.status === 409) {
+        // The server deliberately rejected this stale/locked correction.
+        // Do not retry it forever and risk confusing the teacher.
+        continue;
       } else {
         remaining.push(action);
       }
