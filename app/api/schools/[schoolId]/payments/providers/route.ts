@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { encryptProviderSecret } from "@/lib/payment-provider-secrets";
 import { getCurrentUser } from "@/lib/auth";
 
-const PROVIDERS = ["PAYSTACK", "FLUTTERWAVE", "MONIEPOINT"] as const;
+const PROVIDERS = ["MONIEPOINT"] as const;
 type Provider = typeof PROVIDERS[number];
 
 async function adminMember(userId: string, schoolId: string) {
@@ -102,15 +102,13 @@ export async function PATCH(
   const webhookChanged = Boolean(webhookSecret);
 
   const credentialsRequired =
-    provider === "PAYSTACK" ? !secretKey && !existing?.secretKeyEncrypted :
-    provider === "FLUTTERWAVE" ? !secretKey && !existing?.secretKeyEncrypted :
-    (!apiKey && !existing?.apiKeyEncrypted) || (!secretKey && !existing?.secretKeyEncrypted) || (!contractCode && !existing?.contractCodeEncrypted);
+    (!apiKey && !existing?.apiKeyEncrypted) ||
+    (!secretKey && !existing?.secretKeyEncrypted) ||
+    (!contractCode && !existing?.contractCodeEncrypted);
 
   if (enabled && credentialsRequired) {
     return NextResponse.json({
-      error: provider === "MONIEPOINT"
-        ? "Enter the school's Moniepoint/Monnify API key, secret key and contract code."
-        : `Enter the school's ${provider === "PAYSTACK" ? "Paystack" : "Flutterwave"} secret key.`,
+      error: "Enter the school's Moniepoint/Monnify API key, secret key and contract code.",
     }, { status: 400 });
   }
 
