@@ -26,6 +26,7 @@ export function navForRole(role: WorkspaceRole): WorkspaceNavGroup[] {
           items: [
             ["Attendance", "/admin/attendance"],
             ["Results", "/results"],
+            ["Assessment Setup", "/settings#assessment-setup"],
           ],
         },
         {
