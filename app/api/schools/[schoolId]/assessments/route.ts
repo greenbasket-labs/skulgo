@@ -117,7 +117,7 @@ export async function POST(
   if (!studentId || !classId || !subjectId || !term || !entered.length) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
   for (const field of entered) {
     const value = Number(body[field]);
-    const max = field === "exam" ? 60 : 10;
+    const max = field === "exam" ? 60 : 40;
     if (!Number.isFinite(value) || value < 0 || value > max) return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
   }
 
@@ -147,6 +147,7 @@ export async function POST(
   const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
   for (const field of entered) current[field as keyof typeof current] = Number(body[field]);
   const caTotal = (current.ca1 ?? 0) + (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
+  if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40." }, { status: 400 });
   const data = { classId, ca: caTotal, ca1: current.ca1, ca2: current.ca2, ca3: current.ca3, ca4: current.ca4, exam: current.exam, ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])) };
   const assessment = existing
     ? await db.assessment.update({ where: { id: existing.id }, data })
