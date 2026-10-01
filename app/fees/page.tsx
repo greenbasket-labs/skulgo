@@ -306,7 +306,7 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
-  async function startOnlinePayment(studentId: string) {
+  async function startOnlinePayment(studentId: string, provider: "PAYSTACK" | "MONIEPOINT") {
     if (!schoolId || (role !== "STUDENT" && role !== "PARENT")) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) {
@@ -329,7 +329,10 @@ export default function FeesPage() {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch(`/api/schools/${schoolId}/payments/online/initialize`, {
+      const endpoint = provider === "MONIEPOINT"
+        ? `/api/schools/${schoolId}/payments/online/monnify/initialize`
+        : `/api/schools/${schoolId}/payments/online/initialize`;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId, amount: value }),
@@ -832,14 +835,31 @@ export default function FeesPage() {
                           placeholder="Amount to pay"
                           aria-label={`Amount to pay for ${fee.student.firstName} ${fee.student.lastName}`}
                         />
-                        <button
-                          className="button"
-                          type="button"
-                          onClick={() => void startOnlinePayment(fee.studentId)}
-                          disabled={busy}
-                        >
-                          {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay online"}
-                        </button>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {paymentProviders.some(item => item.provider === "PAYSTACK" && item.enabled && item.status === "VERIFIED") && (
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={() => void startOnlinePayment(fee.studentId, "PAYSTACK")}
+                              disabled={busy}
+                            >
+                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Paystack"}
+                            </button>
+                          )}
+                          {paymentProviders.some(item => item.provider === "MONIEPOINT" && item.enabled && item.status === "VERIFIED") && (
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={() => void startOnlinePayment(fee.studentId, "MONIEPOINT")}
+                              disabled={busy}
+                            >
+                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Moniepoint"}
+                            </button>
+                          )}
+                          {!paymentProviders.some(item => (item.provider === "PAYSTACK" || item.provider === "MONIEPOINT") && item.enabled && item.status === "VERIFIED") && (
+                            <span className="muted">Online payment is not enabled by the school yet.</span>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <p className="muted" style={{ marginTop: 12 }}>No outstanding balance.</p>
