@@ -306,7 +306,7 @@ export default function FeesPage() {
     return fees;
   }, [fees, role]);
 
-  async function startOnlinePayment(studentId: string, provider: "PAYSTACK" | "MONIEPOINT") {
+  async function startOnlinePayment(studentId: string, provider: "PAYSTACK" | "MONIEPOINT" | "FLUTTERWAVE") {
     if (!schoolId || (role !== "STUDENT" && role !== "PARENT")) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) {
@@ -331,7 +331,9 @@ export default function FeesPage() {
     try {
       const endpoint = provider === "MONIEPOINT"
         ? `/api/schools/${schoolId}/payments/online/monnify/initialize`
-        : `/api/schools/${schoolId}/payments/online/initialize`;
+        : provider === "FLUTTERWAVE"
+          ? `/api/schools/${schoolId}/payments/online/flutterwave/initialize`
+          : `/api/schools/${schoolId}/payments/online/initialize`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -854,6 +856,16 @@ export default function FeesPage() {
                               disabled={busy}
                             >
                               {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Moniepoint"}
+                            </button>
+                          )}
+                          {paymentProviders.some(item => item.provider === "FLUTTERWAVE" && item.enabled && item.status === "VERIFIED") && (
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={() => void startOnlinePayment(fee.studentId, "FLUTTERWAVE")}
+                              disabled={busy}
+                            >
+                              {busy && selectedStudentId === fee.studentId ? "Starting payment…" : "Pay with Flutterwave"}
                             </button>
                           )}
                           {!paymentProviders.some(item => (item.provider === "PAYSTACK" || item.provider === "MONIEPOINT") && item.enabled && item.status === "VERIFIED") && (
