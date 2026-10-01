@@ -335,7 +335,8 @@ export default function ScoresPage() {
     );
     if (!component) return;
 
-    const savedAt = score.savedAt[field];
+    const currentScore = scores[student.id] ?? emptyScore();
+    const savedAt = currentScore.savedAt[field];
     if (savedAt && remaining(savedAt) === 0) {
       setMessage(component.name + " correction window expired.");
       return;
