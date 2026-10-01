@@ -477,6 +477,7 @@ model Assessment {
   ca4 Float?
   ca4Max Int @default(10)
   exam Float?
+  updatedAt DateTime @default(now()) @updatedAt
   submitted Boolean @default(false)
   submittedAt DateTime?
   submittedById String?
