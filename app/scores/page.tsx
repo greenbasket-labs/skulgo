@@ -80,6 +80,9 @@ export default function ScoresPage() {
 
   const saveTimers = useRef<Record<string, number>>({});
   const examMax = 100 - caMax;
+  const hasScores = Object.values(scores).some(
+    (score) => score.ca.trim() !== "" || score.exam.trim() !== "",
+  );
 
   const assignment = useMemo(
     () =>
@@ -529,7 +532,7 @@ export default function ScoresPage() {
             <span>CA maximum</span>
             <select
               value={caMax}
-              disabled={submitted}
+              disabled={submitted || hasScores}
               onChange={(event) => setCaMax(Number(event.target.value))}
             >
               {CA_OPTIONS.map((maximum) => (
@@ -554,6 +557,7 @@ export default function ScoresPage() {
         <p className="muted" style={{ marginBottom: 0 }}>
           CA + Exam = 100. Scores save automatically. You can correct them
           for 24 hours, or submit now to lock them.
+          {hasScores && !submitted ? " The grading structure is now fixed for this draft." : ""}
         </p>
       </div>
 
