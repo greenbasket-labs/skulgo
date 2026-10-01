@@ -443,6 +443,10 @@ export default function ScoresPage() {
     setPending(queuedCount(scope));
     void load();
 
+    if (scope) {
+      startOfflineSync(scope, (result) => setPending(result.remaining));
+    }
+
     const onOnline = () => {
       setOnline(true);
       startOfflineSync(scope, (result) => setPending(result.remaining));
