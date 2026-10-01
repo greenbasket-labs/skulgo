@@ -180,7 +180,7 @@ export default function ScoresPage() {
       return;
     }
 
-    const response = await fetch("/api/teachers/me/assignments");
+    const response = await fetch("/api/schools/" + (me?.user?.membership?.schoolId ?? "") + "/my-assignments");
     if (!response.ok) {
       setMessage("Teaching assignments are not available on this device yet.");
       return;
