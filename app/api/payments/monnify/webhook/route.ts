@@ -14,22 +14,27 @@ function validSignature(rawBody: string, signature: string | null, secretKey: st
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
-  const providers = await db.paymentProvider.findMany({ where: { provider: "MONIEPOINT", enabled: true, status: "VERIFIED" } });
-  const secretKey = providers.length === 1 ? decryptProviderSecret(providers[0].secretKeyEncrypted) : null;
-  if (!secretKey) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
-
   const signature = request.headers.get("monnify-signature");
   if (process.env.NODE_ENV === "production" && !validSignature(rawBody, signature, secretKey)) {
     return NextResponse.json({ error: "Invalid webhook signature." }, { status: 401 });
   }
 
   const payload = JSON.parse(rawBody || "{}");
+  const event = payload.eventData ?? {};
+  const metadata = event.metaData ?? event.metadata ?? {};
+  const schoolId = String(metadata.schoolId ?? "").trim();
+  if (!schoolId) return NextResponse.json({ received: true });
+
+  const provider = await db.paymentProvider.findUnique({
+    where: { schoolId_provider: { schoolId, provider: "MONIEPOINT" } },
+  });
+  const secretKey = decryptProviderSecret(provider?.secretKeyEncrypted);
+  if (!secretKey) return NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
   if (payload?.eventType !== "SUCCESSFUL_TRANSACTION") {
     return NextResponse.json({ received: true });
   }
 
   const event = payload.eventData ?? {};
-  const metadata = event.metaData ?? event.metadata ?? {};
   const paymentReference = String(event.paymentReference ?? "").trim();
 
   if (!paymentReference || metadata.skulgo !== "school-fee" || !metadata.schoolId || !metadata.studentId || !metadata.userId) {
