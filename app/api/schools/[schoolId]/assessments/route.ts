@@ -84,6 +84,10 @@ export async function GET(
 
   return NextResponse.json(assessments.map(item => ({
     ...item,
+    ca1Max: item.ca1Max,
+    ca2Max: item.ca2Max,
+    ca3Max: item.ca3Max,
+    ca4Max: item.ca4Max,
     ca1CorrectionRemainingMs: remainingMs(item.ca1SavedAt),
     ca2CorrectionRemainingMs: remainingMs(item.ca2SavedAt),
     ca3CorrectionRemainingMs: remainingMs(item.ca3SavedAt),
@@ -115,6 +119,7 @@ export async function POST(
   const term = String(body?.term ?? "").trim();
   const caMaxRaw = body?.caMax === undefined || body?.caMax === null || String(body.caMax).trim() === "" ? null : Number(body.caMax);
   const requestedCaMax = caMaxRaw === null ? null : ([10, 20, 30, 40].includes(caMaxRaw) ? caMaxRaw : null);
+  const caMaxField = (field: string) => field === "ca1" ? "ca1Max" : field === "ca2" ? "ca2Max" : field === "ca3" ? "ca3Max" : "ca4Max";
   const entered = SCORE_FIELDS.filter(field => body?.[field] !== undefined && body?.[field] !== null && String(body[field]).trim() !== "");
   if (!studentId || !classId || !subjectId || !term || !entered.length || (caMaxRaw !== null && requestedCaMax === null)) return NextResponse.json({ error: "Enter at least one CA component or exam score before saving" }, { status: 400 });
 
@@ -143,17 +148,36 @@ export async function POST(
     const savedAt = existing?.[saveTimes[field as keyof typeof saveTimes] as keyof typeof existing] as Date | null | undefined;
     if (savedAt && !withinCorrectionWindow(savedAt)) return NextResponse.json({ error: field.toUpperCase() + " correction window has expired for this student." }, { status: 409 });
     const value = Number(body[field]);
-    const max = field === "exam" ? 60 : caMax;
+    const max = field === "exam" ? 60 : (requestedCaMax ?? Number(existing?.[caMaxField(field) as keyof typeof existing] ?? 10));
+    const existingValue = existing?.[field as keyof typeof existing] as number | null | undefined;
+    if (field !== "exam" && existingValue != null && value > max) {
+      return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
+    }
     if (!Number.isFinite(value) || value < 0 || value > max) return NextResponse.json({ error: field.toUpperCase() + " must be 0-" + max }, { status: 400 });
   }
 
   const current = { ca1: existing?.ca1 ?? null, ca2: existing?.ca2 ?? null, ca3: existing?.ca3 ?? null, ca4: existing?.ca4 ?? null, exam: existing?.exam ?? null };
-  for (const field of entered) current[field as keyof typeof current] = Number(body[field]);
-  const normalizedCa1 = current.ca1 === null ? 0 : (current.ca1 / caMax) * 40;
-  const legacyOtherCa = (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
-  const caTotal = normalizedCa1 + legacyOtherCa;
-  if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40." }, { status: 400 });
-  const data = { classId, ca: caTotal, caMax, ca1: current.ca1, ca2: current.ca2, ca3: current.ca3, ca4: current.ca4, exam: current.exam, ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now])) };
+  const currentMax = {
+    ca1Max: existing?.ca1Max ?? 10,
+    ca2Max: existing?.ca2Max ?? 10,
+    ca3Max: existing?.ca3Max ?? 10,
+    ca4Max: existing?.ca4Max ?? 10,
+  };
+  for (const field of entered) {
+    current[field as keyof typeof current] = Number(body[field]);
+    if (field !== "exam") currentMax[caMaxField(field) as keyof typeof currentMax] = requestedCaMax ?? currentMax[caMaxField(field) as keyof typeof currentMax];
+  }
+  const caTotal = (current.ca1 ?? 0) + (current.ca2 ?? 0) + (current.ca3 ?? 0) + (current.ca4 ?? 0);
+  if (caTotal > 40) return NextResponse.json({ error: "CA total cannot exceed 40. Remaining CA is " + Math.max(0, 40 - (caTotal - Number(body.ca1 ?? 0) - Number(body.ca2 ?? 0) - Number(body.ca3 ?? 0) - Number(body.ca4 ?? 0))) + "." }, { status: 400 });
+  const data = {
+    classId, ca: caTotal, caMax,
+    ca1: current.ca1, ca1Max: currentMax.ca1Max,
+    ca2: current.ca2, ca2Max: currentMax.ca2Max,
+    ca3: current.ca3, ca3Max: currentMax.ca3Max,
+    ca4: current.ca4, ca4Max: currentMax.ca4Max,
+    exam: current.exam,
+    ...Object.fromEntries(entered.map(field => [saveTimes[field as keyof typeof saveTimes], now]))
+  };
   const assessment = existing
     ? await db.assessment.update({ where: { id: existing.id }, data })
     : await db.assessment.create({ data: { schoolId, studentId, subjectId, term, ...data } });
