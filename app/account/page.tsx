@@ -50,10 +50,6 @@ export default async function AccountPage() {
 
       <section className="card" style={{ marginBottom: 18 }}>
         <h2>Personal profile</h2>
-        <p className="muted">
-          Your personal account is used to access SkulGo. School records stay inside each
-          school workspace.
-        </p>
         <div className="grid grid-2" style={{ marginTop: 16 }}>
           <div>
             <p className="muted">Name</p>
