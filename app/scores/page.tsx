@@ -697,7 +697,7 @@ export default function ScoresPage() {
           <div>
             <strong>Ready to finish?</strong>
             <p className="muted" style={{ margin: "4px 0 0" }}>
-              Submit when you are sure. Submission locks the scores.
+              Mark done when you are finished. This locks the scores you entered.
             </p>
           </div>
           <button
@@ -705,7 +705,7 @@ export default function ScoresPage() {
             onClick={() => void submitScores()}
             disabled={submitting}
           >
-            {submitting ? "Submitting..." : "Submit Scores"}
+            {submitting ? "Marking done..." : "Mark as done"}
           </button>
         </div>
       )}
