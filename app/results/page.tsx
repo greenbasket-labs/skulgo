@@ -235,6 +235,7 @@ export default function ResultsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         term,
+        ...(classId ? { classId } : {}),
         ...(studentId ? { studentId } : {}),
       }),
     });
