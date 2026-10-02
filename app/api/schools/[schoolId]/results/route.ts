@@ -15,6 +15,7 @@ export async function GET(
   }
 
   const studentId = request.nextUrl.searchParams.get("studentId");
+  const classId = request.nextUrl.searchParams.get("classId");
   const term = request.nextUrl.searchParams.get("term");
   const publishedOnly = request.nextUrl.searchParams.get("published") === "true";
   let studentIds: string[] | null = null;
@@ -51,11 +52,17 @@ export async function GET(
     return NextResponse.json([]);
   }
 
+  if (classId) {
+    const schoolClass = await db.schoolClass.findFirst({ where: { id: classId, schoolId }, select: { id: true } });
+    if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+  }
+
   const results = await db.result.findMany({
     where: {
       schoolId,
       ...(studentId ? { studentId } : {}),
       ...(studentIds ? { studentId: { in: studentIds } } : {}),
+      ...(classId ? { student: { classId } } : {}),
       ...(term ? { term } : {}),
       ...((publishedOnly || forcePublished) ? { published: true } : {}),
       ...(assignmentPairs ? { OR: assignmentPairs.map(item => ({ subjectId: item.subjectId, student: { classId: item.classId } })) } : {}),
@@ -114,19 +121,36 @@ export async function POST(
   const results = [];
   for (const assessment of assessments) {
     const total = percentage(assessment.ca ?? 0, assessment.exam ?? 0);
-    const classmates = await db.assessment.findMany({
-      where: { schoolId, classId: student.classId, subjectId: assessment.subjectId, term },
-      select: { ca: true, exam: true },
-    });
-    const scores = classmates.map(item => percentage(item.ca ?? 0, item.exam ?? 0)).sort((a, b) => b - a);
-    const position = scores.findIndex(score => score === total) + 1;
-
     results.push(await db.result.upsert({
       where: { studentId_subjectId_term: { studentId, subjectId: assessment.subjectId, term } },
-      update: { schoolId, total, percentage: total, grade: gradeFor(total, gradingBands), position },
-      create: { schoolId, studentId, subjectId: assessment.subjectId, term, total, percentage: total, grade: gradeFor(total, gradingBands), position },
+      update: { schoolId, total, percentage: total, grade: gradeFor(total, gradingBands) },
+      create: { schoolId, studentId, subjectId: assessment.subjectId, term, total, percentage: total, grade: gradeFor(total, gradingBands), position: 0 },
     }));
   }
 
-  return NextResponse.json(results, { status: 201 });
+  // Position is the student's final aggregate position in the class for the term.
+  // Every subject result for the same student carries that same final position.
+  const classResults = await db.result.findMany({
+    where: { schoolId, term, student: { classId: student.classId } },
+    select: { id: true, studentId: true, total: true },
+  });
+  const aggregateByStudent = new Map<string, number>();
+  for (const item of classResults) {
+    aggregateByStudent.set(item.studentId, (aggregateByStudent.get(item.studentId) ?? 0) + item.total);
+  }
+  const aggregates = [...aggregateByStudent.values()].sort((a, b) => b - a);
+  const positionFor = (studentAggregate: number) => 1 + aggregates.filter(value => value > studentAggregate).length;
+  const updates = [...aggregateByStudent.entries()].map(([classStudentId, aggregate]) =>
+    db.result.updateMany({
+      where: { schoolId, term, studentId: classStudentId },
+      data: { position: positionFor(aggregate) },
+    })
+  );
+  await Promise.all(updates);
+
+  const refreshed = await db.result.findMany({
+    where: { id: { in: results.map(item => item.id) } },
+    include: { student: { select: { id: true, admissionId: true, firstName: true, lastName: true } }, subject: { select: { name: true } } },
+  });
+  return NextResponse.json(refreshed, { status: 201 });
 }
