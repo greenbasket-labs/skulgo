@@ -104,8 +104,8 @@ export default function HowSkulGoWorks({ onBack, backLabel }: HowSkulGoWorksProp
       <p>And the school does not need to recreate your personal identity every time your school relationship changes.</p>
 
       <h3>What happens when you leave a school?</h3>
-      <p>Your school access can end without deleting your Personal Account.</p>
-      <p>The school keeps its own records. Your connection to that school can remain in your history. Your Personal Account stays with you.</p>
+      <p>Your Personal Account remains yours while your approved school connections can change over time.</p>
+      <p>Leaving a school ends your access to that school's workspace; the school keeps control of its records.</p>
       <p>If you later join another school, you can use the same SkulGo identity.</p>
 
       <h3>Your SkulGo Account ID</h3>
