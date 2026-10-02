@@ -1,5 +1,60 @@
 # SkulGo
 
+**Lightweight connected school-record infrastructure for schools.**
+
+SkulGo connects school records across **Admin, teachers, students, parents, and cashiers** while keeping each person's personal account separate from the school's records.
+
+> **Current state: working MVP / active development. Production deployment is documented below.**
+
+## Product in one view
+
+```text
+Personal Account
+       ↓
+School Connection
+       ↓
+Approved Duty / Role
+       ↓
+Connected School Records
+```
+
+The core record flow is:
+
+**People → Classes → Subjects → Attendance → Scores → Results → Fees**
+
+## What SkulGo demonstrates
+
+- Multi-school/workspace architecture
+- Role-based school access
+- Student admission and approval
+- Parent → child approval
+- Teacher approval and assignment
+- Attendance and assessment workflows
+- Result generation and publishing
+- Fees, payments, balances and cashier workflows
+- Offline-first attendance and score entry
+- Audit history for important school actions
+- School-specific configuration
+
+## Technical direction
+
+**Next.js · TypeScript · PostgreSQL · Prisma · SQLite · Offline-first web architecture**
+
+The system is designed as a small set of connected school workflows rather than a large ERP. The goal is to enter a record once and let authorized roles work from the same underlying school record.
+
+## Product principle
+
+> **Navigation carries complexity; the dashboard carries the work.**
+
+SkulGo deliberately avoids turning the MVP into a payroll system, accounting suite, CRM, marketplace, or social network.
+
+---
+
+## Detailed product and developer documentation
+
+Continue below for the current architecture, role behavior, school isolation rules, offline behavior, deployment notes, and developer handover.
+
+---
 **Motto: Transparent & Secure Records**
 
 SkulGo is a very lightweight school records application. It keeps the school structure and records connected, while every person works through their own personal SkulGo account.
