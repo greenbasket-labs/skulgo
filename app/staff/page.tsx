@@ -95,7 +95,7 @@ export default function StaffPage() {
       <div className="workspace-header">
         <p className="muted">Admin</p>
         <h1>Staff</h1>
-        <p>Approved academic and non-academic staff connected to this school.</p>
+        <p>Academic and non-academic staff connected to this school.</p>
       </div>
 
       {message && <p role="status" className="muted">{message}</p>}
