@@ -23,6 +23,14 @@ type Student = {
   admissionId: string;
   firstName: string;
   lastName: string;
+  class?: { id: string; name: string; arm: string | null } | null;
+};
+
+type SchoolClass = {
+  id: string;
+  name: string;
+  arm: string | null;
+  section: { id: string; name: string };
 };
 
 type Assessment = {
@@ -57,7 +65,9 @@ export default function ResultsPage() {
   const [results, setResults] = useState<Result[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [term, setTerm] = useState("First Term");
+  const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [message, setMessage] = useState("Loading...");
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
@@ -105,6 +115,7 @@ export default function ResultsPage() {
     if (!currentUser?.membership) return;
 
     const params = new URLSearchParams({ term });
+    if (role === "ADMIN" && classId) params.set("classId", classId);
     if (role === "STUDENT") params.set("published", "true");
     if (role === "PARENT") params.set("published", "true");
     if (role === "STUDENT" && currentUser.student?.id) {
@@ -113,7 +124,7 @@ export default function ResultsPage() {
 
     const schoolId = currentUser.membership.schoolId;
     const userScope = `${currentUser.id}:${schoolId}`;
-    const cacheKey = `skulgo:results:${userScope}:${term}:${role === "STUDENT" ? currentUser.student?.id ?? "self" : role ?? "workspace"}`;
+    const cacheKey = `skulgo:results:${userScope}:${term}:${classId || "all"}:${role === "STUDENT" ? currentUser.student?.id ?? "self" : role ?? "workspace"}`;
 
     try {
       const response = await fetch(
@@ -123,7 +134,7 @@ export default function ResultsPage() {
       if (response.ok) {
         setResults(Array.isArray(data) ? data : []);
         cacheRecord(cacheKey, Array.isArray(data) ? data : []);
-        if (role === "PARENT" || role === "STUDENT") {
+        if (role === "PARENT" || role === "STUDENT" || role === "ADMIN") {
           const assessmentResponse = await fetch(`/api/schools/${schoolId}/assessments?${params.toString()}`);
           const assessmentData = await assessmentResponse.json().catch(() => []);
           setAssessments(assessmentResponse.ok && Array.isArray(assessmentData) ? assessmentData : []);
@@ -135,7 +146,7 @@ export default function ResultsPage() {
     }
 
     setResults(readCachedRecord<Result[]>(cacheKey) ?? []);
-    if (role === "PARENT" || role === "STUDENT") setAssessments([]);
+    if (role === "PARENT" || role === "STUDENT" || role === "ADMIN") setAssessments([]);
   }
 
   async function loadStudents(currentUser: User | null) {
@@ -146,6 +157,13 @@ export default function ResultsPage() {
     );
     const data = await response.json().catch(() => []);
     setStudents(response.ok ? data : []);
+  }
+
+  async function loadClasses(currentUser: User | null) {
+    if (!currentUser?.membership || currentUser.membership.role !== "ADMIN") return;
+    const response = await fetch(`/api/schools/${currentUser.membership.schoolId}/classes`);
+    const data = await response.json().catch(() => []);
+    setClasses(response.ok && Array.isArray(data) ? data : []);
   }
 
   useEffect(() => {
@@ -165,12 +183,13 @@ export default function ResultsPage() {
       if (!current) return;
       await loadResults(current);
       await loadStudents(current);
+      await loadClasses(current);
     })();
   }, []);
 
   useEffect(() => {
     if (user) void loadResults(user);
-  }, [term]);
+  }, [term, classId]);
 
   const grouped = useMemo(() => {
     return results.reduce<Record<string, Result[]>>((acc, item) => {
@@ -178,6 +197,13 @@ export default function ResultsPage() {
       return acc;
     }, {});
   }, [results]);
+
+  const selectedClass = classes.find(item => item.id === classId) ?? null;
+  const classStudents = useMemo(() => students.filter(student => !classId || student.class?.id === classId), [students, classId]);
+  const adminSummaries = useMemo(() => Object.entries(grouped).map(([studentId, items]) => {
+    const aggregate = items.reduce((sum, item) => sum + item.total, 0);
+    return { studentId, items, aggregate, average: items.length ? aggregate / items.length : 0, position: items[0]?.position ?? 0 };
+  }).sort((a, b) => b.aggregate - a.aggregate), [grouped]);
 
   async function generate() {
     if (!schoolId || role !== "TEACHER" || !studentId) {
@@ -250,13 +276,27 @@ export default function ResultsPage() {
             </select>
           </label>
 
+          {role === "ADMIN" && (
+            <label className="grid">
+              <span>Class</span>
+              <select value={classId} onChange={event => { setClassId(event.target.value); setStudentId(""); }}>
+                <option value="">All classes</option>
+                {classes.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}{item.arm ? ` ${item.arm}` : ""} · {item.section.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {(role === "TEACHER" || role === "ADMIN") && (
             <label className="grid">
               <span>Student</span>
               {role === "ADMIN" && students.length ? (
                 <select value={studentId} onChange={event => setStudentId(event.target.value)}>
                   <option value="">All students</option>
-                  {students.map(student => (
+                  {classStudents.map(student => (
                     <option key={student.id} value={student.id}>
                       {student.firstName} {student.lastName} · {student.admissionId}
                     </option>
