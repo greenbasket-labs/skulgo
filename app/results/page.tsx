@@ -69,6 +69,8 @@ export default function ResultsPage() {
   const [term, setTerm] = useState("First Term");
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [publishScope, setPublishScope] = useState<"SCHOOL" | "SECTION" | "CLASS">("SCHOOL");
+  const [publishSectionId, setPublishSectionId] = useState("");
   const [message, setMessage] = useState("Loading...");
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [reportCardStudentId, setReportCardStudentId] = useState<string | null>(null);
@@ -235,8 +237,9 @@ export default function ResultsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         term,
-        ...(classId ? { classId } : {}),
-        ...(studentId ? { studentId } : {}),
+        publishScope,
+        ...(publishScope === "CLASS" && classId ? { classId } : {}),
+        ...(publishScope === "SECTION" && publishSectionId ? { sectionId: publishSectionId } : {}),
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -321,9 +324,51 @@ export default function ResultsPage() {
         )}
 
         {role === "ADMIN" && (
-          <button className="button" onClick={() => void publish()} style={{ marginTop: 12 }}>
-            Publish result
-          </button>
+          <div style={{ marginTop: 18 }}>
+            <strong>Publish</strong>
+            <div className="grid grid-2" style={{ marginTop: 10 }}>
+              <label className="grid">
+                <span>Scope</span>
+                <select value={publishScope} onChange={event => setPublishScope(event.target.value as "SCHOOL" | "SECTION" | "CLASS")}>
+                  <option value="SCHOOL">Whole school</option>
+                  <option value="SECTION">Section</option>
+                  <option value="CLASS">Class</option>
+                </select>
+              </label>
+
+              {publishScope === "SECTION" && (
+                <label className="grid">
+                  <span>Section</span>
+                  <select value={publishSectionId} onChange={event => setPublishSectionId(event.target.value)}>
+                    <option value="">Select section</option>
+                    {[...new Map(classes.map(item => [item.section.id, item.section])).values()].map(section => (
+                      <option key={section.id} value={section.id}>{section.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              {publishScope === "CLASS" && (
+                <label className="grid">
+                  <span>Class</span>
+                  <select value={classId} onChange={event => setClassId(event.target.value)}>
+                    <option value="">Select class</option>
+                    {classes.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}{item.arm ? ` ${item.arm}` : ""} · {item.section.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+            <p className="muted" style={{ marginTop: 8 }}>
+              Publishing checks that every student in the selected scope has the required results.
+            </p>
+            <button className="button" onClick={() => void publish()} style={{ marginTop: 10 }}>
+              Publish {publishScope === "SCHOOL" ? "whole school" : publishScope === "SECTION" ? "section" : "class"}
+            </button>
+          </div>
         )}
       </div>
 
