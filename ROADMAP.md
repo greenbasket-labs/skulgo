@@ -614,3 +614,108 @@ Every meaningful change should leave:
 - room for the next real school-driven module.
 
 > **SkulGo does not need to be complete. It needs to be useful, connected, reliable and easy to extend.**
+
+
+## New research finding — Record History / Record Events
+
+**Status: RESEARCH BACKLOG — DO NOT IMPLEMENT YET**
+
+A cross-area gap review was completed across Student Records, Teacher Workflow, Attendance, Assessment/Results, Fees/Payments, Communication, Staff/Administration, Applications/Admissions, Account/Identity, and Offline/Continuity.
+
+The same underlying question appeared repeatedly:
+
+> **What happened to this important school record, and how did its current state get there?**
+
+Observed questions include:
+
+- **Student:** What changed?
+- **Attendance:** Who corrected it?
+- **Results:** What was actually published?
+- **Fees:** What was claimed, verified, or corrected?
+- **Communication:** Who received the information and what changed?
+- **Staff:** When did access or assignment change?
+- **Teacher workflow:** What was completed before handover?
+- **Applications:** How did the person become connected to the school?
+- **Identity:** How did the person's relationship with the school change?
+- **Offline:** What happened when two versions of a record existed?
+
+### Product hypothesis
+
+SkulGo may need a lightweight underlying **Record History / Record Events** capability so important school records can preserve meaningful transitions without exposing a large technical audit-log system to ordinary users.
+
+The intended principle is:
+
+> **SkulGo should not only keep the current school record; it should preserve the important history behind it.**
+
+This is a hypothesis, not yet a confirmed product requirement.
+
+### Research rule
+
+Do **not** build a generic audit-log module yet.
+
+Validate the problem through real school conversations and pilot use first. Ask schools about actual incidents such as:
+- corrected student information;
+- disputed or corrected attendance;
+- changed/published results;
+- disputed or corrected payments;
+- changed staff access or assignments;
+- teacher handover;
+- application/connection history;
+- conflicting offline versions.
+
+Do not lead schools toward the proposed solution. Capture the problem in their own words.
+
+### If validated
+
+Start with the smallest useful capability, applied to one existing record type first.
+
+Possible initial event concepts:
+- 'CREATED'
+- 'CHANGED'
+- 'PUBLISHED'
+- 'CORRECTED'
+
+Potential event data may include:
+- record type;
+- record ID;
+- event type;
+- actor;
+- timestamp;
+- previous value;
+- new value;
+- reason where appropriate;
+- source/device/sync metadata where required for offline reconciliation.
+
+Do not create a separate visible 'Audit Logs' product area unless real school use demonstrates that it is necessary.
+
+The preferred UX is contextual history inside the existing record:
+
+**Current record first → important history when useful.**
+
+### Architectural relationship
+
+If validated, Record History should become a shared capability underneath existing records rather than seven separate features.
+
+It should support, where justified:
+- student record changes;
+- attendance corrections;
+- published-result snapshots/corrections;
+- payment claims/verification/corrections;
+- communication audience/change history;
+- staff access/assignment history;
+- school membership/role history;
+- offline conflict resolution.
+
+Do not duplicate existing school records merely to preserve history.
+
+### Decision gate
+
+Before implementation, classify the school evidence:
+
+- **Repeated real problem:** build the smallest useful version.
+- **Occasional but important problem:** research further.
+- **Already handled adequately:** do not build.
+- **Interesting but low-value:** ignore.
+- **Requires a large subsystem:** defer.
+
+This finding should remain below the normal delivery sequence until real school evidence justifies implementation.
