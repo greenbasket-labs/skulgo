@@ -16,16 +16,27 @@ export async function PATCH(
 
   const body = await request.json().catch(() => null);
   const term = String(body?.term ?? "").trim();
-  const studentId = body?.studentId ? String(body.studentId) : null;
+  const publishScope = String(body?.publishScope ?? "").trim().toUpperCase();
   const classId = body?.classId ? String(body.classId) : null;
+  const sectionId = body?.sectionId ? String(body.sectionId) : null;
+
+  if (!["SCHOOL", "SECTION", "CLASS"].includes(publishScope)) {
+    return NextResponse.json({ error: "Publish scope must be whole school, section, or class." }, { status: 400 });
+  }
+  if (publishScope === "SECTION" && !sectionId) {
+    return NextResponse.json({ error: "Select a section to publish." }, { status: 400 });
+  }
+  if (publishScope === "CLASS" && !classId) {
+    return NextResponse.json({ error: "Select a class to publish." }, { status: 400 });
+  }
 
   if (!term) return NextResponse.json({ error: "term is required" }, { status: 400 });
 
   const students = await db.student.findMany({
     where: {
       schoolId,
-      ...(studentId ? { id: studentId } : {}),
-      ...(classId ? { classId } : {}),
+      ...(publishScope === "CLASS" && classId ? { classId } : {}),
+      ...(publishScope === "SECTION" && sectionId ? { class: { sectionId } } : {}),
       class: { section: { name: "Senior Secondary" } },
     },
     select: {
@@ -70,8 +81,8 @@ export async function PATCH(
     where: {
       schoolId,
       term,
-      ...(studentId ? { studentId } : {}),
-      ...(classId ? { student: { classId } } : {}),
+      ...(publishScope === "CLASS" && classId ? { student: { classId } } : {}),
+      ...(publishScope === "SECTION" && sectionId ? { student: { class: { sectionId } } } : {}),
     },
     data: { published: true },
   });
@@ -81,8 +92,8 @@ export async function PATCH(
     actorUserId: user.id,
     action: "PUBLISH",
     entity: "RESULT",
-    entityId: studentId ?? term,
-    details: { term, classId, studentId, count: result.count },
+    entityId: classId ?? sectionId ?? schoolId,
+    details: { term, publishScope, classId, sectionId, count: result.count },
   });
 
   return NextResponse.json({ published: result.count });
