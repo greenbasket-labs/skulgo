@@ -17,6 +17,7 @@ export async function PATCH(
   const body = await request.json().catch(() => null);
   const term = String(body?.term ?? "").trim();
   const studentId = body?.studentId ? String(body.studentId) : null;
+  const classId = body?.classId ? String(body.classId) : null;
 
   if (!term) return NextResponse.json({ error: "term is required" }, { status: 400 });
 
@@ -24,6 +25,7 @@ export async function PATCH(
     where: {
       schoolId,
       ...(studentId ? { id: studentId } : {}),
+      ...(classId ? { classId } : {}),
       class: { section: { name: "Senior Secondary" } },
     },
     select: {
@@ -69,6 +71,7 @@ export async function PATCH(
       schoolId,
       term,
       ...(studentId ? { studentId } : {}),
+      ...(classId ? { student: { classId } } : {}),
     },
     data: { published: true },
   });
@@ -79,7 +82,7 @@ export async function PATCH(
     action: "PUBLISH",
     entity: "RESULT",
     entityId: studentId ?? term,
-    details: { term, studentId, count: result.count },
+    details: { term, classId, studentId, count: result.count },
   });
 
   return NextResponse.json({ published: result.count });
