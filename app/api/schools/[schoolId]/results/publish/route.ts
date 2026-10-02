@@ -54,28 +54,10 @@ export async function PATCH(
     },
   });
 
-  for (const student of students) {
-    const offeredSubjects = new Set(student.assessments.map(item => item.subjectId)).size;
-    const generatedResults = new Set(student.results.map(item => item.subjectId)).size;
+  // Publishing is a batch visibility action. A teacher's "done" submission
+  // locks the records they entered, but incomplete student records must not
+  // block the rest of the class/school from being published.
 
-    if (offeredSubjects < 9) {
-      return NextResponse.json(
-        {
-          error: `Senior Secondary students must offer at least 9 subjects. ${student.firstName} ${student.lastName} currently has ${offeredSubjects} subject(s) with assessment data for this term.`,
-        },
-        { status: 409 }
-      );
-    }
-
-    if (generatedResults < 9) {
-      return NextResponse.json(
-        {
-          error: `Results cannot be published for ${student.firstName} ${student.lastName} until at least 9 offered subjects have generated results.`,
-        },
-        { status: 409 }
-      );
-    }
-  }
 
   const result = await db.result.updateMany({
     where: {
