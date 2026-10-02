@@ -3,13 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import SchoolConnections from "@/components/school-connections";
 import WorkspacePin from "@/components/workspace-pin";
-import AccountIdCopy from "@/components/account-id-copy";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-
-  const accountId = user.referralCode;
 
   const schoolHistory = await db.schoolMembership.findMany({
     where: { userId: user.id },
@@ -19,10 +16,37 @@ export default async function AccountPage() {
 
   return (
     <main className="workspace-main">
-      <div className="workspace-header">
-        <h1>{user.name}</h1>
-        <p className="muted">{user.email}</p>
-      </div>
+      <section className="card" style={{ marginBottom: 18 }}>
+        <h2>School history</h2>
+        {!schoolHistory.length ? (
+          <p className="muted">
+            Your school work history will appear here when a school approves your connection.
+          </p>
+        ) : (
+          <div className="grid" style={{ marginTop: 12 }}>
+            {schoolHistory.map(item => (
+              <div key={item.id}>
+                <strong>{item.school.name}</strong>
+                <p className="muted">
+                  {item.school.abbr} · {item.role} · Started{" "}
+                  {new Date(item.createdAt).toLocaleDateString("en-NG")}
+                </p>
+                {item.active ? (
+                  <p className="muted">Active</p>
+                ) : (
+                  <p className="muted">
+                    Ended{" "}
+                    {item.endedAt
+                      ? new Date(item.endedAt).toLocaleDateString("en-NG")
+                      : ""}
+                    {item.endReason ? " · " + item.endReason : ""}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="card" style={{ marginBottom: 18 }}>
         <h2>Personal profile</h2>
@@ -52,15 +76,11 @@ export default async function AccountPage() {
             </div>
           )}
         </div>
-      </section>
 
-      <section className="card" style={{ marginBottom: 18 }}>
-        <h2>SkulGo Account ID</h2>
-        {accountId ? (
-          <AccountIdCopy accountId={accountId} />
-        ) : (
-          <p className="muted">Account ID unavailable.</p>
-        )}
+        <div style={{ marginTop: 18 }}>
+          <p className="muted">SkulGo Account ID</p>
+          <strong>{user.referralCode || "Unavailable"}</strong>
+        </div>
       </section>
 
       <WorkspacePin configured={Boolean(user.pinHash)} />
@@ -76,32 +96,6 @@ export default async function AccountPage() {
           },
         }))}
       />
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2>School history</h2>
-        {!schoolHistory.length ? (
-          <p className="muted">Your school work history will appear here when a school approves your connection.</p>
-        ) : (
-          <div className="grid" style={{ marginTop: 12 }}>
-            {schoolHistory.map(item => (
-              <div key={item.id}>
-                <strong>{item.school.name}</strong>
-                <p className="muted">
-                  {item.school.abbr} · {item.role} · Started {new Date(item.createdAt).toLocaleDateString("en-NG")}
-                </p>
-                {item.active ? (
-                  <p className="muted">Active</p>
-                ) : (
-                  <p className="muted">
-                    Ended {item.endedAt ? new Date(item.endedAt).toLocaleDateString("en-NG") : ""}
-                    {item.endReason ? " · " + item.endReason : ""}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </main>
   );
 }
