@@ -34,7 +34,6 @@ export default async function Dashboard() {
           <h1>Welcome, {u.name}</h1>
           <p>Your personal profile is ready. Connect to a school to enter school records.</p>
           <div className="grid grid-2" style={{ marginTop: 16 }}>
-            <Link className="button" href="/schools">Find a school</Link>
             <Link className="button" href="/register">Register a school</Link>
             <Link className="button" href="/account">My profile</Link>
           </div>
@@ -399,7 +398,6 @@ export default async function Dashboard() {
         </nav>
         <div className="workspace-nav" style={{ marginTop: 18 }}>
           <p className="muted" style={{ margin: "0 0 8px" }}>Personal account</p>
-          <Link href="/schools">Find a school</Link>
           <Link href="/register">Register a school</Link>
           <Link href="/account">My profile</Link>
         </div>
