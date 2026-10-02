@@ -363,14 +363,60 @@ export default function ResultsPage() {
             </div>
           )}
         </div>
+      ) : role === "ADMIN" ? (
+        !results.length ? (
+          <div className="card">
+            <strong>No result available.</strong>
+            <p className="muted">Generate results first, then review the class before publishing.</p>
+          </div>
+        ) : (
+          <div className="grid">
+            <div className="card">
+              <strong>{selectedClass ? selectedClass.name + (selectedClass.arm ? ` ${selectedClass.arm}` : "") : "All classes"}</strong>
+              <p className="muted">{term} · {adminSummaries.length} student(s)</p>
+            </div>
+            {adminSummaries.filter(summary => !studentId || summary.studentId === studentId).map(summary => {
+              const student = summary.items[0].student;
+              const studentAssessments = assessments.filter(item => item.studentId === summary.studentId);
+              const enabledComponents = (studentAssessments[0]?.assessmentSetup?.components ?? []).filter(component => component.enabled);
+              return (
+                <div className="card" key={summary.studentId} style={{ overflowX: "auto" }}>
+                  <strong>{student.firstName} {student.lastName}</strong>
+                  <p className="muted">{student.admissionId} · Aggregate {summary.aggregate.toFixed(2)} · Average {summary.average.toFixed(2)}% · Position {summary.position}</p>
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", padding: "8px 6px" }}>Subject</th>
+                        {enabledComponents.map(component => <th key={component.key} style={{ textAlign: "right", padding: "8px 6px" }}>{component.name}</th>)}
+                        <th style={{ textAlign: "right", padding: "8px 6px" }}>Total</th>
+                        <th style={{ textAlign: "right", padding: "8px 6px" }}>Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {summary.items.map(item => {
+                        const assessment = studentAssessments.find(record => record.subject.name === item.subject.name);
+                        return (
+                          <tr key={item.id}>
+                            <td style={{ padding: "8px 6px" }}>{item.subject.name}</td>
+                            {enabledComponents.map(component => (
+                              <td key={component.key} style={{ textAlign: "right", padding: "8px 6px" }}>{assessment?.[component.key] ?? "—"}</td>
+                            ))}
+                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{item.total}</td>
+                            <td style={{ textAlign: "right", padding: "8px 6px" }}>{item.grade}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : !results.length ? (
         <div className="card">
           <strong>No result available.</strong>
-          <p className="muted">
-            {role === "TEACHER"
-              ? "Generate a result from saved assessments."
-              : "Publish generated results when the school is ready."}
-          </p>
+          <p className="muted">Publish generated results when the school is ready.</p>
         </div>
       ) : (
         Object.entries(grouped).map(([key, items]) => (
@@ -381,10 +427,7 @@ export default function ResultsPage() {
               {items.map(item => (
                 <div key={item.id}>
                   <strong>{item.subject.name}</strong>
-                  <p className="muted">
-                    {item.total}/100 · Grade {item.grade} · Position {item.position}
-                    {!item.published && " · Draft"}
-                  </p>
+                  <p className="muted">{item.total}/100 · Grade {item.grade}</p>
                 </div>
               ))}
             </div>
