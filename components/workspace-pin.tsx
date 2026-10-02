@@ -31,15 +31,28 @@ export default function WorkspacePin({ configured }: { configured: boolean }) {
     setMessage(configured ? "School workspace PIN updated." : "Workspace PIN created.");
   }
 
+  const [open, setOpen] = useState(false);
+
   return (
     <section className="card" style={{ marginBottom: 18 }}>
-      <h2>Workspace PIN</h2>
-      <p className="muted">
-        {configured
-          ? "Your account password signs you in. Your 4–6 digit PIN unlocks a school workspace."
-          : "Set a 4-6 digit PIN. You will need it before entering a school workspace."}
-      </p>
-      <form onSubmit={save} className="grid" style={{ marginTop: 16, maxWidth: 420 }}>
+      <button
+        type="button"
+        className="card"
+        onClick={() => setOpen(value => !value)}
+        aria-expanded={open}
+        style={{ width: "100%", textAlign: "left", cursor: "pointer", padding: 0 }}
+      >
+        <strong>Workspace PIN</strong>
+        <span className="muted" style={{ marginLeft: 10 }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <>
+          <p className="muted" style={{ marginTop: 12 }}>
+            {configured
+              ? "Your account password signs you in. Your 4–6 digit PIN unlocks a school workspace."
+              : "Set a 4-6 digit PIN. You will need it before entering a school workspace."}
+          </p>
+          <form onSubmit={save} className="grid" style={{ marginTop: 16, maxWidth: 420 }}>
         <label className="grid">
           <span>{configured ? "New PIN" : "PIN"}</span>
           <input
@@ -73,8 +86,10 @@ export default function WorkspacePin({ configured }: { configured: boolean }) {
         <button className="button" disabled={busy}>
           {busy ? "Saving…" : configured ? "Change PIN" : "Create PIN"}
         </button>
-      </form>
-      {message && <p>{message}</p>}
+          </form>
+          {message && <p>{message}</p>}
+        </>
+      )}
     </section>
   );
 }
