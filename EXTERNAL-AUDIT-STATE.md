@@ -225,3 +225,13 @@ No full security, end-to-end, restore, compliance or affordability check is curr
 
 For every finding, compare **intended behavior** (README/HANDOVER or owner-confirmed rule) with **observed behavior** (code or reproducible test). Record evidence and the exact gap. If intent is ambiguous, ask before changing it. Recommend the smallest safe fix and document its commit plus regression proof. Do not overbuild or change application code without explicit owner instruction.
 
+
+
+### F-01 evidence update — Render build logs (2026-10-09)
+
+The Render service configuration and build logs were inspected. The deployment log explicitly shows the production build command invoking `npm run db:push:prod`, and the expanded command includes `prisma db push --schema prisma/schema.production.prisma --accept-data-loss`. The deployment then reached **Live**. The helper logs report “Workspace code preparation complete. Populated 0 existing membership record(s)” and “School subscription backfill complete. Created 0 record(s).”
+
+**Assessment:** This confirms the risky schema-sync command is executed as part of the configured production build, not merely present in the repository. No data loss is evidenced in the retrieved logs, and these logs do not prove whether Prisma made any schema changes. Do not state that data was lost. Keep F-01 **High / OPEN — CONFIRMED CONFIGURATION** until the deployment strategy is made safe and production recovery has been verified.
+
+**Next safe action:** Do not trigger another deployment or manually run this script for testing. Inspect the live PostgreSQL schema and available backup/restore evidence using non-destructive/read-only checks. Any migration-path change must be reviewed and tested against a disposable database before production use.
+
