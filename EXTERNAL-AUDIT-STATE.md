@@ -173,3 +173,55 @@ For affordability, collect the actual hosting, managed PostgreSQL, email deliver
 ## 7. Change log
 
 - **2026-10-09:** Created the initial external audit checkpoint from selected files in `greenbasket-labs/skulgo` on `main`. Recorded preliminary findings F-01 through F-08. No application code changed.
+
+
+## 8. Ongoing audit register
+
+Update this register as the review progresses. Preserve finding IDs and history after fixes. Audit-document edits do not authorize application-code changes.
+
+### Severity
+- **Critical:** Confirmed severe compromise, widespread sensitive-data exposure/loss, or major outage requiring immediate containment.
+- **High:** Serious security, privacy, data-integrity, or recovery risk. If not proven, label it a high-priority review item rather than a confirmed bug.
+- **Medium:** Meaningful reliability, workflow, control, or readiness gap.
+- **Low:** Limited-impact defect or minor hardening/documentation issue.
+- **Informational:** Context or positive observation, not a defect.
+
+### Status
+- **OPEN — CONFIRMED:** Direct evidence of a defect or unsafe configuration.
+- **OPEN — VERIFY:** Risk exists but defect not demonstrated, or key evidence is missing.
+- **NEEDS INTENDED RULE:** Confirm owner intent before deciding whether behavior is a bug.
+- **FIX IN PROGRESS:** Authorized fix underway.
+- **FIXED — UNVERIFIED:** Code changed but regression test has not passed.
+- **PASS — VERIFIED:** Named requirement passed a documented test in a stated environment; only that scope passes.
+- **ACCEPTED RISK:** Owner explicitly accepts documented risk; this is not a pass.
+- **NOT APPLICABLE:** Evidence and rationale show the requirement does not apply.
+
+### Current register (updated 2026-10-09)
+
+| ID | Intended outcome | Severity | Status | Bug/evidence state | Next action |
+|---|---|---|---|---|---|
+| F-01 | Production schema changes must not unexpectedly destroy data | High | OPEN — CONFIRMED CONFIGURATION | Render service config confirms build command is `npm run build:prod`; package script invokes `prisma db push --schema prisma/schema.production.prisma --accept-data-loss`. Latest deploy of commit `8231c4962fad0912345cd0d63689d49c6020bc65` is Live. No data loss has been observed; whether this exact command caused a destructive change is not known. | Review deploy logs and current schema/migration procedure; establish safe migration path and verified restore. Do not trigger another deploy for testing. |
+| F-02 | School records isolated by school, role and object ownership | High | OPEN — VERIFY | No universal bypass demonstrated; route-wide negative tests not run. | Build role/route/object matrix and test cross-school IDs, inactive memberships and wrong duties. |
+| F-03 | Critical workflows have automated regression coverage | Medium | OPEN — CONFIRMED CONFIGURATION | CI workflow does not run E2E suite. | Verify isolated E2E setup; add critical-flow tests. |
+| F-04 | School records can be recovered after loss or bad changes | High | OPEN — VERIFY | Restore readiness not evidenced; actual backup state unknown. | Inspect backup settings and complete a non-production restore drill. |
+| F-05 | Offline data does not leak between users/schools; queued writes are reauthorized | High | OPEN — VERIFY | localStorage queue/cache observed; leak or unauthorized replay not demonstrated. | Test logout, account/workspace switch, revoked membership, replay and duplicate sync. |
+| F-06 | Authentication/session lifecycle resists abuse and supports revocation | High | OPEN — VERIFY | Partial positive controls observed; full flow tests absent. | Review auth routes; test throttling, reset/revocation, CSRF, expiry and recovery. |
+| F-07 | Result publishing follows intended SCHOOL/SECTION/CLASS rules | Medium | NEEDS INTENDED RULE | Possible query-scope mismatch; incorrect publication not demonstrated. | Confirm intended behavior, then test representative terms/classes/sections. |
+| F-08 | Official readiness and affordability reflect actual obligations and costs | Medium | OPEN — VERIFY | Not assessed; no compliance conclusion or verified cost figures. | Identify target institutions and applicable requirements; gather real provider/support costs. |
+
+### Verified-pass register
+
+No full security, end-to-end, restore, compliance or affordability check is currently **PASS — VERIFIED** in this audit. Positive observations in Section 4 are not end-to-end passes.
+
+| Check | Exact requirement/scope | Test/environment | Result | Evidence/commit | Date | Limitation |
+|---|---|---|---|---|---|---|
+| — | No verified passes recorded in this checkpoint | Not run / not evidenced | Not assessed | — | 2026-10-09 | Preliminary review only |
+
+### Fix and regression history
+
+| Finding | Root cause | Fix commit/PR | Regression test/result | Status | Remaining risk |
+|---|---|---|---|---|---|
+| — | No application fixes made by this audit | — | Not run | Findings remain open | — |
+
+For every finding, compare **intended behavior** (README/HANDOVER or owner-confirmed rule) with **observed behavior** (code or reproducible test). Record evidence and the exact gap. If intent is ambiguous, ask before changing it. Recommend the smallest safe fix and document its commit plus regression proof. Do not overbuild or change application code without explicit owner instruction.
+
